@@ -1,6 +1,6 @@
-// Tipos compartidos para toda la aplicación
+// Shared types for the entire application
 
-// === Tipos del Chatbot ===
+// === Chatbot Types ===
 export interface JiraWebhookPayload {
     webhookEvent: string;
     issue: {
@@ -43,7 +43,7 @@ export interface JiraWebhookPayload {
     error?: string;
   }
   
-  // === Tipos del Formulario de Contacto ===
+  // === Contact Form Types ===
   export interface ContactFormData {
     name: string;
     email: string;
@@ -64,7 +64,7 @@ export interface JiraWebhookPayload {
     fallbackEmail?: boolean;
   }
   
-  // === Tipos de Jira ===
+  // === Jira Types ===
   export interface JiraIssueRequest {
     fields: {
       project: {
@@ -79,10 +79,10 @@ export interface JiraWebhookPayload {
         name: string;
       };
       labels?: string[];
-      customfield_10000?: string; // Email del contacto
-      customfield_10001?: string; // Teléfono del contacto
-      customfield_10002?: string; // Empresa del contacto
-      [key: string]: unknown; // Permite agregar campos personalizados dinámicos
+      customfield_10000?: string; // Contact email
+      customfield_10001?: string; // Contact phone
+      customfield_10002?: string; // Contact company
+      [key: string]: unknown; // Allows adding dynamic custom fields
     };
   }
   
@@ -92,7 +92,7 @@ export interface JiraWebhookPayload {
     self: string;
   }
   
-  // === Tipos de Email ===
+  // === Email Types ===
   export interface EmailRequest {
     to: string | string[];
     subject: string;

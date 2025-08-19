@@ -22,7 +22,7 @@ export class JiraService {
       project: {
         key: this.projectKey
       },
-      summary: `Contacto Web: ${formData.name} - ${formData.company || 'Sin empresa'}`,
+      summary: `Web Contact: ${formData.name} - ${formData.company || 'No company'}`,
       description: this.formatContactDescription(formData),
       issuetype: {
         name: 'Task'
@@ -33,7 +33,7 @@ export class JiraService {
       labels: ['contacto-web', 'lead']
     };
 
-    // Campos personalizados opcionales, definidos por variables de entorno
+    // Optional custom fields, defined by environment variables
     const emailFieldId = process.env.JIRA_FIELD_EMAIL;   // e.g., customfield_10000
     const phoneFieldId = process.env.JIRA_FIELD_PHONE;   // e.g., customfield_10001
     const companyFieldId = process.env.JIRA_FIELD_COMPANY; // e.g., customfield_10002
@@ -81,19 +81,19 @@ export class JiraService {
 
   private formatContactDescription(formData: ContactFormData): string {
     return `
-*Nuevo contacto desde el sitio web*
+*New contact from website*
 
-*Nombre:* ${formData.name}
+*Name:* ${formData.name}
 *Email:* ${formData.email}
-*Empresa:* ${formData.company || 'No especificada'}
-*Teléfono:* ${formData.phone || 'No proporcionado'}
-*Fuente:* ${formData.source || 'Formulario web'}
+*Company:* ${formData.company || 'Not specified'}
+*Phone:* ${formData.phone || 'Not provided'}
+*Source:* ${formData.source || 'Web form'}
 
-*Mensaje:*
+*Message:*
 ${formData.message}
 
 ---
-_Ticket creado automáticamente el ${new Date().toLocaleString('es-MX', { 
+_Ticket automatically created on ${new Date().toLocaleString('en-US', { 
   timeZone: 'America/Mexico_City' 
 })}_
     `.trim();

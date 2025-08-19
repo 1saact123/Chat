@@ -59,7 +59,7 @@ class MovonteAPI {
     // Ruta por defecto
     this.app.get('/', (req: Request, res: Response) => {
       res.json({
-        message: '🚀 Movonte API - Chatbot & Contact Service',
+        message: 'Movonte API - Chatbot & Contact Service',
         version: '1.0.0',
         status: 'running',
         endpoints: {
@@ -92,7 +92,7 @@ class MovonteAPI {
   private setupErrorHandling(): void {
     // Manejo global de errores
     this.app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
-      console.error('❌ Error no manejado:', error);
+      console.error('Error no manejado:', error);
       
       res.status(500).json({
         success: false,
@@ -107,38 +107,38 @@ class MovonteAPI {
 
     // Manejo de promesas rechazadas
     process.on('unhandledRejection', (reason, promise) => {
-      console.error('❌ Promesa rechazada no manejada:', reason);
+      console.error('Promesa rechazada no manejada:', reason);
     });
 
     // Manejo de excepciones no capturadas
     process.on('uncaughtException', (error) => {
-      console.error('❌ Excepción no capturada:', error);
+      console.error('Excepción no capturada:', error);
       process.exit(1);
     });
   }
 
   public start(): void {
     this.app.listen(this.port, () => {
-      console.log('\n🚀 Movonte API iniciada exitosamente!');
-      console.log(`📡 Servidor ejecutándose en puerto ${this.port}`);
-      console.log(`🌍 URL: http://localhost:${this.port}`);
-      console.log('\n📋 Endpoints disponibles:');
+      console.log('\nMovonte API iniciada exitosamente!');
+      console.log(`Servidor ejecutándose en puerto ${this.port}`);
+      console.log(`URL: http://localhost:${this.port}`);
+      console.log('\nEndpoints disponibles:');
       console.log(`   Health Check: http://localhost:${this.port}/health`);
       console.log(`   Contact Form: POST http://localhost:${this.port}/api/contact`);
       console.log(`   Jira Test: http://localhost:${this.port}/api/contact/test-jira`);
       console.log(`   Chatbot Webhook: POST http://localhost:${this.port}/api/chatbot/webhook/jira`);
       console.log(`   Direct Chat: POST http://localhost:${this.port}/api/chatbot/chat`);
-      console.log('\n✅ API lista para recibir solicitudes\n');
+      console.log('\nAPI lista para recibir solicitudes\n');
     });
   }
 }
 
 // Iniciar la aplicación
 if (require.main === module) {
-  console.log('🔧 Validando configuración...');
+  console.log('Validando configuración...');
   validateEnvironmentVariables();
   
-  console.log('🚀 Iniciando Movonte API...');
+  console.log('Iniciando Movonte API...');
   const api = new MovonteAPI();
   api.start();
 }

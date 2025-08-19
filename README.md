@@ -1,16 +1,16 @@
-# 🚀 Movonte API - Chatbot and Contact Form with Jira
+# Movonte API - Chatbot and Contact Form with Jira
 
 Unified API to integrate a chatbot with OpenAI and contact forms with Jira, developed in TypeScript.
 
-## 📋 Features
+## Features
 
-- 🤖 **Chatbot with OpenAI Assistants API**
-- 📝 **Automated contact form**
-- 🎫 **Jira integration for tickets**
-- 📧 **Email fallback system**
-- 🔄 **Webhooks for Jira updates**
+- **Chatbot with OpenAI Assistants API**
+- **Automated contact form**
+- **Jira integration for tickets**
+- **Email fallback system**
+- **Webhooks for Jira updates**
 
-## 🛠️ Technologies
+## Technologies
 
 - **Backend:** Node.js + TypeScript
 - **Framework:** Express.js
@@ -19,7 +19,7 @@ Unified API to integrate a chatbot with OpenAI and contact forms with Jira, deve
 - **Email:** Nodemailer
 - **Authentication:** Basic Auth (Jira)
 
-## 📦 Installation
+## Installation
 
 ### 1. Clone the repository
 ```bash
@@ -59,7 +59,7 @@ EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Jira Setup
 
@@ -94,7 +94,7 @@ If you want to use custom fields in Jira:
    - **Model:** GPT-4 or GPT-3.5-turbo
 4. Save and copy the Assistant ID from the URL
 
-## 🧪 Testing
+## Testing
 
 ### Test Jira
 ```bash
@@ -111,7 +111,7 @@ npm run test-openai
 npm run list-assistants
 ```
 
-## 🚀 Development
+## Development
 
 ### Build
 ```bash
@@ -129,7 +129,7 @@ npm run build
 npm start
 ```
 
-## ⚠️ Known Issues and Solutions
+## Known Issues and Solutions
 
 ### Error: "ESM syntax is not allowed in a CommonJS module"
 **Cause:** Conflict between ESM and CommonJS modules
@@ -161,7 +161,7 @@ npm start
 - Verify that the Assistant ID is correct
 - Use personal API key with full permissions
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 src/
@@ -173,7 +173,7 @@ src/
 └── app.ts          # Entry point
 ```
 
-## 🔌 Endpoints
+## Endpoints
 
 ### POST /api/chat
 Start or continue a conversation with the chatbot
@@ -184,7 +184,7 @@ Send contact form and create ticket in Jira
 ### GET /api/health
 Check API status
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the project
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
@@ -192,15 +192,15 @@ Check API status
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👥 Authors
+## Authors
 
 - **Movonte** - *Initial development*
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - OpenAI for the Assistants API
 - Atlassian for the Jira API

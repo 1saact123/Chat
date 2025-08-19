@@ -6,40 +6,40 @@ import { JiraService } from '../services/jira_service';
 import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
 
-// Inicializar servicios
+// Initialize services
 const jiraService = new JiraService();
 const emailService = new EmailService();
 const openaiService = new OpenAIService();
 
-// Inicializar controladores
+// Initialize controllers
 const contactController = new ContactController(jiraService, emailService);
 const chatbotController = new ChatbotController(openaiService, emailService);
 const healthController = new HealthController();
 
 const router = Router();
 
-// === RUTAS DE SALUD ===
+// === HEALTH ROUTES ===
 router.get('/health', healthController.healthCheck.bind(healthController));
 router.get('/health/detailed', healthController.detailedHealth.bind(healthController));
 
-// === RUTAS DE CONTACTO ===
+// === CONTACT ROUTES ===
 router.post('/api/contact', contactController.submitContactForm.bind(contactController));
 router.get('/api/contact/test-jira', contactController.testJiraConnection.bind(contactController));
 
-// === RUTAS DEL CHATBOT ===
-// Webhook de Jira
+// === CHATBOT ROUTES ===
+// Jira webhook
 router.post('/api/chatbot/webhook/jira', chatbotController.handleJiraWebhook.bind(chatbotController));
 
-// Chat directo
+// Direct chat
 router.post('/api/chatbot/chat', chatbotController.handleDirectChat.bind(chatbotController));
 
-// Historial de hilos
+// Thread history
 router.get('/api/chatbot/thread/:threadId', chatbotController.getThreadHistory.bind(chatbotController));
 
-// Listar hilos activos
+// List active threads
 router.get('/api/chatbot/threads', chatbotController.listActiveThreads.bind(chatbotController));
 
-// Enviar email con contexto de chat
+// Send email with chat context
 router.post('/api/chatbot/email/send-with-context', chatbotController.sendEmailWithChatContext.bind(chatbotController));
 
 export default router;

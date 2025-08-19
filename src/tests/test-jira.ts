@@ -6,12 +6,12 @@ async function main(): Promise<void> {
     const jiraService = new JiraService();
 
     try {
-        console.log('🔍 Probando conexión con Jira...');
+        console.log('Testing connection with Jira...');
         const projectInfo = await jiraService.testConnection();
-        console.log('✅ Conexión exitosa');
-        console.log('📋 Proyecto:', projectInfo?.name, '| 🔑 Key:', projectInfo?.key);
+        console.log('Successful connection');
+        console.log('Project:', projectInfo?.name, '| Key:', projectInfo?.key);
 
-        console.log('\n📝 Probando creación de ticket...');
+        console.log('\nTesting ticket creation...');
         const testFormData: ContactFormData = {
             name: 'Test User',
             email: 'test@example.com',
@@ -22,20 +22,20 @@ async function main(): Promise<void> {
         };
 
         const ticket = await jiraService.createContactIssue(testFormData);
-        console.log('✅ Ticket creado exitosamente');
-        console.log('🎫 Ticket Key:', ticket.key);
-        console.log('🔗 URL:', `${process.env.JIRA_BASE_URL}/browse/${ticket.key}`);
+        console.log('Ticket created successfully');
+        console.log('Ticket Key:', ticket.key);
+        console.log('URL:', `${process.env.JIRA_BASE_URL}/browse/${ticket.key}`);
     } catch (error: any) {
-        console.error('❌ Error:', error?.message ?? error);
+        console.error('Error:', error?.message ?? error);
         if (error?.response) {
-            console.error('📊 Status:', error.response.status);
-            console.error('📄 Response:', error.response.data);
+            console.error('Status:', error.response.status);
+            console.error('Response:', error.response.data);
         }
-        console.log('\n🔧 Verifica tu configuración:');
+        console.log('\nVerify your configuration:');
         console.log('- JIRA_BASE_URL:', process.env.JIRA_BASE_URL);
         console.log('- JIRA_PROJECT_KEY:', process.env.JIRA_PROJECT_KEY);
         console.log('- JIRA_EMAIL:', process.env.JIRA_EMAIL);
-        console.log('- JIRA_API_TOKEN:', process.env.JIRA_API_TOKEN ? '✅ Configurado' : '❌ Faltante');
+        console.log('- JIRA_API_TOKEN:', process.env.JIRA_API_TOKEN ? 'Configured' : 'Missing');
         process.exitCode = 1;
     }
 }

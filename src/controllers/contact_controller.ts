@@ -14,7 +14,7 @@ export class ContactController {
     try {
       const formData: ContactFormData = req.body;
       
-      // Validar datos requeridos
+      // Validate required data
       if (!formData.name || !formData.email || !formData.message) {
         res.status(400).json({
           success: false,
@@ -23,7 +23,7 @@ export class ContactController {
         return;
       }
 
-      // Validar email
+      // Validate email
       if (!isValidEmail(formData.email)) {
         res.status(400).json({
           success: false,
@@ -32,13 +32,13 @@ export class ContactController {
         return;
       }
 
-      console.log('Procesando formulario de contacto:', { 
-        name: formData.name, 
+      console.log('Processing contact form:', { 
+        name: formData.name,
         email: formData.email,
         company: formData.company || 'N/A'
       });
 
-      // Intentar crear issue en Jira
+      // Try to create issue in Jira
       try {
         const jiraIssue = await this.jiraService.createContactIssue(formData);
         
@@ -55,33 +55,33 @@ export class ContactController {
         console.log(`Ticket de Jira creado exitosamente: ${jiraIssue.key}`);
         
       } catch (jiraError) {
-        console.error('Error creando ticket en Jira, enviando por email como fallback:', jiraError);
+        console.error('Error creating Jira ticket, sending via email as fallback:', jiraError);
         
-        // Fallback: enviar por email
+        // Fallback: send by email
         try {
           await this.emailService.sendContactFormFallback(formData);
           
           const response: ContactApiResponse = {
             success: true,
             fallbackEmail: true,
-            error: 'No se pudo crear el ticket en Jira, se envió por email como alternativa'
+            error: 'Could not create ticket in Jira, sent by email as an alternative'
           };
 
           res.json(response);
         } catch (emailError) {
-          console.error('Error enviando email fallback:', emailError);
+          console.error('Error sending fallback email:', emailError);
           res.status(500).json({
             success: false,
-            error: 'No se pudo procesar el formulario. Por favor intenta de nuevo.'
+            error: 'Could not process the form. Please try again.'
           });
         }
       }
 
     } catch (error) {
-      console.error('Error procesando formulario de contacto:', error);
+      console.error('Error processing contact form:', error);
       res.status(500).json({
         success: false,
-        error: 'Error interno del servidor'
+        error: 'Internal server error'
       });
     }
   }
@@ -93,16 +93,16 @@ export class ContactController {
       res.json({
         success: true,
         project,
-        message: 'Conexión a Jira exitosa'
+        message: 'Successful connection to Jira'
       });
 
     } catch (error) {
-      console.error('Error conectando a Jira:', error);
+      console.error('Error connecting to Jira:', error);
       
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       res.status(500).json({
         success: false,
-        error: `Error de Jira: ${errorMessage}`
+        error: `Jira error: ${errorMessage}`
       });
     }
   }
