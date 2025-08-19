@@ -23,7 +23,7 @@ Unified API to integrate a chatbot with OpenAI and contact forms with Jira, deve
 
 ### 1. Clone the repository
 ```bash
-git clone <your-repository>
+git clone https://github.com/1saact123/Chat.git
 cd newChat
 ```
 
