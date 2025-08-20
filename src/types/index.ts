@@ -19,7 +19,8 @@ export interface JiraWebhookPayload {
       body: string;
       author: {
         displayName: string;
-        emailAddress: string;
+        emailAddress?: string;
+        accountId: string;
       };
       created: string;
     };

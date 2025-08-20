@@ -5,17 +5,57 @@ import { JiraWebhookPayload } from '../types';
 
 export class ChatbotController {
   private processedComments = new Set<string>();
+  private lastResponseTime = new Map<string, number>(); // Para throttling por issue
+  private webhookStats = {
+    totalReceived: 0,
+    duplicatesSkipped: 0,
+    aiCommentsSkipped: 0,
+    successfulResponses: 0,
+    errors: 0,
+    throttledRequests: 0,
+    lastReset: new Date()
+  };
 
   constructor(
     private openaiService: OpenAIService,
     private emailService: EmailService | null
   ) {}
 
+  // Método privado para obtener estadísticas de webhooks
+  private getWebhookStatsData() {
+    return {
+      ...this.webhookStats,
+      processedCommentsCount: this.processedComments.size,
+      uptime: Date.now() - this.webhookStats.lastReset.getTime()
+    };
+  }
+
+  // Método privado para limpiar estadísticas
+  private resetWebhookStatsData() {
+    this.webhookStats = {
+      totalReceived: 0,
+      duplicatesSkipped: 0,
+      aiCommentsSkipped: 0,
+      successfulResponses: 0,
+      errors: 0,
+      throttledRequests: 0,
+      lastReset: new Date()
+    };
+    this.processedComments.clear();
+    this.lastResponseTime.clear();
+    console.log('🔄 Webhook stats reset');
+  }
+
   async handleJiraWebhook(req: Request, res: Response): Promise<void> {
     try {
       const payload: JiraWebhookPayload = req.body;
+      this.webhookStats.totalReceived++;
       
-      console.log(`Received Jira webhook: ${payload.webhookEvent} for issue ${payload.issue.key}`);
+      console.log(`\n📥 WEBHOOK RECIBIDO #${this.webhookStats.totalReceived}`);
+      console.log(`   Evento: ${payload.webhookEvent}`);
+      console.log(`   Issue: ${payload.issue.key}`);
+      console.log(`   Usuario: ${payload.comment?.author?.displayName || 'N/A'}`);
+      console.log(`   Timestamp: ${new Date().toISOString()}`);
       
       // Solo procesar eventos de comentarios
       if (payload.webhookEvent === 'comment_created' && payload.comment) {
@@ -24,8 +64,10 @@ export class ChatbotController {
         
         // Verificar si ya procesamos este comentario
         if (this.processedComments.has(commentId)) {
-          console.log(`Comment already processed: ${commentId}`);
-          res.json({ success: true, message: 'Comment already processed' });
+          this.webhookStats.duplicatesSkipped++;
+          console.log(`⚠️  DUPLICADO DETECTADO: ${commentId}`);
+          console.log(`   Estadísticas: ${this.webhookStats.duplicatesSkipped} duplicados de ${this.webhookStats.totalReceived} total`);
+          res.json({ success: true, message: 'Comment already processed', duplicate: true });
           return;
         }
         
@@ -37,18 +79,96 @@ export class ChatbotController {
           const commentsArray = Array.from(this.processedComments);
           this.processedComments.clear();
           commentsArray.slice(-50).forEach(id => this.processedComments.add(id));
+          console.log(`🧹 Limpieza: ${this.processedComments.size} comentarios en memoria`);
         }
         
-        // Verificar que no sea un comentario de la IA
-        if (payload.comment.author.displayName.toLowerCase().includes('ai') || 
-            payload.comment.author.displayName.toLowerCase().includes('assistant') ||
-            payload.comment.body.toLowerCase().includes('ai response')) {
-          console.log(`Skipping AI comment: ${commentId}`);
-          res.json({ success: true, message: 'Skipped AI comment' });
+        // Verificar que no sea un comentario de la IA (detección mejorada)
+        const authorName = payload.comment.author.displayName.toLowerCase();
+        const authorEmail = payload.comment.author.emailAddress?.toLowerCase() || '';
+        const commentBody = payload.comment.body.toLowerCase();
+        const authorAccountId = payload.comment.author.accountId;
+        
+        // Detectar por autor
+        const isAIAuthor = authorName.includes('ai') || 
+                          authorName.includes('assistant') || 
+                          authorName.includes('bot') ||
+                          authorName.includes('movonte') ||
+                          authorName.includes('automation') ||
+                          authorEmail.includes('bot') ||
+                          authorEmail.includes('noreply') ||
+                          authorEmail.includes('automation');
+        
+        // Detectar por contenido
+        const isAIComment = commentBody.includes('ai response') || 
+                           commentBody.includes('asistente') || 
+                           commentBody.includes('automático') ||
+                           commentBody.includes('soy un asistente') ||
+                           commentBody.includes('como asistente') ||
+                           commentBody.includes('movonte') ||
+                           commentBody.includes('puedo ayudarte') ||
+                           commentBody.includes('¿en qué puedo ayudarte?') ||
+                           commentBody.includes('gracias por contactar') ||
+                           commentBody.includes('respuesta automática');
+        
+        // Detectar por ID de cuenta específico (si sabemos cuál es)
+        const knownBotAccountIds = [
+          'bot-account-id', // Reemplazar con IDs reales si los conoces
+          'automation-account-id'
+        ];
+        const isKnownBot = knownBotAccountIds.includes(authorAccountId);
+        
+        // Detectar comentarios muy recientes (posible loop)
+        const commentCreated = new Date(payload.comment.created);
+        const currentTime = new Date();
+        const timeDiff = currentTime.getTime() - commentCreated.getTime();
+        const isVeryRecent = timeDiff < 5000; // Menos de 5 segundos
+        
+        if (isAIAuthor || isAIComment || isKnownBot) {
+          this.webhookStats.aiCommentsSkipped++;
+          console.log(`🤖 COMENTARIO DE IA DETECTADO:`);
+          console.log(`   Autor: ${payload.comment.author.displayName}`);
+          console.log(`   Email: ${payload.comment.author.emailAddress || 'N/A'}`);
+          console.log(`   Account ID: ${authorAccountId}`);
+          console.log(`   Contenido: ${payload.comment.body.substring(0, 150)}...`);
+          console.log(`   Razón: ${isAIAuthor ? 'Autor IA' : isAIComment ? 'Contenido IA' : 'Bot conocido'}`);
+          console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios de IA saltados`);
+          res.json({ success: true, message: 'Skipped AI comment', aiComment: true });
           return;
         }
         
+        // Advertencia si el comentario es muy reciente
+        if (isVeryRecent) {
+          console.log(`⚠️  ADVERTENCIA: Comentario muy reciente (${timeDiff}ms) - posible loop`);
+        }
+        
+        // Sistema de throttling para evitar respuestas muy rápidas
+        const issueKey = payload.issue.key;
+        const nowTimestamp = Date.now();
+        const lastResponse = this.lastResponseTime.get(issueKey) || 0;
+        const timeSinceLastResponse = nowTimestamp - lastResponse;
+        const THROTTLE_DELAY = 10000; // 10 segundos entre respuestas por issue
+        
+        if (timeSinceLastResponse < THROTTLE_DELAY) {
+          this.webhookStats.throttledRequests++;
+          const remainingTime = Math.ceil((THROTTLE_DELAY - timeSinceLastResponse) / 1000);
+          console.log(`🚫 THROTTLING: Demasiado pronto para responder a ${issueKey}`);
+          console.log(`   Tiempo desde última respuesta: ${Math.ceil(timeSinceLastResponse / 1000)}s`);
+          console.log(`   Tiempo restante: ${remainingTime}s`);
+          console.log(`   Estadísticas: ${this.webhookStats.throttledRequests} requests throttled`);
+          res.json({ 
+            success: true, 
+            message: `Throttled - wait ${remainingTime}s`, 
+            throttled: true,
+            remainingTime 
+          });
+          return;
+        }
+        
+        console.log(`✅ PROCESANDO COMENTARIO: ${commentId}`);
         const response = await this.openaiService.processJiraComment(payload);
+        
+        // Actualizar tiempo de última respuesta
+        this.lastResponseTime.set(issueKey, nowTimestamp);
         
         // Si la IA respondió exitosamente, agregar el comentario a Jira
         if (response.success && response.response) {
@@ -58,20 +178,33 @@ export class ChatbotController {
             const jiraService = new JiraService();
             
             // Agregar comentario de la IA a Jira
-            await jiraService.addCommentToIssue(payload.issue.key, response.response);
-            console.log(`AI response added as comment to ${payload.issue.key}`);
+            const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, response.response);
+            this.webhookStats.successfulResponses++;
+            
+            // Guardar el account ID de la IA para futuras detecciones
+            if (jiraResponse && jiraResponse.author && jiraResponse.author.accountId) {
+              console.log(`📝 Account ID de la IA detectado: ${jiraResponse.author.accountId}`);
+            }
+            
+            console.log(`🎯 RESPUESTA DE IA AGREGADA A JIRA:`);
+            console.log(`   Issue: ${payload.issue.key}`);
+            console.log(`   Respuesta: ${response.response.substring(0, 100)}...`);
+            console.log(`   Estadísticas: ${this.webhookStats.successfulResponses} respuestas exitosas`);
           } catch (jiraError) {
-            console.error('Error adding AI response to Jira:', jiraError);
+            console.error('❌ Error adding AI response to Jira:', jiraError);
             // No fallar el webhook si no se puede agregar el comentario
           }
         }
         
         res.json(response);
       } else {
+        console.log(`ℹ️  Evento ignorado: ${payload.webhookEvent}`);
         res.json({ success: true, message: 'Event processed but no action taken' });
       }
     } catch (error) {
-      console.error('Error processing Jira webhook:', error);
+      this.webhookStats.errors++;
+      console.error('❌ ERROR PROCESANDO WEBHOOK:', error);
+      console.log(`   Estadísticas: ${this.webhookStats.errors} errores de ${this.webhookStats.totalReceived} total`);
       res.status(500).json({ 
         success: false, 
         error: 'Failed to process webhook' 
@@ -212,6 +345,42 @@ export class ChatbotController {
       res.status(500).json({
         success: false,
         error: 'Failed to list threads'
+      });
+    }
+  }
+
+  // Endpoint para monitorear estadísticas de webhooks
+  async getWebhookStats(req: Request, res: Response): Promise<void> {
+    try {
+      const stats = this.getWebhookStatsData();
+      res.json({
+        success: true,
+        stats,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error getting webhook stats:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get webhook stats'
+      });
+    }
+  }
+
+  // Endpoint para resetear estadísticas de webhooks
+  async resetWebhookStats(req: Request, res: Response): Promise<void> {
+    try {
+      this.resetWebhookStatsData();
+      res.json({
+        success: true,
+        message: 'Webhook stats reset successfully',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error resetting webhook stats:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to reset webhook stats'
       });
     }
   }

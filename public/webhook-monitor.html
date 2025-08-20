@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Monitor - Movonte</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: #007bff;
+        }
+
+        .stat-card.warning {
+            border-color: #ffc107;
+            background: #fff8e1;
+        }
+
+        .stat-card.danger {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .stat-card.success {
+            border-color: #28a745;
+            background: #f8fff9;
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        .stat-description {
+            font-size: 0.9em;
+            color: #868e96;
+            margin-top: 8px;
+        }
+
+        .logs-section {
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logs-container {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 8px;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #34495e;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-timestamp {
+            color: #95a5a6;
+            font-size: 0.8em;
+        }
+
+        .log-message {
+            color: #ecf0f1;
+        }
+
+        .log-error {
+            color: #e74c3c;
+        }
+
+        .log-warning {
+            color: #f39c12;
+        }
+
+        .log-success {
+            color: #27ae60;
+        }
+
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .auto-refresh input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #27ae60;
+        }
+
+        .status-offline {
+            background: #e74c3c;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Webhook Monitor</h1>
+            <p>Monitoreo en tiempo real de webhooks de Jira</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="refreshStats()">
+                🔄 Actualizar Estadísticas
+            </button>
+            <button class="btn btn-danger" onclick="resetStats()">
+                🗑️ Resetear Estadísticas
+            </button>
+            <button class="btn btn-success" onclick="clearLogs()">
+                🧹 Limpiar Logs
+            </button>
+            <div class="auto-refresh">
+                <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()">
+                <label for="autoRefresh">Auto-refresh cada 5 segundos</label>
+            </div>
+            <div>
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">Desconectado</span>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Cargando estadísticas...</p>
+            </div>
+        </div>
+
+        <div class="logs-section">
+            <div class="logs-header">
+                <h3>📋 Logs de Actividad</h3>
+                <span id="logCount">0 logs</span>
+            </div>
+            <div class="logs-container" id="logsContainer">
+                <div class="log-entry">
+                    <div class="log-timestamp">[Iniciando monitor...]</div>
+                    <div class="log-message">Esperando actividad de webhooks...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let autoRefreshInterval = null;
+        let logCount = 0;
+
+        // Configuración
+        const CONFIG = {
+            refreshInterval: 5000, // 5 segundos
+            maxLogs: 100
+        };
+
+        // Estado de la aplicación
+        let stats = {
+            totalReceived: 0,
+            duplicatesSkipped: 0,
+            aiCommentsSkipped: 0,
+            successfulResponses: 0,
+            errors: 0,
+            processedCommentsCount: 0,
+            uptime: 0
+        };
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Webhook Monitor iniciado');
+            updateStatus('online', 'Conectado');
+            refreshStats();
+            setupAutoRefresh();
+        });
+
+        // Funciones principales
+        async function refreshStats() {
+            try {
+                console.log('📊 Actualizando estadísticas...');
+                const response = await fetch(`${API_BASE}/api/chatbot/webhook/stats`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    stats = data.stats;
+                    updateStatsDisplay();
+                    addLog('success', 'Estadísticas actualizadas correctamente');
+                    updateStatus('online', 'Conectado');
+                } else {
+                    throw new Error(data.error || 'Error desconocido');
+                }
+            } catch (error) {
+                console.error('❌ Error actualizando estadísticas:', error);
+                addLog('error', `Error: ${error.message}`);
+                updateStatus('offline', 'Error de conexión');
+            }
+        }
+
+        async function resetStats() {
+            if (!confirm('¿Estás seguro de que quieres resetear todas las estadísticas?')) {
+                return;
+            }
+
+            try {
+                console.log('🔄 Reseteando estadísticas...');
+                const response = await fetch(`${API_BASE}/api/chatbot/webhook/reset`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog('success', 'Estadísticas reseteadas correctamente');
+                    refreshStats();
+                } else {
+                    throw new Error(data.error || 'Error desconocido');
+                }
+            } catch (error) {
+                console.error('❌ Error reseteando estadísticas:', error);
+                addLog('error', `Error: ${error.message}`);
+            }
+        }
+
+        function updateStatsDisplay() {
+            const statsGrid = document.getElementById('statsGrid');
+            
+            const statsData = [
+                {
+                    number: stats.totalReceived,
+                    label: 'Webhooks Recibidos',
+                    description: 'Total de webhooks procesados',
+                    class: 'success'
+                },
+                {
+                    number: stats.duplicatesSkipped,
+                    label: 'Duplicados Saltados',
+                    description: 'Webhooks duplicados detectados',
+                    class: stats.duplicatesSkipped > 0 ? 'warning' : ''
+                },
+                {
+                    number: stats.aiCommentsSkipped,
+                    label: 'Comentarios IA Saltados',
+                    description: 'Comentarios de IA detectados',
+                    class: stats.aiCommentsSkipped > 0 ? 'warning' : ''
+                },
+                {
+                    number: stats.successfulResponses,
+                    label: 'Respuestas Exitosas',
+                    description: 'Respuestas de IA enviadas a Jira',
+                    class: 'success'
+                },
+                {
+                    number: stats.errors,
+                    label: 'Errores',
+                    description: 'Errores en el procesamiento',
+                    class: stats.errors > 0 ? 'danger' : ''
+                },
+                {
+                    number: stats.processedCommentsCount,
+                    label: 'Comentarios en Memoria',
+                    description: 'Comentarios procesados actualmente',
+                    class: ''
+                },
+                {
+                    number: stats.throttledRequests || 0,
+                    label: 'Requests Throttled',
+                    description: 'Requests bloqueados por velocidad',
+                    class: stats.throttledRequests > 0 ? 'warning' : ''
+                }
+            ];
+
+            statsGrid.innerHTML = statsData.map(stat => `
+                <div class="stat-card ${stat.class}">
+                    <div class="stat-number">${stat.number}</div>
+                    <div class="stat-label">${stat.label}</div>
+                    <div class="stat-description">${stat.description}</div>
+                </div>
+            `).join('');
+        }
+
+        function addLog(type, message) {
+            const logsContainer = document.getElementById('logsContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <div class="log-timestamp">[${timestamp}]</div>
+                <div class="log-message log-${type}">${message}</div>
+            `;
+            
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+            
+            logCount++;
+            document.getElementById('logCount').textContent = `${logCount} logs`;
+            
+            // Limitar número de logs
+            if (logsContainer.children.length > CONFIG.maxLogs) {
+                logsContainer.removeChild(logsContainer.firstChild);
+            }
+        }
+
+        function clearLogs() {
+            const logsContainer = document.getElementById('logsContainer');
+            logsContainer.innerHTML = `
+                <div class="log-entry">
+                    <div class="log-timestamp">[Logs limpiados]</div>
+                    <div class="log-message">Logs limpiados manualmente</div>
+                </div>
+            `;
+            logCount = 1;
+            document.getElementById('logCount').textContent = `${logCount} logs`;
+        }
+
+        function updateStatus(status, text) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            indicator.className = `status-indicator status-${status}`;
+            statusText.textContent = text;
+        }
+
+        function setupAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    autoRefreshInterval = setInterval(refreshStats, CONFIG.refreshInterval);
+                    addLog('success', 'Auto-refresh activado');
+                } else {
+                    if (autoRefreshInterval) {
+                        clearInterval(autoRefreshInterval);
+                        autoRefreshInterval = null;
+                    }
+                    addLog('warning', 'Auto-refresh desactivado');
+                }
+            });
+        }
+
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event('change'));
+        }
+
+        // Event listeners para botones
+        window.refreshStats = refreshStats;
+        window.resetStats = resetStats;
+        window.clearLogs = clearLogs;
+        window.toggleAutoRefresh = toggleAutoRefresh;
+
+        // Limpiar intervalo al cerrar la página
+        window.addEventListener('beforeunload', function() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

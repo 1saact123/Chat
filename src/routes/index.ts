@@ -53,6 +53,10 @@ router.get('/landing-form', (req, res) => {
   res.sendFile('landing-form-example.html', { root: 'public' });
 });
 
+router.get('/webhook-monitor', (req, res) => {
+  res.sendFile('webhook-monitor.html', { root: 'public' });
+});
+
 // === CONTACT ROUTES ===
 router.post('/api/contact', contactController.submitContactForm.bind(contactController));
 router.get('/api/contact/test-jira', contactController.testJiraConnection.bind(contactController));
@@ -80,6 +84,10 @@ router.get('/api/chatbot/thread/:threadId', chatbotController.getThreadHistory.b
 
 // List active threads
 router.get('/api/chatbot/threads', chatbotController.listActiveThreads.bind(chatbotController));
+
+// Webhook monitoring
+router.get('/api/chatbot/webhook/stats', chatbotController.getWebhookStats.bind(chatbotController));
+router.post('/api/chatbot/webhook/reset', chatbotController.resetWebhookStats.bind(chatbotController));
 
 // Send email with chat context - COMMENTED OUT FOR TESTING
 // router.post('/api/chatbot/email/send-with-context', chatbotController.sendEmailWithChatContext.bind(chatbotController));
