@@ -4,6 +4,8 @@ import { EmailService } from '../services/email_service';
 import { JiraWebhookPayload } from '../types';
 
 export class ChatbotController {
+  private processedComments = new Set<string>();
+
   constructor(
     private openaiService: OpenAIService,
     private emailService: EmailService | null
@@ -17,6 +19,35 @@ export class ChatbotController {
       
       // Solo procesar eventos de comentarios
       if (payload.webhookEvent === 'comment_created' && payload.comment) {
+        // Crear un ID único para este comentario
+        const commentId = `${payload.issue.key}_${payload.comment.id}_${payload.comment.created}`;
+        
+        // Verificar si ya procesamos este comentario
+        if (this.processedComments.has(commentId)) {
+          console.log(`Comment already processed: ${commentId}`);
+          res.json({ success: true, message: 'Comment already processed' });
+          return;
+        }
+        
+        // Marcar como procesado
+        this.processedComments.add(commentId);
+        
+        // Limpiar comentarios antiguos (mantener solo los últimos 100)
+        if (this.processedComments.size > 100) {
+          const commentsArray = Array.from(this.processedComments);
+          this.processedComments.clear();
+          commentsArray.slice(-50).forEach(id => this.processedComments.add(id));
+        }
+        
+        // Verificar que no sea un comentario de la IA
+        if (payload.comment.author.displayName.toLowerCase().includes('ai') || 
+            payload.comment.author.displayName.toLowerCase().includes('assistant') ||
+            payload.comment.body.toLowerCase().includes('ai response')) {
+          console.log(`Skipping AI comment: ${commentId}`);
+          res.json({ success: true, message: 'Skipped AI comment' });
+          return;
+        }
+        
         const response = await this.openaiService.processJiraComment(payload);
         
         // Si la IA respondió exitosamente, agregar el comentario a Jira

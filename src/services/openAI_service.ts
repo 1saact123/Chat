@@ -20,6 +20,21 @@ export class OpenAIService {
       throw new Error('Comment data is missing');
     }
 
+    // Verificar que no sea un comentario de la IA
+    const commentText = comment.body.toLowerCase();
+    if (commentText.includes('ai response') || 
+        commentText.includes('asistente') ||
+        commentText.includes('automático') ||
+        comment.author.displayName.toLowerCase().includes('ai') ||
+        comment.author.displayName.toLowerCase().includes('assistant')) {
+      console.log(`Skipping AI-generated comment from ${comment.author.displayName}`);
+      return {
+        success: false,
+        threadId: '',
+        error: 'Skipped AI comment to prevent loops'
+      };
+    }
+
     console.log(`Processing Jira comment from ${comment.author.displayName} on issue ${issue.key}: ${comment.body}`);
     
     try {
