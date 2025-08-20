@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ContactController } from '../controllers/contact_controller';
 import { ChatbotController } from '../controllers/chatbot_controller';
 import { HealthController } from '../controllers/health_controller';
+import { LandingController } from '../controllers/landing_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
@@ -15,6 +16,7 @@ const openaiService = new OpenAIService();
 const contactController = new ContactController(jiraService, null); // emailService commented out
 const chatbotController = new ChatbotController(openaiService, null); // emailService commented out
 const healthController = new HealthController();
+const landingController = new LandingController(jiraService);
 
 const router = Router();
 
@@ -47,9 +49,18 @@ router.get('/hybrid-chat', (req, res) => {
   res.sendFile('hybrid-chat-widget.html', { root: 'public' });
 });
 
+router.get('/landing-form', (req, res) => {
+  res.sendFile('landing-form-example.html', { root: 'public' });
+});
+
 // === CONTACT ROUTES ===
 router.post('/api/contact', contactController.submitContactForm.bind(contactController));
 router.get('/api/contact/test-jira', contactController.testJiraConnection.bind(contactController));
+
+// === LANDING PAGE ROUTES ===
+router.post('/api/landing/create-ticket', landingController.createTicketFromLanding.bind(landingController));
+router.post('/api/landing/validate-form', landingController.validateLandingForm.bind(landingController));
+router.get('/api/landing/form-fields', landingController.getLandingFormFields.bind(landingController));
 
 // === CHATBOT ROUTES ===
 // Jira webhook
