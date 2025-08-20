@@ -80,6 +80,48 @@ export class JiraService {
     return response.data;
   }
 
+  async addCommentToIssue(issueKey: string, commentText: string): Promise<any> {
+    try {
+      console.log(`Adding comment to issue ${issueKey}: ${commentText}`);
+      
+      const commentData = {
+        body: {
+          version: 1,
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  type: 'text',
+                  text: commentText
+                }
+              ]
+            }
+          ]
+        }
+      };
+
+      const response = await axios.post(
+        `${this.baseUrl}/rest/api/3/issue/${issueKey}/comment`,
+        commentData,
+        {
+          headers: {
+            'Authorization': `Basic ${this.auth}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      console.log(`Comment added successfully to ${issueKey}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error adding comment to ${issueKey}:`, error);
+      throw error;
+    }
+  }
+
   private formatContactDescriptionADF(formData: ContactFormData) {
     const lines = [
       `New contact from website`,

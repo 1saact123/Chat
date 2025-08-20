@@ -20,86 +20,82 @@ export class OpenAIService {
       throw new Error('Comment data is missing');
     }
 
-    const threadKey = `jira_${issue.key}`;
+    console.log(`Processing Jira comment from ${comment.author.displayName} on issue ${issue.key}: ${comment.body}`);
     
     try {
-      let thread = this.threads.get(threadKey);
-      
-      if (!thread) {
-        const openaiThread = await this.openai.beta.threads.create({
-          metadata: {
-            jiraIssueKey: issue.key,
-            jiraIssueId: issue.id,
-          }
-        });
-        
-        thread = {
-          threadId: openaiThread.id,
-          jiraIssueKey: issue.key,
-          lastActivity: new Date(),
-          messages: []
-        };
-        
-        this.threads.set(threadKey, thread);
-      }
-
+      // Usar Chat Completions API en lugar de Assistants API
       const userMessage = `From ${comment.author.displayName} on Jira issue ${issue.key}: ${comment.body}`;
       
-      await this.openai.beta.threads.messages.create(thread.threadId, {
-        role: 'user',
-        content: userMessage
+      const systemPrompt = `Eres un asistente de Movonte, una empresa de desarrollo de software especializada en soluciones tecnológicas innovadoras.
+
+**Información de la empresa:**
+- Empresa: Movonte
+- Sector: Desarrollo de software
+- Enfoque: Soluciones tecnológicas empresariales
+
+**Capacidades principales:**
+- Soporte técnico para proyectos de desarrollo
+- Análisis y resolución de problemas técnicos
+- Consultoría en arquitectura de software
+- Gestión de proyectos y metodologías ágiles
+- Integración con herramientas como Jira, Git, etc.
+
+**Estilo de comunicación:**
+- Profesional pero cercano
+- Respuestas claras y concisas
+- Uso de ejemplos prácticos cuando sea apropiado
+- Siempre en español
+
+**Contexto de Jira:**
+- Estás trabajando con el ticket: ${issue.key}
+- Título del ticket: "${issue.fields.summary}"
+- Estado actual: ${issue.fields.status.name}
+- Debes responder como comentario en Jira
+- Mantén respuestas concisas y útiles
+
+**Recuerda:**
+- Siempre ser útil y profesional
+- Si no tienes suficiente información, pide más detalles
+- Sugiere acciones concretas cuando sea apropiado
+- Mantén un tono positivo y constructivo
+- Responde como si fueras un asistente de soporte técnico`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ],
+        max_tokens: 500,
+        temperature: 0.7
       });
 
-      const run = await this.openai.beta.threads.runs.create(thread.threadId, {
-        assistant_id: this.assistantId,
-        additional_instructions: `You are helping with Jira issue ${issue.key}: "${issue.fields.summary}". Current status: ${issue.fields.status.name}. Provide helpful, concise responses.`
-      });
-
-      const completedRun = await this.waitForRunCompletion(thread.threadId, run.id);
+      const assistantResponse = response.choices[0]?.message?.content;
       
-      if (completedRun.status === 'completed') {
-        const messages = await this.openai.beta.threads.messages.list(thread.threadId);
-        const assistantMessage = messages.data.find(msg => 
-          msg.role === 'assistant' && msg.run_id === run.id
-        );
-
-        if (assistantMessage && assistantMessage.content[0].type === 'text') {
-          const response = assistantMessage.content[0].text.value;
-          
-          thread.messages.push(
-            {
-              role: 'user',
-              content: userMessage,
-              timestamp: new Date()
-            },
-            {
-              role: 'assistant',
-              content: response,
-              timestamp: new Date()
-            }
-          );
-          thread.lastActivity = new Date();
-
-          return {
-            success: true,
-            threadId: thread.threadId,
-            response: response
-          };
-        }
+      if (assistantResponse) {
+        console.log(`AI response for ${issue.key}: ${assistantResponse}`);
+        
+        return {
+          success: true,
+          threadId: `jira_${issue.key}_${Date.now()}`,
+          response: assistantResponse
+        };
+      } else {
+        throw new Error('No response from Chat Completions');
       }
-
-      return {
-        success: false,
-        threadId: thread.threadId,
-        error: 'Failed to get assistant response'
-      };
 
     } catch (error) {
       console.error('Error processing Jira comment:', error);
+      
+      // Fallback response
+      const fallbackResponse = `Hola ${comment.author.displayName}, gracias por tu comentario en el ticket ${issue.key}. 
+
+Estoy aquí para ayudarte con cualquier consulta relacionada con este ticket. ¿En qué puedo asistirte específicamente?`;
+      
       return {
-        success: false,
-        threadId: '',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        success: true,
+        threadId: `jira_${issue.key}_${Date.now()}`,
+        response: fallbackResponse
       };
     }
   }

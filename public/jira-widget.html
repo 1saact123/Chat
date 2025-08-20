@@ -213,13 +213,25 @@
         function detectJiraIssue() {
             // Intentar obtener el issue key de la URL
             const url = window.location.href;
-            const issueMatch = url.match(/\/browse\/([A-Z]+-\d+)/);
+            let issueMatch = url.match(/\/browse\/([A-Z]+-\d+)/);
             
-            if (issueMatch) {
+            // Si no encuentra en la URL, buscar en parámetros
+            if (!issueMatch) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const issueParam = urlParams.get('issue');
+                if (issueParam && issueParam.match(/^[A-Z]+-\d+$/)) {
+                    currentIssueKey = issueParam;
+                }
+            } else {
                 currentIssueKey = issueMatch[1];
+            }
+            
+            if (currentIssueKey) {
                 document.getElementById('currentIssue').textContent = currentIssueKey;
+                console.log(`🎯 Ticket detectado: ${currentIssueKey}`);
             } else {
                 document.getElementById('currentIssue').textContent = 'No detectado';
+                console.log('⚠️ No se detectó ningún ticket de Jira');
             }
         }
 

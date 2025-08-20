@@ -18,6 +18,23 @@ export class ChatbotController {
       // Solo procesar eventos de comentarios
       if (payload.webhookEvent === 'comment_created' && payload.comment) {
         const response = await this.openaiService.processJiraComment(payload);
+        
+        // Si la IA respondió exitosamente, agregar el comentario a Jira
+        if (response.success && response.response) {
+          try {
+            // Importar JiraService dinámicamente para evitar dependencias circulares
+            const { JiraService } = await import('../services/jira_service');
+            const jiraService = new JiraService();
+            
+            // Agregar comentario de la IA a Jira
+            await jiraService.addCommentToIssue(payload.issue.key, response.response);
+            console.log(`AI response added as comment to ${payload.issue.key}`);
+          } catch (jiraError) {
+            console.error('Error adding AI response to Jira:', jiraError);
+            // No fallar el webhook si no se puede agregar el comentario
+          }
+        }
+        
         res.json(response);
       } else {
         res.json({ success: true, message: 'Event processed but no action taken' });
