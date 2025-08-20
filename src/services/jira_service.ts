@@ -23,7 +23,7 @@ export class JiraService {
         key: this.projectKey
       },
       summary: `Web Contact: ${formData.name} - ${formData.company || 'No company'}`,
-      description: this.formatContactDescription(formData),
+      description: this.formatContactDescriptionADF(formData),
       issuetype: {
         name: 'Task'
       },
@@ -33,18 +33,19 @@ export class JiraService {
       labels: ['contacto-web', 'lead']
     };
 
-    // Optional custom fields, defined by environment variables
-    const emailFieldId = process.env.JIRA_FIELD_EMAIL;   // e.g., customfield_10000
-    const phoneFieldId = process.env.JIRA_FIELD_PHONE;   // e.g., customfield_10001
-    const companyFieldId = process.env.JIRA_FIELD_COMPANY; // e.g., customfield_10002
+    // Optional custom fields, only add if they exist in the project
+    const emailFieldId = process.env.JIRA_FIELD_EMAIL;
+    const phoneFieldId = process.env.JIRA_FIELD_PHONE;
+    const companyFieldId = process.env.JIRA_FIELD_COMPANY;
 
-    if (emailFieldId) {
+    // Only add custom fields if they are configured and exist
+    if (emailFieldId && emailFieldId.trim() !== '') {
       (fields as any)[emailFieldId] = formData.email;
     }
-    if (phoneFieldId && formData.phone) {
+    if (phoneFieldId && phoneFieldId.trim() !== '' && formData.phone) {
       (fields as any)[phoneFieldId] = formData.phone;
     }
-    if (companyFieldId && formData.company) {
+    if (companyFieldId && companyFieldId.trim() !== '' && formData.company) {
       (fields as any)[companyFieldId] = formData.company;
     }
 
@@ -79,23 +80,32 @@ export class JiraService {
     return response.data;
   }
 
-  private formatContactDescription(formData: ContactFormData): string {
-    return `
-*New contact from website*
+  private formatContactDescriptionADF(formData: ContactFormData) {
+    const lines = [
+      `New contact from website`,
+      `Name: ${formData.name}`,
+      `Email: ${formData.email}`,
+      `Company: ${formData.company || 'Not specified'}`,
+      `Phone: ${formData.phone || 'Not provided'}`,
+      `Source: ${formData.source || 'Web form'}`,
+      '',
+      `Message:`,
+      `${formData.message}`,
+      '',
+      `---`,
+      `Ticket automatically created on ${new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' })}`
+    ];
 
-*Name:* ${formData.name}
-*Email:* ${formData.email}
-*Company:* ${formData.company || 'Not specified'}
-*Phone:* ${formData.phone || 'Not provided'}
-*Source:* ${formData.source || 'Web form'}
-
-*Message:*
-${formData.message}
-
----
-_Ticket automatically created on ${new Date().toLocaleString('en-US', { 
-  timeZone: 'America/Mexico_City' 
-})}_
-    `.trim();
+    // Convert plain lines to minimal ADF document with paragraphs
+    return {
+      version: 1 as const,
+      type: 'doc' as const,
+      content: lines.map((text) => ({
+        type: 'paragraph' as const,
+        content: text
+          ? [{ type: 'text' as const, text }]
+          : undefined
+      }))
+    };
   }
 }

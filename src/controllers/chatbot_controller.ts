@@ -6,7 +6,7 @@ import { JiraWebhookPayload } from '../types';
 export class ChatbotController {
   constructor(
     private openaiService: OpenAIService,
-    private emailService: EmailService
+    private emailService: EmailService | null
   ) {}
 
   async handleJiraWebhook(req: Request, res: Response): Promise<void> {
@@ -52,6 +52,89 @@ export class ChatbotController {
     }
   }
 
+  async handleChatWithInstructions(req: Request, res: Response): Promise<void> {
+    try {
+      const { 
+        message, 
+        threadId, 
+        context,
+        instructions,
+        userRole,
+        projectInfo,
+        specificInstructions 
+      } = req.body;
+      
+      if (!message) {
+        res.status(400).json({ 
+          success: false, 
+          error: 'Message is required' 
+        });
+        return;
+      }
+
+      // Construir contexto enriquecido
+      const enrichedContext = {
+        ...context,
+        userRole,
+        projectInfo,
+        specificInstructions
+      };
+
+      console.log('Chat with instructions request received:', { 
+        message, 
+        threadId, 
+        context: enrichedContext,
+        instructions 
+      });
+      
+      const result = await this.openaiService.processDirectChat(message, threadId, enrichedContext);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error in chat with instructions endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Internal server error' 
+      });
+    }
+  }
+
+  async handleJiraChat(req: Request, res: Response): Promise<void> {
+    try {
+      const { 
+        message, 
+        issueKey, 
+        userInfo,
+        context 
+      } = req.body;
+      
+      if (!message) {
+        res.status(400).json({ 
+          success: false, 
+          error: 'Message is required' 
+        });
+        return;
+      }
+
+      console.log('Jira chat request received:', { 
+        message, 
+        issueKey, 
+        userInfo,
+        context 
+      });
+      
+      const result = await this.openaiService.processJiraChatMessage(message, issueKey, userInfo);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error in Jira chat endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Internal server error' 
+      });
+    }
+  }
+
   async getThreadHistory(req: Request, res: Response): Promise<void> {
     try {
       const { threadId } = req.params;
@@ -85,6 +168,8 @@ export class ChatbotController {
     }
   }
 
+  // Email functionality commented out for testing
+  /*
   async sendEmailWithChatContext(req: Request, res: Response): Promise<void> {
     try {
       const { threadId, emailRequest } = req.body;
@@ -138,4 +223,5 @@ export class ChatbotController {
       });
     }
   }
+  */
 }

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movonte ChatBot - Jira Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f5f7;
+            padding: 10px;
+        }
+
+        .chat-widget {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 100%;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #0052cc;
+            color: white;
+            padding: 12px 16px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .chat-header h3 {
+            font-size: 1rem;
+            margin-bottom: 2px;
+        }
+
+        .chat-header p {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 85%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            font-size: 0.9rem;
+        }
+
+        .message.user .message-content {
+            background: #0052cc;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 3px;
+        }
+
+        .chat-input {
+            padding: 12px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        .chat-input input:focus {
+            border-color: #0052cc;
+        }
+
+        .chat-input button {
+            padding: 8px 16px;
+            background: #0052cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .chat-input button:hover {
+            background: #0047b3;
+        }
+
+        .chat-input button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .jira-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+        }
+
+        .jira-info strong {
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-widget">
+        <div class="chat-header">
+            <h3>🤖 Movonte ChatBot</h3>
+            <p>Asistente para tickets de Jira</p>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="jira-info">
+                <strong>Ticket actual:</strong> <span id="currentIssue">Detectando...</span>
+            </div>
+            
+            <div class="status info">
+                💡 Escribe un mensaje para obtener ayuda con este ticket
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Escribe tu mensaje..."
+                />
+                <button id="sendButton">
+                    Enviar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentThreadId = null;
+        const API_BASE = window.location.origin;
+        let currentIssueKey = '';
+
+        // Detectar información del ticket de Jira
+        function detectJiraIssue() {
+            // Intentar obtener el issue key de la URL
+            const url = window.location.href;
+            const issueMatch = url.match(/\/browse\/([A-Z]+-\d+)/);
+            
+            if (issueMatch) {
+                currentIssueKey = issueMatch[1];
+                document.getElementById('currentIssue').textContent = currentIssueKey;
+            } else {
+                document.getElementById('currentIssue').textContent = 'No detectado';
+            }
+        }
+
+        function addMessage(content, isUser = false, timestamp = new Date()) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            const timeString = timestamp.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${content}
+                    <div class="message-time">${timeString}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showStatus(message, type = 'info') {
+            const messagesContainer = document.getElementById('chatMessages');
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            
+            messagesContainer.appendChild(statusDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+
+            // Mostrar mensaje del usuario
+            addMessage(message, true);
+            messageInput.value = '';
+            sendButton.disabled = true;
+            sendButton.textContent = 'Enviando...';
+
+            try {
+                const context = {};
+                if (currentIssueKey) {
+                    context.jiraIssueKey = currentIssueKey;
+                }
+
+                const response = await fetch(`${API_BASE}/api/chatbot/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        threadId: currentThreadId,
+                        context: context
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.threadId && !currentThreadId) {
+                        currentThreadId = result.threadId;
+                    }
+                    addMessage(result.response);
+                } else {
+                    showStatus(`❌ Error: ${result.error}`, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('❌ Error de conexión', 'error');
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Enviar';
+            }
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            document.getElementById('sendButton').addEventListener('click', sendMessage);
+            
+            document.getElementById('messageInput').addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        }
+
+        // Inicializar
+        window.addEventListener('load', function() {
+            detectJiraIssue();
+            setupEventListeners();
+            showStatus('✅ Conectado al asistente de Movonte', 'success');
+        });
+    </script>
+</body>
+</html>

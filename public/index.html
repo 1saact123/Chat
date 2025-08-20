@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movonte ChatBot - Widget de Prueba</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-input button {
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .chat-input button:hover {
+            background: #5a6fd8;
+        }
+
+        .chat-input button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .jira-info {
+            background: #f0f8ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .jira-info h3 {
+            color: #0052cc;
+            margin-bottom: 10px;
+        }
+
+        .jira-info input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🤖 Movonte ChatBot</h1>
+            <p>Widget de prueba para Jira + OpenAI</p>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="jira-info">
+                <h3>📋 Información de Jira (Opcional)</h3>
+                <input type="text" id="jiraIssueKey" placeholder="Clave del ticket (ej: DEV-123)" />
+                <input type="text" id="jiraContext" placeholder="Contexto adicional" />
+            </div>
+            
+            <div class="status info">
+                💡 Escribe un mensaje para probar la integración con OpenAI
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Escribe tu mensaje aquí..."
+                />
+                <button id="sendButton">
+                    <span id="buttonText">Enviar</span>
+                    <span id="loadingSpinner" class="loading" style="display: none;"></span>
+                </button>
+            </div>
+            <div style="margin-top: 10px; text-align: center;">
+                <button id="testButton" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">
+                    🧪 Probar JavaScript
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentThreadId = null;
+        const API_BASE = window.location.origin;
+
+        function addMessage(content, isUser = false, timestamp = new Date()) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            const timeString = timestamp.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${content}
+                    <div class="message-time">${timeString}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showStatus(message, type = 'info') {
+            const messagesContainer = document.getElementById('chatMessages');
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            
+            messagesContainer.appendChild(statusDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        async function sendMessage() {
+            console.log('sendMessage function called');
+            
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const buttonText = document.getElementById('buttonText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const jiraIssueKey = document.getElementById('jiraIssueKey').value;
+            const jiraContext = document.getElementById('jiraContext').value;
+
+            const message = messageInput.value.trim();
+            if (!message) {
+                console.log('No message to send');
+                return;
+            }
+
+            console.log('Sending message:', message);
+            console.log('API_BASE:', API_BASE);
+
+            // Mostrar mensaje del usuario
+            addMessage(message, true);
+            messageInput.value = '';
+
+            // Mostrar loading
+            sendButton.disabled = true;
+            buttonText.style.display = 'none';
+            loadingSpinner.style.display = 'inline-block';
+
+            try {
+                // Preparar contexto
+                const context = {};
+                if (jiraIssueKey) context.jiraIssueKey = jiraIssueKey;
+                if (jiraContext) context.additionalContext = jiraContext;
+
+                const requestBody = {
+                    message: message,
+                    threadId: currentThreadId,
+                    context: context
+                };
+
+                console.log('Request body:', requestBody);
+
+                // Enviar mensaje a la API
+                const response = await fetch(`${API_BASE}/api/chatbot/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Response result:', result);
+
+                if (result.success) {
+                    // Actualizar threadId si es nuevo
+                    if (result.threadId && !currentThreadId) {
+                        currentThreadId = result.threadId;
+                        showStatus(`✅ Hilo de conversación iniciado: ${result.threadId}`, 'success');
+                    }
+
+                    // Mostrar respuesta del asistente
+                    addMessage(result.response);
+                } else {
+                    showStatus(`❌ Error: ${result.error}`, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error in sendMessage:', error);
+                showStatus(`❌ Error de conexión: ${error.message}`, 'error');
+            } finally {
+                // Ocultar loading
+                sendButton.disabled = false;
+                buttonText.style.display = 'inline';
+                loadingSpinner.style.display = 'none';
+            }
+        }
+
+        // Función para probar la conexión
+        async function testConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const result = await response.json();
+                
+                if (result.status === 'ok') {
+                    showStatus('✅ Conexión exitosa con la API', 'success');
+                } else {
+                    showStatus('❌ Error en la conexión con la API', 'error');
+                }
+            } catch (error) {
+                showStatus('❌ No se puede conectar con la API', 'error');
+            }
+        }
+
+        // Función para probar JavaScript
+        function testJavaScript() {
+            console.log('JavaScript test function called');
+            showStatus('🧪 JavaScript funciona correctamente!', 'success');
+            addMessage('Este es un mensaje de prueba para verificar que JavaScript funciona.', false);
+        }
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Botón enviar
+            document.getElementById('sendButton').addEventListener('click', sendMessage);
+            
+            // Enter en el input
+            document.getElementById('messageInput').addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            // Botón de prueba
+            document.getElementById('testButton').addEventListener('click', testJavaScript);
+        }
+
+        // Probar conexión al cargar la página
+        window.addEventListener('load', function() {
+            setupEventListeners();
+            testConnection();
+        });
+    </script>
+</body>
+</html>

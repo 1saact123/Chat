@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movonte - Jira Service Desk con IA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f5f7;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: #0052cc;
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .widget-container {
+            background: white;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            background: white;
+            border-bottom-color: #0052cc;
+            color: #0052cc;
+        }
+
+        .tab:hover {
+            background: #e3f2fd;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .ai-chat {
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px 15px;
+            border-radius: 12px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: #0052cc;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: #0052cc;
+            box-shadow: 0 0 0 2px rgba(0,82,204,0.2);
+        }
+
+        .chat-input button {
+            padding: 12px 20px;
+            background: #0052cc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .chat-input button:hover {
+            background: #0047b3;
+        }
+
+        .chat-input button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quick-action {
+            padding: 12px;
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .quick-action:hover {
+            background: #bbdefb;
+            transform: translateY(-2px);
+        }
+
+        .service-desk-container {
+            min-height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .integration-info {
+            background: #e8f5e8;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .integration-info h3 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+
+        .integration-info ul {
+            margin-left: 20px;
+            color: #155724;
+        }
+
+        .integration-info li {
+            margin-bottom: 5px;
+        }
+
+        .ai-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .feature-description {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Movonte Service Desk con IA</h1>
+            <p>Asistente inteligente integrado con Jira Service Desk</p>
+        </div>
+
+        <div class="widget-container">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('ai-chat')">💬 Chat IA</div>
+                <div class="tab" onclick="switchTab('service-desk')">🎫 Service Desk</div>
+                <div class="tab" onclick="switchTab('integration')">🔗 Integración</div>
+            </div>
+
+            <!-- Tab: Chat IA -->
+            <div id="ai-chat" class="tab-content active">
+                <div class="ai-chat">
+                    <div class="status info">
+                        🤖 Asistente IA conectado - Puedo ayudarte con tickets, soporte técnico y más
+                    </div>
+
+                    <div class="quick-actions">
+                        <div class="quick-action" onclick="sendQuickMessage('¿Cómo crear un ticket?')">
+                            📝 Crear Ticket
+                        </div>
+                        <div class="quick-action" onclick="sendQuickMessage('¿Cuál es el estado de mi ticket?')">
+                            📊 Estado Ticket
+                        </div>
+                        <div class="quick-action" onclick="sendQuickMessage('Necesito soporte técnico')">
+                            🛠️ Soporte Técnico
+                        </div>
+                        <div class="quick-action" onclick="sendQuickMessage('¿Cuáles son los SLA?')">
+                            ⏰ Consultar SLA
+                        </div>
+                    </div>
+
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message assistant">
+                            ¡Hola! Soy el asistente IA de Movonte Service Desk. 
+                            Puedo ayudarte con:
+                            <br>• Creación y seguimiento de tickets
+                            <br>• Consultas sobre SLA y tiempos de respuesta
+                            <br>• Soporte técnico y resolución de problemas
+                            <br>• Información sobre procesos y políticas
+                            <br><br>¿En qué puedo ayudarte hoy?
+                            <div class="message-time">Ahora</div>
+                        </div>
+                    </div>
+
+                    <div class="chat-input">
+                        <input 
+                            type="text" 
+                            id="messageInput" 
+                            placeholder="Escribe tu consulta..."
+                        />
+                        <button id="sendButton" onclick="sendMessage()">
+                            Enviar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Service Desk -->
+            <div id="service-desk" class="tab-content">
+                <div class="service-desk-container">
+                    <!-- Aquí se cargará el widget de Jira Service Desk -->
+                    <div id="jsd-widget-container">
+                        <div style="padding: 20px; text-align: center; color: #666;">
+                            <h3>🎫 Jira Service Desk</h3>
+                            <p>Cargando widget de Service Desk...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Integración -->
+            <div id="integration" class="tab-content">
+                <div class="integration-info">
+                    <h3>🔗 Integración Jira Service Desk + IA</h3>
+                    <ul>
+                        <li><strong>Widget Original:</strong> Jira Service Desk nativo</li>
+                        <li><strong>IA Asistente:</strong> OpenAI GPT con contexto de Movonte</li>
+                        <li><strong>Automatización:</strong> Respuestas inteligentes y sugerencias</li>
+                        <li><strong>Sincronización:</strong> Contexto de tickets en tiempo real</li>
+                    </ul>
+                </div>
+
+                <div class="ai-features">
+                    <div class="feature-card">
+                        <div class="feature-icon">🤖</div>
+                        <div class="feature-title">Asistente IA</div>
+                        <div class="feature-description">
+                            Respuestas inteligentes basadas en el contexto de tu empresa y tickets
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <div class="feature-title">Respuesta Rápida</div>
+                        <div class="feature-description">
+                            Obtén respuestas inmediatas sin esperar a un agente humano
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-title">Contexto Inteligente</div>
+                        <div class="feature-description">
+                            El asistente conoce tu empresa, procesos y políticas
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔄</div>
+                        <div class="feature-title">Integración Completa</div>
+                        <div class="feature-description">
+                            Funciona junto con el Service Desk tradicional
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Jira Service Desk Widget -->
+    <script 
+        data-jsd-embedded 
+        data-key="a3826be6-6aec-4d3b-a05b-03bd0b14d79a" 
+        data-base-url="https://jsd-widget.atlassian.com" 
+        src="https://jsd-widget.atlassian.com/assets/embed.js">
+    </script>
+
+    <script>
+        let currentThreadId = null;
+        const API_BASE = window.location.origin;
+
+        function switchTab(tabName) {
+            // Ocultar todos los tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Mostrar tab seleccionado
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            // Si es el tab de Service Desk, inicializar el widget
+            if (tabName === 'service-desk') {
+                initializeServiceDesk();
+            }
+        }
+
+        function initializeServiceDesk() {
+            // El widget de Jira Service Desk se inicializa automáticamente
+            // cuando se carga el script
+            console.log('Service Desk widget initialized');
+        }
+
+        function sendQuickMessage(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        function addMessage(content, isUser = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            const timeString = new Date().toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+
+            messageDiv.innerHTML = `
+                ${content}
+                <div class="message-time">${timeString}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.querySelector('.status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+
+            // Mostrar mensaje del usuario
+            addMessage(message, true);
+            messageInput.value = '';
+            sendButton.disabled = true;
+            sendButton.textContent = 'Enviando...';
+
+            try {
+                // Contexto específico para Service Desk
+                const context = {
+                    serviceDesk: true,
+                    userType: 'customer',
+                    integration: 'jira-service-desk'
+                };
+
+                const response = await fetch(`${API_BASE}/api/chatbot/chat-with-instructions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        threadId: currentThreadId,
+                        context: context,
+                        userRole: 'Cliente',
+                        projectInfo: 'Jira Service Desk - Sistema de soporte y tickets',
+                        specificInstructions: 'Eres un asistente especializado en Jira Service Desk. Enfócate en ayudar con tickets, SLA, soporte técnico, y procesos de atención al cliente. Proporciona información sobre cómo crear tickets, consultar estados, y resolver problemas comunes.'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.threadId && !currentThreadId) {
+                        currentThreadId = result.threadId;
+                    }
+                    addMessage(result.response);
+                    showStatus('✅ Respuesta recibida del asistente IA', 'success');
+                } else {
+                    addMessage(`❌ Error: ${result.error}`);
+                    showStatus('❌ Error en la respuesta', 'error');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('❌ Error de conexión. Por favor, intenta de nuevo.');
+                showStatus('❌ Error de conexión', 'error');
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Enviar';
+            }
+        }
+
+        // Event listeners
+        document.getElementById('messageInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Inicializar cuando se carga la página
+        window.addEventListener('load', function() {
+            console.log('Movonte Service Desk with AI loaded');
+            showStatus('✅ Conectado al asistente IA de Movonte', 'success');
+        });
+    </script>
+</body>
+</html>

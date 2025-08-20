@@ -10,9 +10,10 @@ export function isValidEmail(email: string): boolean {
       'JIRA_EMAIL',
       'JIRA_API_TOKEN',
       'JIRA_BASE_URL',
-      'JIRA_PROJECT_KEY',
-      'SMTP_USER',
-      'SMTP_PASS'
+      'JIRA_PROJECT_KEY'
+      // Email variables commented out for testing
+      // 'SMTP_USER',
+      // 'SMTP_PASS'
     ];
     
     const missing = required.filter(key => !process.env[key]);

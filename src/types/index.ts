@@ -42,6 +42,28 @@ export interface JiraWebhookPayload {
     response?: string;
     error?: string;
   }
+
+  // === Atlassian Document Format (ADF) minimal types ===
+  export interface AtlassianTextNode {
+    type: 'text';
+    text: string;
+    marks?: Array<{ type: string }>;
+  }
+
+  export interface AtlassianHardBreakNode {
+    type: 'hardBreak';
+  }
+
+  export interface AtlassianParagraphNode {
+    type: 'paragraph';
+    content?: Array<AtlassianTextNode | AtlassianHardBreakNode>;
+  }
+
+  export interface AtlassianDocument {
+    version: 1;
+    type: 'doc';
+    content: Array<AtlassianParagraphNode>;
+  }
   
   // === Contact Form Types ===
   export interface ContactFormData {
@@ -71,7 +93,7 @@ export interface JiraWebhookPayload {
         key: string;
       };
       summary: string;
-      description: string;
+      description: string | AtlassianDocument;
       issuetype: {
         name: string;
       };

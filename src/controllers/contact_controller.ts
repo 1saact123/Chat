@@ -1,13 +1,13 @@
 import { Request, Response } from 'express';
 import { JiraService } from '../services/jira_service';
-import { EmailService } from '../services/email_service';
+// import { EmailService } from '../services/email_service';
 import { ContactFormData, ContactApiResponse } from '../types';
 import { isValidEmail } from '../utils/validations';
 
 export class ContactController {
   constructor(
     private jiraService: JiraService,
-    private emailService: EmailService
+    private emailService: any | null // EmailService commented out for testing
   ) {}
 
   async submitContactForm(req: Request, res: Response): Promise<void> {
@@ -55,8 +55,10 @@ export class ContactController {
         console.log(`Ticket de Jira creado exitosamente: ${jiraIssue.key}`);
         
       } catch (jiraError) {
-        console.error('Error creating Jira ticket, sending via email as fallback:', jiraError);
+        console.error('Error creating Jira ticket:', jiraError);
         
+        // Email fallback commented out for testing
+        /*
         // Fallback: send by email
         try {
           await this.emailService.sendContactFormFallback(formData);
@@ -75,6 +77,13 @@ export class ContactController {
             error: 'Could not process the form. Please try again.'
           });
         }
+        */
+        
+        // Just return error for now
+        res.status(500).json({
+          success: false,
+          error: 'Could not create ticket in Jira. Email fallback is disabled for testing.'
+        });
       }
 
     } catch (error) {

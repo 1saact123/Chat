@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Chat de Jira con IA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f5f7;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: #0052cc;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .chat-header h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .message.user .message-avatar {
+            background: #0052cc;
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: #28a745;
+            color: white;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: #0052cc;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .chat-input textarea {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+            font-size: 14px;
+            min-height: 40px;
+            max-height: 120px;
+        }
+
+        .chat-input textarea:focus {
+            outline: none;
+            border-color: #0052cc;
+            box-shadow: 0 0 0 2px rgba(0,82,204,0.2);
+        }
+
+        .chat-input button {
+            padding: 12px 20px;
+            background: #0052cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .chat-input button:hover {
+            background: #0047b3;
+        }
+
+        .chat-input button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action {
+            padding: 8px 16px;
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .quick-action:hover {
+            background: #bbdefb;
+            transform: translateY(-1px);
+        }
+
+        .issue-info {
+            background: #e8f5e8;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .issue-info strong {
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 Chat de Jira con IA</h1>
+            <span style="font-size: 0.9rem; opacity: 0.9;">Simulando chat nativo de Jira</span>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-header">
+                <h3>🎫 Ticket: DEV-123</h3>
+                <p>Implementar funcionalidad de chat con IA</p>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="status info">
+                    🤖 Asistente IA conectado - Simulando chat nativo de Jira
+                </div>
+
+                <div class="issue-info">
+                    <strong>Ticket actual:</strong> DEV-123 | <strong>Estado:</strong> En progreso | <strong>Asignado:</strong> Isaac
+                </div>
+
+                <div class="quick-actions">
+                    <div class="quick-action" onclick="sendQuickMessage('¿Cuál es el estado del ticket?')">
+                        📊 Estado del ticket
+                    </div>
+                    <div class="quick-action" onclick="sendQuickMessage('¿Qué sigue en el desarrollo?')">
+                        🔄 Próximos pasos
+                    </div>
+                    <div class="quick-action" onclick="sendQuickMessage('Necesito ayuda técnica')">
+                        🛠️ Ayuda técnica
+                    </div>
+                    <div class="quick-action" onclick="sendQuickMessage('¿Cuándo se completa?')">
+                        ⏰ Estimación
+                    </div>
+                </div>
+
+                <div class="message assistant">
+                    <div class="message-avatar">IA</div>
+                    <div class="message-content">
+                        ¡Hola! Soy el asistente IA integrado en el chat de Jira. 
+                        Puedo ayudarte con información sobre este ticket, próximos pasos, 
+                        estimaciones y cualquier consulta técnica que tengas.
+                        <div class="message-time">Ahora</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input">
+                <div class="input-group">
+                    <textarea 
+                        id="messageInput" 
+                        placeholder="Escribe tu mensaje..."
+                        rows="1"
+                    ></textarea>
+                    <button id="sendButton" onclick="sendMessage()">
+                        Enviar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentThreadId = null;
+        const API_BASE = window.location.origin;
+        const currentIssueKey = 'DEV-123';
+
+        function sendQuickMessage(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        function addMessage(content, isUser = false, username = '') {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            const timeString = new Date().toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+
+            const avatarText = isUser ? (username || 'TU') : 'IA';
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${avatarText}</div>
+                <div class="message-content">
+                    ${content}
+                    <div class="message-time">${timeString}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.insertBefore(statusDiv, messagesContainer.firstChild);
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+
+            // Mostrar mensaje del usuario
+            addMessage(message, true, 'TU');
+            messageInput.value = '';
+            sendButton.disabled = true;
+            sendButton.textContent = 'Enviando...';
+
+            try {
+                // Simular información del usuario de Jira
+                const userInfo = {
+                    displayName: 'Isaac',
+                    email: 'isaac@movonte.com',
+                    role: 'Developer'
+                };
+
+                const response = await fetch(`${API_BASE}/api/chatbot/jira-chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        issueKey: currentIssueKey,
+                        userInfo: userInfo,
+                        context: {
+                            isChatMessage: true,
+                            chatWidget: 'jira-native'
+                        }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.threadId && !currentThreadId) {
+                        currentThreadId = result.threadId;
+                    }
+                    addMessage(result.response);
+                } else {
+                    addMessage(`❌ Error: ${result.error}`);
+                    showStatus('❌ Error en la respuesta', 'error');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('❌ Error de conexión. Por favor, intenta de nuevo.');
+                showStatus('❌ Error de conexión', 'error');
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Enviar';
+            }
+        }
+
+        // Auto-resize textarea
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Event listeners
+        document.getElementById('messageInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Inicializar cuando se carga la página
+        window.addEventListener('load', function() {
+            console.log('Jira Chat Test loaded');
+            showStatus('✅ Conectado al chat de Jira con IA', 'success');
+        });
+    </script>
+</body>
+</html>

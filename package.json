@@ -12,7 +12,8 @@
     "dev:watch": "nodemon --exec ts-node src/app.ts",
     "test:jira": "ts-node src/tests/test-jira.ts",
     "list-assistants": "ts-node src/tests/list-assistants.ts",
-    "test-openai": "ts-node src/tests/test-openai.ts"
+    "test-openai": "ts-node src/tests/test-openai.ts",
+    "test-assistant": "ts-node src/tests/test-assistant.ts"
   },
   "dependencies": {
     "@types/express": "^4.17.21",

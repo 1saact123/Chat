@@ -2,12 +2,11 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
+import 'dotenv/config';
+
 import routes from './routes';
 import { validateEnvironmentVariables } from './utils/validations';
 
-// Cargar variables de entorno
-dotenv.config();
 
 class MovonteAPI {
   private app: express.Application;
@@ -23,8 +22,17 @@ class MovonteAPI {
   }
 
   private setupMiddleware(): void {
-    // Seguridad
-    this.app.use(helmet());
+    // Seguridad - configuración más permisiva para desarrollo
+    this.app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https:"],
+        },
+      },
+    }));
     
     // CORS
     this.app.use(cors({
@@ -44,6 +52,9 @@ class MovonteAPI {
     // Parsing del body
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true }));
+
+    // Servir archivos estáticos
+    this.app.use(express.static('public'));
 
     // Headers adicionales
     this.app.use((req: Request, res: Response, next: NextFunction) => {
