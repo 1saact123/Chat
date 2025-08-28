@@ -48,6 +48,14 @@ export class ChatbotController {
 
   async handleJiraWebhook(req: Request, res: Response): Promise<void> {
     try {
+      console.log('\n🔍 === WEBHOOK DEBUG INFO ===');
+      console.log('📋 Headers recibidos:', JSON.stringify(req.headers, null, 2));
+      console.log('📦 Body recibido:', JSON.stringify(req.body, null, 2));
+      console.log('🌐 URL:', req.url);
+      console.log('📝 Method:', req.method);
+      console.log('🔗 Origin:', req.get('origin') || 'No origin');
+      console.log('👤 User-Agent:', req.get('user-agent') || 'No user-agent');
+      
       const payload: JiraWebhookPayload = req.body;
       this.webhookStats.totalReceived++;
       
@@ -205,9 +213,18 @@ export class ChatbotController {
       this.webhookStats.errors++;
       console.error('❌ ERROR PROCESANDO WEBHOOK:', error);
       console.log(`   Estadísticas: ${this.webhookStats.errors} errores de ${this.webhookStats.totalReceived} total`);
+      
+      // Log detallado del error
+      if (error instanceof Error) {
+        console.error('   Error message:', error.message);
+        console.error('   Error stack:', error.stack);
+      }
+      
       res.status(500).json({ 
         success: false, 
-        error: 'Failed to process webhook' 
+        error: 'Failed to process webhook',
+        timestamp: new Date().toISOString(),
+        errorDetails: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }

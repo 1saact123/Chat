@@ -70,6 +70,37 @@ router.get('/api/landing/form-fields', landingController.getLandingFormFields.bi
 // Jira webhook
 router.post('/api/chatbot/webhook/jira', chatbotController.handleJiraWebhook.bind(chatbotController));
 
+// Endpoint de prueba para webhook
+router.post('/api/webhook/jira', (req, res) => {
+  console.log('🔍 WEBHOOK TEST ENDPOINT HIT');
+  console.log('📋 Headers:', req.headers);
+  console.log('📦 Body:', req.body);
+  res.json({ 
+    success: true, 
+    message: 'Webhook test endpoint working',
+    timestamp: new Date().toISOString(),
+    receivedData: {
+      headers: req.headers,
+      body: req.body
+    }
+  });
+});
+
+// Endpoint GET para verificar que el servidor está funcionando
+router.get('/api/webhook/jira', (req, res) => {
+  console.log('🔍 WEBHOOK GET TEST ENDPOINT HIT');
+  res.json({ 
+    success: true, 
+    message: 'Webhook endpoint is accessible',
+    timestamp: new Date().toISOString(),
+    serverInfo: {
+      nodeVersion: process.version,
+      uptime: process.uptime(),
+      memoryUsage: process.memoryUsage()
+    }
+  });
+});
+
 // Direct chat
 router.post('/api/chatbot/chat', chatbotController.handleDirectChat.bind(chatbotController));
 
