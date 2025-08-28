@@ -98,20 +98,9 @@ export class OpenAIService {
       } else {
         throw new Error('No response from Chat Completions');
       }
-
     } catch (error) {
-      console.error('Error processing Jira comment:', error);
-      
-      // Fallback response
-      const fallbackResponse = `Hola ${comment.author.displayName}, gracias por tu comentario en el ticket ${issue.key}. 
-
-Estoy aquí para ayudarte con cualquier consulta relacionada con este ticket. ¿En qué puedo asistirte específicamente?`;
-      
-      return {
-        success: true,
-        threadId: `jira_${issue.key}_${Date.now()}`,
-        response: fallbackResponse
-      };
+      console.log('OpenAI API failed for Jira comment, using fallback response...');
+      return this.getJiraFallbackResponse(comment, issue);
     }
   }
 
@@ -322,6 +311,31 @@ ${context.specificInstructions}`;
 - Mantén un tono positivo y constructivo`;
 
     return basePrompt;
+  }
+
+  private getJiraFallbackResponse(comment: any, issue: any): ChatbotResponse {
+    console.log('Using Jira fallback response system...');
+    
+    const commentText = comment.body.toLowerCase();
+    let response = '';
+
+    if (commentText.includes('hola') || commentText.includes('hello')) {
+      response = `¡Hola ${comment.author.displayName}! Soy el asistente de Movonte. Gracias por tu comentario en el ticket ${issue.key}. ¿En qué puedo ayudarte con este ticket?`;
+    } else if (commentText.includes('ayuda') || commentText.includes('help')) {
+      response = `Hola ${comment.author.displayName}, puedo ayudarte con:\n• Consultas sobre el ticket ${issue.key}\n• Información sobre el proyecto\n• Soporte técnico general\n• Seguimiento del progreso\n¿Qué necesitas específicamente?`;
+    } else if (commentText.includes('estado') || commentText.includes('status')) {
+      response = `Hola ${comment.author.displayName}, veo que el ticket ${issue.key} está en estado "${issue.fields.status.name}". ¿Necesitas información sobre el progreso o ayuda con algo específico?`;
+    } else if (commentText.includes('proyecto') || commentText.includes('project')) {
+      response = `Hola ${comment.author.displayName}, este ticket pertenece al proyecto ${issue.fields.project.name}. ¿Necesitas información específica sobre el proyecto o ayuda con este ticket?`;
+    } else {
+      response = `Hola ${comment.author.displayName}, gracias por tu comentario en el ticket ${issue.key}. Soy el asistente de Movonte y estoy aquí para ayudarte. Actualmente estoy en modo de respaldo, pero puedo asistirte con consultas sobre este ticket. ¿En qué puedo ayudarte específicamente?`;
+    }
+
+    return {
+      success: true,
+      threadId: `jira_fallback_${issue.key}_${Date.now()}`,
+      response: response
+    };
   }
 
   private getFallbackResponse(message: string, context?: any): ChatbotResponse {
