@@ -70,20 +70,14 @@ router.get('/api/landing/form-fields', landingController.getLandingFormFields.bi
 // Jira webhook
 router.post('/api/chatbot/webhook/jira', chatbotController.handleJiraWebhook.bind(chatbotController));
 
-// Endpoint de prueba para webhook
+// Endpoint de prueba para webhook - REDIRIGIENDO AL CHATBOT
 router.post('/api/webhook/jira', (req, res) => {
-  console.log('🔍 WEBHOOK TEST ENDPOINT HIT');
+  console.log('🔍 WEBHOOK RECIBIDO EN ENDPOINT DE PRUEBA - REDIRIGIENDO AL CHATBOT');
   console.log('📋 Headers:', req.headers);
   console.log('📦 Body:', req.body);
-  res.json({ 
-    success: true, 
-    message: 'Webhook test endpoint working',
-    timestamp: new Date().toISOString(),
-    receivedData: {
-      headers: req.headers,
-      body: req.body
-    }
-  });
+  
+  // Redirigir al chatbot controller
+  return chatbotController.handleJiraWebhook(req, res);
 });
 
 // Endpoint GET para verificar que el servidor está funcionando
