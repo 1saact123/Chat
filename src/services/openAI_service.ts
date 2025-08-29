@@ -30,14 +30,16 @@ export class OpenAIService {
                       authorName.includes('bot') ||
                       authorName.includes('automation');
     
+    // Detectar comentarios de IA de manera más específica
     const isAIComment = commentText.includes('ai response') || 
                        commentText.includes('respuesta automática') ||
-                       commentText.includes('soy un asistente') ||
-                       commentText.includes('como asistente de movonte');
+                       commentText.includes('como asistente de movonte') ||
+                       (commentText.includes('soy un asistente') && commentText.length < 50); // Solo si es muy corto
     
     if (isAIAuthor || isAIComment) {
       console.log(`Skipping AI-generated comment from ${comment.author.displayName}`);
       console.log(`Reason: ${isAIAuthor ? 'AI Author' : 'AI Content'}`);
+      console.log(`Comment text: ${comment.body}`);
       return {
         success: false,
         threadId: '',
@@ -67,9 +69,12 @@ export class OpenAIService {
       console.log(`Processing Jira comment with context:`, context);
       console.log(`Thread ID: ${threadId}`);
       console.log(`User message: ${userMessage}`);
+      console.log(`🔗 Attempting to call OpenAI API...`);
 
       // Usar el método que maneja el contexto y threads
-      return await this.processWithChatCompletions(userMessage, threadId, context);
+      const result = await this.processWithChatCompletions(userMessage, threadId, context);
+      console.log(`✅ OpenAI API call completed:`, result.success ? 'SUCCESS' : 'FAILED');
+      return result;
       
     } catch (error) {
       console.log('OpenAI API failed for Jira comment, using fallback response...');
@@ -134,7 +139,11 @@ export class OpenAIService {
   }
 
   private async processWithChatCompletions(message: string, threadId?: string, context?: any): Promise<ChatbotResponse> {
-    console.log('Using Chat Completions API with conversation history...');
+    console.log('🔗 Using Chat Completions API with conversation history...');
+    console.log(`📝 Message: ${message}`);
+    console.log(`🧵 Thread ID: ${threadId}`);
+    console.log(`🔧 Context:`, context);
+    
     try {
       // Instrucciones dinámicas basadas en el contexto
       let systemPrompt = this.buildDynamicSystemPrompt(context);
@@ -210,6 +219,9 @@ export class OpenAIService {
         });
       }
 
+      console.log(`🚀 Making OpenAI API call with ${messages.length} messages...`);
+      console.log(`🔑 API Key configured: ${this.openai.apiKey ? 'YES' : 'NO'}`);
+      
       const response = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: messages,
@@ -248,13 +260,14 @@ export class OpenAIService {
           thread.messages = thread.messages.slice(-20);
         }
 
-        console.log(`Thread ${thread.threadId} updated with ${thread.messages.length} messages`);
-        
-        return {
-          success: true,
-          threadId: thread.threadId,
-          response: assistantResponse
-        };
+              console.log(`Thread ${thread.threadId} updated with ${thread.messages.length} messages`);
+      console.log(`🎯 Final response from OpenAI: ${assistantResponse.substring(0, 100)}...`);
+      
+      return {
+        success: true,
+        threadId: thread.threadId,
+        response: assistantResponse
+      };
       } else {
         throw new Error('No response from Chat Completions');
       }
