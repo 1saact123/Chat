@@ -196,7 +196,7 @@ class MovonteAPI {
 
   public start(): void {
     // Solo servidor HTTP - nginx maneja HTTPS
-    this.app.listen(this.port, '127.0.0.1', () => {
+    this.app.listen(this.port, '0.0.0.0', () => {
       console.log('\nMovonte API iniciada exitosamente!');
       console.log('📦 Running behind nginx reverse proxy');
       console.log(`🚀 Servidor ejecutándose en puerto ${this.port}`);
