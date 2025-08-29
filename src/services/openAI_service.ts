@@ -20,14 +20,24 @@ export class OpenAIService {
       throw new Error('Comment data is missing');
     }
 
-    // Verificar que no sea un comentario de la IA
+    // Verificar que no sea un comentario de la IA (detección más específica)
     const commentText = comment.body.toLowerCase();
-    if (commentText.includes('ai response') || 
-        commentText.includes('asistente') ||
-        commentText.includes('automático') ||
-        comment.author.displayName.toLowerCase().includes('ai') ||
-        comment.author.displayName.toLowerCase().includes('assistant')) {
+    const authorName = comment.author.displayName.toLowerCase();
+    
+    // Solo bloquear si es claramente un comentario de IA
+    const isAIAuthor = authorName.includes('ai') || 
+                      authorName.includes('assistant') || 
+                      authorName.includes('bot') ||
+                      authorName.includes('automation');
+    
+    const isAIComment = commentText.includes('ai response') || 
+                       commentText.includes('respuesta automática') ||
+                       commentText.includes('soy un asistente') ||
+                       commentText.includes('como asistente de movonte');
+    
+    if (isAIAuthor || isAIComment) {
       console.log(`Skipping AI-generated comment from ${comment.author.displayName}`);
+      console.log(`Reason: ${isAIAuthor ? 'AI Author' : 'AI Content'}`);
       return {
         success: false,
         threadId: '',
@@ -171,8 +181,17 @@ export class OpenAIService {
 
       console.log(`Thread ID: ${thread.threadId}`);
       console.log(`Messages in conversation: ${messages.length}`);
+      console.log(`Previous messages in thread: ${thread.messages.length}`);
       console.log(`System Prompt: ${systemPrompt.substring(0, 100)}...`);
       console.log(`User Prompt: ${userPrompt}`);
+      
+      // Mostrar el historial de mensajes para debugging
+      if (thread.messages.length > 0) {
+        console.log(`📋 Conversation history for ${thread.threadId}:`);
+        thread.messages.slice(-4).forEach((msg, index) => {
+          console.log(`   ${index + 1}. [${msg.role}]: ${msg.content.substring(0, 100)}...`);
+        });
+      }
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
@@ -233,7 +252,14 @@ export class OpenAIService {
 - Profesional pero cercano
 - Respuestas claras y concisas
 - Uso de ejemplos prácticos cuando sea apropiado
-- Siempre en español`;
+- Siempre en español
+
+**IMPORTANTE - Manejo de conversación:**
+- SIEMPRE revisa el historial de la conversación antes de responder
+- NO te repitas si ya has respondido algo similar
+- Mantén el contexto de la conversación anterior
+- Si el usuario hace preguntas relacionadas, responde de manera coherente
+- Evita respuestas genéricas si ya has proporcionado información específica`;
 
     // Agregar contexto específico para Service Desk
     if (context?.serviceDesk) {
