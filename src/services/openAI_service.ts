@@ -38,66 +38,29 @@ export class OpenAIService {
     console.log(`Processing Jira comment from ${comment.author.displayName} on issue ${issue.key}: ${comment.body}`);
     
     try {
-      // Usar Chat Completions API en lugar de Assistants API
+      // Crear un threadId consistente para mantener el contexto de la conversación
+      const threadId = `jira_${issue.key}`;
+      
+      // Construir el mensaje del usuario
       const userMessage = `From ${comment.author.displayName} on Jira issue ${issue.key}: ${comment.body}`;
       
-      const systemPrompt = `Eres un asistente de Movonte, una empresa de desarrollo de software especializada en soluciones tecnológicas innovadoras.
+      // Contexto específico para Jira
+      const context = {
+        jiraIssueKey: issue.key,
+        issueSummary: issue.fields.summary,
+        issueStatus: issue.fields.status.name,
+        authorName: comment.author.displayName,
+        isJiraComment: true,
+        conversationType: 'jira-ticket'
+      };
 
-**Información de la empresa:**
-- Empresa: Movonte
-- Sector: Desarrollo de software
-- Enfoque: Soluciones tecnológicas empresariales
+      console.log(`Processing Jira comment with context:`, context);
+      console.log(`Thread ID: ${threadId}`);
+      console.log(`User message: ${userMessage}`);
 
-**Capacidades principales:**
-- Soporte técnico para proyectos de desarrollo
-- Análisis y resolución de problemas técnicos
-- Consultoría en arquitectura de software
-- Gestión de proyectos y metodologías ágiles
-- Integración con herramientas como Jira, Git, etc.
-
-**Estilo de comunicación:**
-- Profesional pero cercano
-- Respuestas claras y concisas
-- Uso de ejemplos prácticos cuando sea apropiado
-- Siempre en español
-
-**Contexto de Jira:**
-- Estás trabajando con el ticket: ${issue.key}
-- Título del ticket: "${issue.fields.summary}"
-- Estado actual: ${issue.fields.status.name}
-- Debes responder como comentario en Jira
-- Mantén respuestas concisas y útiles
-
-**Recuerda:**
-- Siempre ser útil y profesional
-- Si no tienes suficiente información, pide más detalles
-- Sugiere acciones concretas cuando sea apropiado
-- Mantén un tono positivo y constructivo
-- Responde como si fueras un asistente de soporte técnico`;
-
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ],
-        max_tokens: 500,
-        temperature: 0.7
-      });
-
-      const assistantResponse = response.choices[0]?.message?.content;
+      // Usar el método que maneja el contexto y threads
+      return await this.processWithChatCompletions(userMessage, threadId, context);
       
-      if (assistantResponse) {
-        console.log(`AI response for ${issue.key}: ${assistantResponse}`);
-        
-        return {
-          success: true,
-          threadId: `jira_${issue.key}_${Date.now()}`,
-          response: assistantResponse
-        };
-      } else {
-        throw new Error('No response from Chat Completions');
-      }
     } catch (error) {
       console.log('OpenAI API failed for Jira comment, using fallback response...');
       return this.getJiraFallbackResponse(comment, issue);
@@ -161,10 +124,37 @@ export class OpenAIService {
   }
 
   private async processWithChatCompletions(message: string, threadId?: string, context?: any): Promise<ChatbotResponse> {
-    console.log('Using Chat Completions API with dynamic instructions...');
+    console.log('Using Chat Completions API with conversation history...');
     try {
       // Instrucciones dinámicas basadas en el contexto
       let systemPrompt = this.buildDynamicSystemPrompt(context);
+      
+      // Obtener o crear el thread para mantener el historial
+      let thread = this.threads.get(threadId || 'default');
+      if (!thread) {
+        thread = {
+          threadId: threadId || `chat_${Date.now()}`,
+          jiraIssueKey: context?.jiraIssueKey || 'general',
+          lastActivity: new Date(),
+          messages: []
+        };
+        this.threads.set(thread.threadId, thread);
+        console.log(`Created new thread: ${thread.threadId}`);
+      }
+
+      // Construir el array de mensajes con el historial
+      const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+        { role: 'system', content: systemPrompt }
+      ];
+
+      // Agregar mensajes del historial (últimos 10 para no exceder límites)
+      const recentMessages = thread.messages.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+      messages.push(...recentMessages);
+
+      // Agregar el mensaje actual
       let userPrompt = message;
       
       // Agregar contexto de Jira si está disponible
@@ -177,15 +167,16 @@ export class OpenAIService {
         userPrompt = `[Contexto adicional: ${context.additionalInfo}] ${userPrompt}`;
       }
 
-      console.log('System Prompt:', systemPrompt);
-      console.log('User Prompt:', userPrompt);
+      messages.push({ role: 'user', content: userPrompt });
+
+      console.log(`Thread ID: ${thread.threadId}`);
+      console.log(`Messages in conversation: ${messages.length}`);
+      console.log(`System Prompt: ${systemPrompt.substring(0, 100)}...`);
+      console.log(`User Prompt: ${userPrompt}`);
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
+        messages: messages,
         max_tokens: 800,
         temperature: 0.7
       });
@@ -193,9 +184,25 @@ export class OpenAIService {
       const assistantResponse = response.choices[0]?.message?.content;
       if (assistantResponse) {
         console.log('Chat Completions response:', assistantResponse);
+        
+        // Guardar el mensaje del usuario y la respuesta en el historial
+        const now = new Date();
+        thread.messages.push(
+          { role: 'user', content: userPrompt, timestamp: now },
+          { role: 'assistant', content: assistantResponse, timestamp: now }
+        );
+        thread.lastActivity = now;
+        
+        // Limpiar mensajes antiguos si hay demasiados (mantener últimos 20)
+        if (thread.messages.length > 20) {
+          thread.messages = thread.messages.slice(-20);
+        }
+
+        console.log(`Thread ${thread.threadId} updated with ${thread.messages.length} messages`);
+        
         return {
           success: true,
-          threadId: threadId || `chat_${Date.now()}`,
+          threadId: thread.threadId,
           response: assistantResponse
         };
       } else {
