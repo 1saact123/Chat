@@ -13,7 +13,7 @@ export class OpenAIService {
     this.assistantId = process.env.OPENAI_ASSISTANT_ID || '';
   }
 
-  async processJiraComment(payload: JiraWebhookPayload): Promise<ChatbotResponse> {
+  async processJiraComment(payload: JiraWebhookPayload, enrichedContext?: any): Promise<ChatbotResponse> {
     const { issue, comment } = payload;
     
     if (!comment) {
@@ -54,8 +54,8 @@ export class OpenAIService {
       // Construir el mensaje del usuario
       const userMessage = `From ${comment.author.displayName} on Jira issue ${issue.key}: ${comment.body}`;
       
-      // Contexto específico para Jira
-      const context = {
+      // Contexto específico para Jira (usar el enriquecido si está disponible)
+      const context = enrichedContext || {
         jiraIssueKey: issue.key,
         issueSummary: issue.fields.summary,
         issueStatus: issue.fields.status.name,
@@ -157,12 +157,23 @@ export class OpenAIService {
         { role: 'system', content: systemPrompt }
       ];
 
-      // Agregar mensajes del historial (últimos 10 para no exceder límites)
-      const recentMessages = thread.messages.slice(-10).map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
-      messages.push(...recentMessages);
+      // Usar historial de conversación del contexto si está disponible (más reciente)
+      let conversationHistory = context?.conversationHistory || [];
+      if (conversationHistory.length > 0) {
+        console.log(`📋 Using enriched conversation history: ${conversationHistory.length} messages`);
+        const enrichedMessages = conversationHistory.map((msg: any) => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content
+        }));
+        messages.push(...enrichedMessages);
+      } else {
+        // Usar historial del thread si no hay contexto enriquecido
+        const recentMessages = thread.messages.slice(-8).map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+        messages.push(...recentMessages);
+      }
 
       // Agregar el mensaje actual
       let userPrompt = message;
@@ -175,6 +186,12 @@ export class OpenAIService {
       // Agregar contexto adicional si está disponible
       if (context?.additionalInfo) {
         userPrompt = `[Contexto adicional: ${context.additionalInfo}] ${userPrompt}`;
+      }
+
+      // Agregar instrucciones específicas para evitar repeticiones
+      if (context?.previousResponses && context.previousResponses.length > 0) {
+        const previousResponses = context.previousResponses.join('\n');
+        userPrompt = `${userPrompt}\n\n[IMPORTANTE: Evita repetir respuestas similares a estas anteriores: ${previousResponses}]`;
       }
 
       messages.push({ role: 'user', content: userPrompt });
@@ -197,12 +214,26 @@ export class OpenAIService {
         model: 'gpt-3.5-turbo',
         messages: messages,
         max_tokens: 800,
-        temperature: 0.7
+        temperature: 0.8, // Aumentar ligeramente para más variedad
+        presence_penalty: 0.3, // Penalizar repetición de temas
+        frequency_penalty: 0.5 // Penalizar repetición de palabras
       });
 
-      const assistantResponse = response.choices[0]?.message?.content;
+      let assistantResponse = response.choices[0]?.message?.content;
       if (assistantResponse) {
         console.log('Chat Completions response:', assistantResponse);
+        
+        // Verificar si la respuesta es muy similar a respuestas anteriores
+        const isRepetitive = this.checkForRepetitiveResponse(assistantResponse, context?.previousResponses || []);
+        if (isRepetitive) {
+          console.log('⚠️ Detected repetitive response, regenerating...');
+          // Intentar generar una respuesta diferente
+          const alternativeResponse = await this.generateAlternativeResponse(messages, context);
+          if (alternativeResponse) {
+            console.log('✅ Generated alternative response');
+            assistantResponse = alternativeResponse;
+          }
+        }
         
         // Guardar el mensaje del usuario y la respuesta en el historial
         const now = new Date();
@@ -259,7 +290,10 @@ export class OpenAIService {
 - NO te repitas si ya has respondido algo similar
 - Mantén el contexto de la conversación anterior
 - Si el usuario hace preguntas relacionadas, responde de manera coherente
-- Evita respuestas genéricas si ya has proporcionado información específica`;
+- Evita respuestas genéricas si ya has proporcionado información específica
+- Si detectas que tu respuesta es similar a una anterior, proporciona información nueva o diferente
+- Varía tu vocabulario y estructura de frases para evitar repeticiones
+- Enfócate en información específica y relevante al contexto actual`;
 
     // Agregar contexto específico para Service Desk
     if (context?.serviceDesk) {
@@ -447,5 +481,60 @@ ${context.specificInstructions}`;
     
     console.log('Run timed out after', maxWaitTime, 'ms');
     throw new Error('Run timed out');
+  }
+
+  // Método para verificar si una respuesta es repetitiva
+  private checkForRepetitiveResponse(currentResponse: string, previousResponses: string[]): boolean {
+    if (previousResponses.length === 0) return false;
+    
+    const currentLower = currentResponse.toLowerCase();
+    
+    for (const prevResponse of previousResponses) {
+      const prevLower = prevResponse.toLowerCase();
+      const similarity = this.calculateSimilarity(currentLower, prevLower);
+      
+      if (similarity > 0.7) { // 70% de similitud
+        console.log(`⚠️ High similarity detected: ${similarity.toFixed(2)}`);
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  // Método para calcular similitud entre textos
+  private calculateSimilarity(text1: string, text2: string): number {
+    const words1 = new Set(text1.split(/\s+/));
+    const words2 = new Set(text2.split(/\s+/));
+    
+    const intersection = new Set([...words1].filter(x => words2.has(x)));
+    const union = new Set([...words1, ...words2]);
+    
+    return intersection.size / union.size;
+  }
+
+  // Método para generar una respuesta alternativa
+  private async generateAlternativeResponse(messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>, context?: any): Promise<string | null> {
+    try {
+      // Modificar el prompt para solicitar una respuesta diferente
+      const lastUserMessage = messages[messages.length - 1];
+      const alternativePrompt = `${lastUserMessage.content}\n\n[IMPORTANTE: Proporciona una respuesta completamente diferente y única. Evita frases genéricas y repeticiones.]`;
+      
+      const modifiedMessages = [...messages.slice(0, -1), { role: 'user' as const, content: alternativePrompt }];
+      
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: modifiedMessages,
+        max_tokens: 800,
+        temperature: 0.9, // Mayor temperatura para más variedad
+        presence_penalty: 0.6, // Mayor penalización para repetición
+        frequency_penalty: 0.8 // Mayor penalización para frecuencia
+      });
+
+      return response.choices[0]?.message?.content || null;
+    } catch (error) {
+      console.error('Error generating alternative response:', error);
+      return null;
+    }
   }
 }

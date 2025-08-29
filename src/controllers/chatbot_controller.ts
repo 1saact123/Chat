@@ -6,6 +6,7 @@ import { JiraWebhookPayload } from '../types';
 export class ChatbotController {
   private processedComments = new Set<string>();
   private lastResponseTime = new Map<string, number>(); // Para throttling por issue
+  private conversationHistory = new Map<string, Array<{role: string, content: string, timestamp: Date}>>(); // Historial por issue
   private webhookStats = {
     totalReceived: 0,
     duplicatesSkipped: 0,
@@ -43,7 +44,92 @@ export class ChatbotController {
     };
     this.processedComments.clear();
     this.lastResponseTime.clear();
+    this.conversationHistory.clear();
     console.log('🔄 Webhook stats reset');
+  }
+
+  // Método para detectar comentarios de IA de manera más robusta
+  private isAIComment(comment: any): boolean {
+    const authorName = comment.author.displayName.toLowerCase();
+    const authorEmail = comment.author.emailAddress?.toLowerCase() || '';
+    const commentBody = comment.body.toLowerCase();
+    const authorAccountId = comment.author.accountId;
+
+    // Detectar por autor (más específico)
+    const aiAuthorPatterns = [
+      'ai', 'assistant', 'bot', 'movonte', 'automation', 'noreply',
+      'contact service account', 'ca contact service account',
+      'system', 'automated', 'chatbot', 'virtual assistant'
+    ];
+    
+    const isAIAuthor = aiAuthorPatterns.some(pattern => 
+      authorName.includes(pattern) || authorEmail.includes(pattern)
+    );
+
+    // Detectar por contenido (más específico)
+    const aiContentPatterns = [
+      'soy el asistente de movonte',
+      'soy un asistente',
+      'como asistente de movonte',
+      'puedo ayudarte',
+      '¿en qué puedo ayudarte?',
+      'gracias por contactar',
+      'respuesta automática',
+      'entiendo que estás trabajando',
+      'necesitas ayuda específica',
+      'estoy aquí para ayudarte',
+      'asistente virtual',
+      'bot de soporte'
+    ];
+    
+    const isAIContent = aiContentPatterns.some(pattern => 
+      commentBody.includes(pattern)
+    );
+
+    // Detectar comentarios muy similares a respuestas anteriores
+    const issueKey = comment.issue?.key || 'unknown';
+    const history = this.conversationHistory.get(issueKey) || [];
+    const recentResponses = history
+      .filter(msg => msg.role === 'assistant')
+      .slice(-3)
+      .map(msg => msg.content.toLowerCase());
+    
+    const isSimilarToPrevious = recentResponses.some(prevResponse => {
+      const similarity = this.calculateSimilarity(commentBody, prevResponse);
+      return similarity > 0.8; // 80% de similitud
+    });
+
+    return isAIAuthor || isAIContent || isSimilarToPrevious;
+  }
+
+  // Método para calcular similitud entre textos
+  private calculateSimilarity(text1: string, text2: string): number {
+    const words1 = new Set(text1.split(/\s+/));
+    const words2 = new Set(text2.split(/\s+/));
+    
+    const intersection = new Set([...words1].filter(x => words2.has(x)));
+    const union = new Set([...words1, ...words2]);
+    
+    return intersection.size / union.size;
+  }
+
+  // Método para agregar mensaje al historial de conversación
+  private addToConversationHistory(issueKey: string, role: string, content: string): void {
+    if (!this.conversationHistory.has(issueKey)) {
+      this.conversationHistory.set(issueKey, []);
+    }
+    
+    const history = this.conversationHistory.get(issueKey)!;
+    history.push({
+      role,
+      content,
+      timestamp: new Date()
+    });
+    
+    // Mantener solo los últimos 20 mensajes por issue
+    if (history.length > 20) {
+      history.splice(0, history.length - 20);
+    }
   }
 
   async handleJiraWebhook(req: Request, res: Response): Promise<void> {
@@ -91,62 +177,16 @@ export class ChatbotController {
         }
         
         // Verificar que no sea un comentario de la IA (detección mejorada)
-        const authorName = payload.comment.author.displayName.toLowerCase();
-        const authorEmail = payload.comment.author.emailAddress?.toLowerCase() || '';
-        const commentBody = payload.comment.body.toLowerCase();
-        const authorAccountId = payload.comment.author.accountId;
-        
-        // Detectar por autor
-        const isAIAuthor = authorName.includes('ai') || 
-                          authorName.includes('assistant') || 
-                          authorName.includes('bot') ||
-                          authorName.includes('movonte') ||
-                          authorName.includes('automation') ||
-                          authorEmail.includes('bot') ||
-                          authorEmail.includes('noreply') ||
-                          authorEmail.includes('automation');
-        
-        // Detectar por contenido
-        const isAIComment = commentBody.includes('ai response') || 
-                           commentBody.includes('asistente') || 
-                           commentBody.includes('automático') ||
-                           commentBody.includes('soy un asistente') ||
-                           commentBody.includes('como asistente') ||
-                           commentBody.includes('movonte') ||
-                           commentBody.includes('puedo ayudarte') ||
-                           commentBody.includes('¿en qué puedo ayudarte?') ||
-                           commentBody.includes('gracias por contactar') ||
-                           commentBody.includes('respuesta automática');
-        
-        // Detectar por ID de cuenta específico (si sabemos cuál es)
-        const knownBotAccountIds = [
-          'bot-account-id', // Reemplazar con IDs reales si los conoces
-          'automation-account-id'
-        ];
-        const isKnownBot = knownBotAccountIds.includes(authorAccountId);
-        
-        // Detectar comentarios muy recientes (posible loop)
-        const commentCreated = new Date(payload.comment.created);
-        const currentTime = new Date();
-        const timeDiff = currentTime.getTime() - commentCreated.getTime();
-        const isVeryRecent = timeDiff < 5000; // Menos de 5 segundos
-        
-        if (isAIAuthor || isAIComment || isKnownBot) {
+        if (this.isAIComment(payload.comment)) {
           this.webhookStats.aiCommentsSkipped++;
           console.log(`🤖 COMENTARIO DE IA DETECTADO:`);
           console.log(`   Autor: ${payload.comment.author.displayName}`);
           console.log(`   Email: ${payload.comment.author.emailAddress || 'N/A'}`);
-          console.log(`   Account ID: ${authorAccountId}`);
+          console.log(`   Account ID: ${payload.comment.author.accountId}`);
           console.log(`   Contenido: ${payload.comment.body.substring(0, 150)}...`);
-          console.log(`   Razón: ${isAIAuthor ? 'Autor IA' : isAIComment ? 'Contenido IA' : 'Bot conocido'}`);
           console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios de IA saltados`);
           res.json({ success: true, message: 'Skipped AI comment', aiComment: true });
           return;
-        }
-        
-        // Advertencia si el comentario es muy reciente
-        if (isVeryRecent) {
-          console.log(`⚠️  ADVERTENCIA: Comentario muy reciente (${timeDiff}ms) - posible loop`);
         }
         
         // Sistema de throttling para evitar respuestas muy rápidas
@@ -154,7 +194,7 @@ export class ChatbotController {
         const nowTimestamp = Date.now();
         const lastResponse = this.lastResponseTime.get(issueKey) || 0;
         const timeSinceLastResponse = nowTimestamp - lastResponse;
-        const THROTTLE_DELAY = 10000; // 10 segundos entre respuestas por issue
+        const THROTTLE_DELAY = 15000; // 15 segundos entre respuestas por issue
         
         if (timeSinceLastResponse < THROTTLE_DELAY) {
           this.webhookStats.throttledRequests++;
@@ -173,7 +213,29 @@ export class ChatbotController {
         }
         
         console.log(`✅ PROCESANDO COMENTARIO: ${commentId}`);
-        const response = await this.openaiService.processJiraComment(payload);
+        
+        // Agregar el comentario del usuario al historial
+        this.addToConversationHistory(issueKey, 'user', payload.comment.body);
+        
+        // Obtener historial de conversación para contexto
+        const conversationHistory = this.conversationHistory.get(issueKey) || [];
+        
+        // Crear contexto enriquecido con historial
+        const enrichedContext = {
+          jiraIssueKey: issueKey,
+          issueSummary: payload.issue.fields.summary,
+          issueStatus: payload.issue.fields.status.name,
+          authorName: payload.comment.author.displayName,
+          isJiraComment: true,
+          conversationType: 'jira-ticket',
+          conversationHistory: conversationHistory.slice(-6), // Últimos 6 mensajes
+          previousResponses: conversationHistory
+            .filter(msg => msg.role === 'assistant')
+            .slice(-3)
+            .map(msg => msg.content)
+        };
+        
+        const response = await this.openaiService.processJiraComment(payload, enrichedContext);
         
         // Actualizar tiempo de última respuesta
         this.lastResponseTime.set(issueKey, nowTimestamp);
@@ -188,6 +250,9 @@ export class ChatbotController {
             // Agregar comentario de la IA a Jira
             const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, response.response);
             this.webhookStats.successfulResponses++;
+            
+            // Agregar la respuesta de la IA al historial
+            this.addToConversationHistory(issueKey, 'assistant', response.response);
             
             // Guardar el account ID de la IA para futuras detecciones
             if (jiraResponse && jiraResponse.author && jiraResponse.author.accountId) {
