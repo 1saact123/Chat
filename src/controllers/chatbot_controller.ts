@@ -66,20 +66,20 @@ export class ChatbotController {
       authorName.includes(pattern) || authorEmail.includes(pattern)
     );
 
-    // Detectar por contenido (más específico)
+    // Detect by content (more specific)
     const aiContentPatterns = [
-      'soy el asistente de movonte',
-      'soy un asistente',
-      'como asistente de movonte',
-      'puedo ayudarte',
-      '¿en qué puedo ayudarte?',
-      'gracias por contactar',
-      'respuesta automática',
-      'entiendo que estás trabajando',
-      'necesitas ayuda específica',
-      'estoy aquí para ayudarte',
-      'asistente virtual',
-      'bot de soporte'
+      'i am the movonte assistant',
+      'i am an assistant',
+      'as movonte assistant',
+      'i can help you',
+      'how can i help you?',
+      'thank you for contacting',
+      'automatic response',
+      'i understand you are working',
+      'you need specific help',
+      'i am here to help you',
+      'virtual assistant',
+      'support bot'
     ];
     
     const isAIContent = aiContentPatterns.some(pattern => 
@@ -96,13 +96,13 @@ export class ChatbotController {
     
     const isSimilarToPrevious = recentResponses.some(prevResponse => {
       const similarity = this.calculateSimilarity(commentBody, prevResponse);
-      return similarity > 0.8; // 80% de similitud
+      return similarity > 0.8; // 80% similarity
     });
 
     return isAIAuthor || isAIContent || isSimilarToPrevious;
   }
 
-  // Método para calcular similitud entre textos
+  // Method to calculate similarity between texts
   private calculateSimilarity(text1: string, text2: string): number {
     const words1 = new Set(text1.split(/\s+/));
     const words2 = new Set(text2.split(/\s+/));
@@ -113,7 +113,7 @@ export class ChatbotController {
     return intersection.size / union.size;
   }
 
-  // Método para agregar mensaje al historial de conversación
+  // Method to add message to conversation history
   private addToConversationHistory(issueKey: string, role: string, content: string): void {
     if (!this.conversationHistory.has(issueKey)) {
       this.conversationHistory.set(issueKey, []);
@@ -126,10 +126,10 @@ export class ChatbotController {
       timestamp: new Date()
     });
     
-    // Mantener solo los últimos 20 mensajes por issue
-    if (history.length > 20) {
-      history.splice(0, history.length - 20);
-    }
+          // Keep only the last 20 messages per issue
+      if (history.length > 20) {
+        history.splice(0, history.length - 20);
+      }
   }
 
   async handleJiraWebhook(req: Request, res: Response): Promise<void> {

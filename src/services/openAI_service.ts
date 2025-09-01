@@ -23,21 +23,21 @@ export class OpenAIService {
       throw new Error('Comment data is missing');
     }
 
-    // Verificar que no sea un comentario de la IA (detección más específica)
-    const commentText = comment.body.toLowerCase();
-    const authorName = comment.author.displayName.toLowerCase();
-    
-    // Solo bloquear si es claramente un comentario de IA
-    const isAIAuthor = authorName.includes('ai') || 
-                      authorName.includes('assistant') || 
-                      authorName.includes('bot') ||
-                      authorName.includes('automation');
-    
-    // Detectar comentarios de IA de manera más específica
-    const isAIComment = commentText.includes('ai response') || 
-                       commentText.includes('respuesta automática') ||
-                       commentText.includes('como asistente de movonte') ||
-                       (commentText.includes('soy un asistente') && commentText.length < 50); // Solo si es muy corto
+          // Check that it's not an AI comment (more specific detection)
+      const commentText = comment.body.toLowerCase();
+      const authorName = comment.author.displayName.toLowerCase();
+      
+      // Only block if it's clearly an AI comment
+      const isAIAuthor = authorName.includes('ai') || 
+                        authorName.includes('assistant') || 
+                        authorName.includes('bot') ||
+                        authorName.includes('automation');
+      
+      // Detect AI comments more specifically
+      const isAIComment = commentText.includes('ai response') || 
+                         commentText.includes('automatic response') ||
+                         commentText.includes('as movonte assistant') ||
+                         (commentText.includes('i am an assistant') && commentText.length < 50); // Only if very short
     
     if (isAIAuthor || isAIComment) {
       console.log(`Skipping AI-generated comment from ${comment.author.displayName}`);
@@ -53,13 +53,13 @@ export class OpenAIService {
     console.log(`Processing Jira comment from ${comment.author.displayName} on issue ${issue.key}: ${comment.body}`);
     
     try {
-      // Crear un threadId consistente para mantener el contexto de la conversación
+      // Create a consistent threadId to maintain conversation context
       const threadId = `jira_${issue.key}`;
       
-      // Construir el mensaje del usuario
+      // Build the user message
       const userMessage = `From ${comment.author.displayName} on Jira issue ${issue.key}: ${comment.body}`;
       
-      // Contexto específico para Jira (usar el enriquecido si está disponible)
+      // Jira-specific context (use enriched if available)
       const context = enrichedContext || {
         jiraIssueKey: issue.key,
         issueSummary: issue.fields.summary,
@@ -74,7 +74,7 @@ export class OpenAIService {
       console.log(`User message: ${userMessage}`);
       console.log(`🔗 Attempting to call OpenAI API...`);
 
-      // Usar el método que maneja el contexto y threads
+      // Use the method that handles context and threads
       const result = await this.processWithChatCompletions(userMessage, threadId, context);
       console.log(`✅ OpenAI API call completed:`, result.success ? 'SUCCESS' : 'FAILED');
       return result;
@@ -106,10 +106,10 @@ export class OpenAIService {
     try {
       console.log(`Processing Jira chat message for issue ${issueKey}: ${message}`);
       
-      // Thread específico para el chat
+      // Specific thread for chat
       const threadId = `jira_chat_${issueKey || 'general'}_${Date.now()}`;
       
-      // Contexto específico para chat
+      // Chat-specific context
       const context = {
         jiraIssueKey: issueKey,
         isChatMessage: true,
@@ -118,13 +118,13 @@ export class OpenAIService {
         messageType: 'chat'
       };
 
-      // Instrucciones específicas para chat
+      // Chat-specific instructions
       const chatInstructions = `
-        Eres un asistente de chat en Jira para Movonte. 
-        Responde de manera conversacional y útil.
-        Si hay un ticket asociado, proporciona información relevante.
-        Mantén un tono profesional pero amigable.
-        Sugiere acciones concretas cuando sea apropiado.
+        You are a Jira chat assistant for Movonte. 
+        Respond in a conversational and helpful manner.
+        If there's an associated ticket, provide relevant information.
+        Maintain a professional but friendly tone.
+        Suggest concrete actions when appropriate.
       `;
 
       const result = await this.processDirectChat(message, threadId, context);
@@ -148,10 +148,10 @@ export class OpenAIService {
     console.log(`🔧 Context:`, context);
     
     try {
-      // Instrucciones dinámicas basadas en el contexto
+      // Dynamic instructions based on context
       let systemPrompt = this.buildDynamicSystemPrompt(context);
       
-      // Obtener o crear el thread para mantener el historial
+      // Get or create thread to maintain history
       let thread = this.threads.get(threadId || 'default');
       if (!thread) {
         thread = {
@@ -164,12 +164,12 @@ export class OpenAIService {
         console.log(`Created new thread: ${thread.threadId}`);
       }
 
-      // Construir el array de mensajes con el historial
+      // Build the messages array with history
       const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
         { role: 'system', content: systemPrompt }
       ];
 
-      // Usar historial de conversación del contexto si está disponible (más reciente)
+      // Use conversation history from context if available (more recent)
       let conversationHistory = context?.conversationHistory || [];
       if (conversationHistory.length > 0) {
         console.log(`📋 Using enriched conversation history: ${conversationHistory.length} messages`);
@@ -179,7 +179,7 @@ export class OpenAIService {
         }));
         messages.push(...enrichedMessages);
       } else {
-        // Usar historial del thread si no hay contexto enriquecido
+        // Use thread history if no enriched context
         const recentMessages = thread.messages.slice(-8).map(msg => ({
           role: msg.role,
           content: msg.content
@@ -187,23 +187,23 @@ export class OpenAIService {
         messages.push(...recentMessages);
       }
 
-      // Agregar el mensaje actual
+      // Add the current message
       let userPrompt = message;
       
-      // Agregar contexto de Jira si está disponible
+      // Add Jira context if available
       if (context?.jiraIssueKey) {
-        userPrompt = `[Ticket Jira: ${context.jiraIssueKey}] ${message}`;
+        userPrompt = `[Jira Ticket: ${context.jiraIssueKey}] ${message}`;
       }
 
-      // Agregar contexto adicional si está disponible
+      // Add additional context if available
       if (context?.additionalInfo) {
-        userPrompt = `[Contexto adicional: ${context.additionalInfo}] ${userPrompt}`;
+        userPrompt = `[Additional context: ${context.additionalInfo}] ${userPrompt}`;
       }
 
-      // Agregar instrucciones específicas para evitar repeticiones
+      // Add specific instructions to avoid repetitions
       if (context?.previousResponses && context.previousResponses.length > 0) {
         const previousResponses = context.previousResponses.join('\n');
-        userPrompt = `${userPrompt}\n\n[IMPORTANTE: Evita repetir respuestas similares a estas anteriores: ${previousResponses}]`;
+        userPrompt = `${userPrompt}\n\n[IMPORTANT: Avoid repeating responses similar to these previous ones: ${previousResponses}]`;
       }
 
       messages.push({ role: 'user', content: userPrompt });
@@ -214,7 +214,7 @@ export class OpenAIService {
       console.log(`System Prompt: ${systemPrompt.substring(0, 100)}...`);
       console.log(`User Prompt: ${userPrompt}`);
       
-      // Mostrar el historial de mensajes para debugging
+      // Show message history for debugging
       if (thread.messages.length > 0) {
         console.log(`📋 Conversation history for ${thread.threadId}:`);
         thread.messages.slice(-4).forEach((msg, index) => {
@@ -238,11 +238,11 @@ export class OpenAIService {
       if (assistantResponse) {
         console.log('Chat Completions response:', assistantResponse);
         
-        // Verificar si la respuesta es muy similar a respuestas anteriores
+        // Check if the response is very similar to previous responses
         const isRepetitive = this.checkForRepetitiveResponse(assistantResponse, context?.previousResponses || []);
         if (isRepetitive) {
           console.log('⚠️ Detected repetitive response, regenerating...');
-          // Intentar generar una respuesta diferente
+          // Try to generate a different response
           const alternativeResponse = await this.generateAlternativeResponse(messages, context);
           if (alternativeResponse) {
             console.log('✅ Generated alternative response');
@@ -250,7 +250,7 @@ export class OpenAIService {
           }
         }
         
-        // Guardar el mensaje del usuario y la respuesta en el historial
+        // Save the user message and response in the history
         const now = new Date();
         thread.messages.push(
           { role: 'user', content: userPrompt, timestamp: now },
@@ -258,7 +258,7 @@ export class OpenAIService {
         );
         thread.lastActivity = now;
         
-        // Limpiar mensajes antiguos si hay demasiados (mantener últimos 20)
+        // Clean old messages if there are too many (keep last 20)
         if (thread.messages.length > 20) {
           thread.messages = thread.messages.slice(-20);
         }
@@ -281,117 +281,117 @@ export class OpenAIService {
   }
 
   private buildDynamicSystemPrompt(context?: any): string {
-    let basePrompt = `Eres un asistente de Movonte, una empresa de desarrollo de software especializada en soluciones tecnológicas innovadoras.
+    let basePrompt = `You are a Movonte assistant, a software development company specialized in innovative technological solutions.
 
-**Información de la empresa:**
-- Empresa: Movonte
-- Sector: Desarrollo de software
-- Enfoque: Soluciones tecnológicas empresariales
+**Company Information:**
+- Company: Movonte
+- Sector: Software Development
+- Focus: Enterprise Technology Solutions
 
-**Capacidades principales:**
-- Soporte técnico para proyectos de desarrollo
-- Análisis y resolución de problemas técnicos
-- Consultoría en arquitectura de software
-- Gestión de proyectos y metodologías ágiles
-- Integración con herramientas como Jira, Git, etc.
+**Main Capabilities:**
+- Technical support for development projects
+- Analysis and resolution of technical problems
+- Software architecture consulting
+- Project management and agile methodologies
+- Integration with tools like Jira, Git, etc.
 
-**Estilo de comunicación:**
-- Profesional pero cercano
-- Respuestas claras y concisas
-- Uso de ejemplos prácticos cuando sea apropiado
-- Siempre en español
+**Communication Style:**
+- Professional but approachable
+- Clear and concise responses
+- Use practical examples when appropriate
+- Always in English
 
-**IMPORTANTE - Manejo de conversación:**
-- SIEMPRE revisa el historial de la conversación antes de responder
-- NO te repitas si ya has respondido algo similar
-- Mantén el contexto de la conversación anterior
-- Si el usuario hace preguntas relacionadas, responde de manera coherente
-- Evita respuestas genéricas si ya has proporcionado información específica
-- Si detectas que tu respuesta es similar a una anterior, proporciona información nueva o diferente
-- Varía tu vocabulario y estructura de frases para evitar repeticiones
-- Enfócate en información específica y relevante al contexto actual`;
+**IMPORTANT - Conversation Management:**
+- ALWAYS review the conversation history before responding
+- DO NOT repeat yourself if you've already answered something similar
+- Maintain the context of the previous conversation
+- If the user asks related questions, respond coherently
+- Avoid generic responses if you've already provided specific information
+- If you detect that your response is similar to a previous one, provide new or different information
+- Vary your vocabulary and sentence structure to avoid repetitions
+- Focus on specific and relevant information to the current context`;
 
-    // Agregar contexto específico para Service Desk
+    // Add specific context for Service Desk
     if (context?.serviceDesk) {
       basePrompt += `
 
-**ESPECIALIZACIÓN EN SERVICE DESK:**
-- Eres un asistente especializado en Jira Service Desk
-- Ayudas con tickets, SLA, soporte técnico y atención al cliente
-- Conoces los procesos de Movonte para resolución de problemas
-- Proporcionas información sobre políticas de soporte y tiempos de respuesta
+**SERVICE DESK SPECIALIZATION:**
+- You are a Jira Service Desk specialized assistant
+- You help with tickets, SLA, technical support and customer service
+- You know Movonte's processes for problem resolution
+- You provide information about support policies and response times
 
-**Funciones específicas de Service Desk:**
-- Creación y seguimiento de tickets
-- Consultas sobre SLA y tiempos de respuesta
-- Soporte técnico y resolución de problemas
-- Información sobre procesos y políticas de la empresa
-- Guía para usar el sistema de tickets
-- Escalamiento de problemas cuando sea necesario`;
+**Specific Service Desk Functions:**
+- Ticket creation and tracking
+- SLA and response time queries
+- Technical support and problem resolution
+- Information about company processes and policies
+- Guide for using the ticket system
+- Problem escalation when necessary`;
     }
 
-    // Agregar contexto específico para chat de Jira
+    // Add specific context for Jira chat
     if (context?.isChatMessage) {
       basePrompt += `
 
-**ESPECIALIZACIÓN EN CHAT DE JIRA:**
-- Eres un asistente de chat integrado en Jira para Movonte
-- Responde de manera conversacional y útil
-- Proporciona información específica sobre tickets y proyectos
-- Mantén un tono profesional pero amigable
-- Sugiere acciones concretas cuando sea apropiado
+**JIRA CHAT SPECIALIZATION:**
+- You are a Jira-integrated chat assistant for Movonte
+- Respond in a conversational and helpful manner
+- Provide specific information about tickets and projects
+- Maintain a professional but friendly tone
+- Suggest concrete actions when appropriate
 
-**Funciones específicas del chat:**
-- Ayuda con consultas sobre tickets específicos
-- Proporciona información sobre estados y progreso
-- Sugiere próximos pasos y acciones
-- Responde preguntas sobre procesos y políticas
-- Ofrece soporte técnico contextual
-- Mantiene conversaciones fluidas y útiles`;
+**Specific Chat Functions:**
+- Help with queries about specific tickets
+- Provide information about status and progress
+- Suggest next steps and actions
+- Answer questions about processes and policies
+- Offer contextual technical support
+- Maintain fluid and useful conversations`;
     }
 
-    // Agregar contexto específico de Jira si está disponible
+    // Add Jira-specific context if available
     if (context?.jiraIssueKey) {
       basePrompt += `
 
-**Contexto de Jira:**
-- Estás trabajando con el ticket: ${context.jiraIssueKey}
-- Puedes hacer referencia a este ticket en tus respuestas
-- Si el usuario pregunta sobre el ticket, proporciona información relevante`;
+**Jira Context:**
+- You are working with ticket: ${context.jiraIssueKey}
+- You can reference this ticket in your responses
+- If the user asks about the ticket, provide relevant information`;
     }
 
-    // Agregar contexto de proyecto si está disponible
+    // Add project context if available
     if (context?.projectInfo) {
       basePrompt += `
 
-**Información del proyecto:**
+**Project Information:**
 ${context.projectInfo}`;
     }
 
-    // Agregar instrucciones específicas si están disponibles
+    // Add specific instructions if available
     if (context?.specificInstructions) {
       basePrompt += `
 
-**Instrucciones específicas:**
+**Specific Instructions:**
 ${context.specificInstructions}`;
     }
 
-    // Agregar contexto de usuario si está disponible
+    // Add user context if available
     if (context?.userRole) {
       basePrompt += `
 
-**Rol del usuario:**
-- El usuario es: ${context.userRole}
-- Adapta tus respuestas según su nivel de experiencia técnica`;
+**User Role:**
+- The user is: ${context.userRole}
+- Adapt your responses according to their technical experience level`;
     }
 
     basePrompt += `
 
-**Recuerda:**
-- Siempre ser útil y profesional
-- Si no tienes suficiente información, pide más detalles
-- Sugiere acciones concretas cuando sea apropiado
-- Mantén un tono positivo y constructivo`;
+**Remember:**
+- Always be helpful and professional
+- If you don't have enough information, ask for more details
+- Suggest concrete actions when appropriate
+- Maintain a positive and constructive tone`;
 
     return basePrompt;
   }
@@ -403,15 +403,15 @@ ${context.specificInstructions}`;
     let response = '';
 
     if (commentText.includes('hola') || commentText.includes('hello')) {
-      response = `¡Hola ${comment.author.displayName}! Soy el asistente de Movonte. Gracias por tu comentario en el ticket ${issue.key}. ¿En qué puedo ayudarte con este ticket?`;
+      response = `Hello ${comment.author.displayName}! I'm the Movonte assistant. Thank you for your comment on ticket ${issue.key}. How can I help you with this ticket?`;
     } else if (commentText.includes('ayuda') || commentText.includes('help')) {
-      response = `Hola ${comment.author.displayName}, puedo ayudarte con:\n• Consultas sobre el ticket ${issue.key}\n• Información sobre el proyecto\n• Soporte técnico general\n• Seguimiento del progreso\n¿Qué necesitas específicamente?`;
+      response = `Hello ${comment.author.displayName}, I can help you with:\n• Queries about ticket ${issue.key}\n• Project information\n• General technical support\n• Progress tracking\n• What do you need specifically?`;
     } else if (commentText.includes('estado') || commentText.includes('status')) {
-      response = `Hola ${comment.author.displayName}, veo que el ticket ${issue.key} está en estado "${issue.fields.status.name}". ¿Necesitas información sobre el progreso o ayuda con algo específico?`;
+      response = `Hello ${comment.author.displayName}, I can see that ticket ${issue.key} is in status "${issue.fields.status.name}". Do you need information about the progress or help with something specific?`;
     } else if (commentText.includes('proyecto') || commentText.includes('project')) {
-      response = `Hola ${comment.author.displayName}, este ticket pertenece al proyecto ${issue.fields.project.name}. ¿Necesitas información específica sobre el proyecto o ayuda con este ticket?`;
+      response = `Hello ${comment.author.displayName}, this ticket belongs to project ${issue.fields.project.name}. Do you need specific information about the project or help with this ticket?`;
     } else {
-      response = `Hola ${comment.author.displayName}, gracias por tu comentario en el ticket ${issue.key}. Soy el asistente de Movonte y estoy aquí para ayudarte. Actualmente estoy en modo de respaldo, pero puedo asistirte con consultas sobre este ticket. ¿En qué puedo ayudarte específicamente?`;
+      response = `Hello ${comment.author.displayName}, thank you for your comment on ticket ${issue.key}. I'm the Movonte assistant and I'm here to help you. I'm currently in backup mode, but I can assist you with queries about this ticket. How can I help you specifically?`;
     }
 
     return {
@@ -428,15 +428,15 @@ ${context.specificInstructions}`;
     let response = '';
 
     if (lowerMessage.includes('hola') || lowerMessage.includes('hello')) {
-      response = '¡Hola! Soy el asistente de Movonte. ¿En qué puedo ayudarte hoy?';
+      response = 'Hello! I\'m the Movonte assistant. How can I help you today?';
     } else if (lowerMessage.includes('jira') || context?.jiraIssueKey) {
-      response = `Entiendo que estás trabajando con el ticket ${context?.jiraIssueKey || 'Jira'}. ¿Necesitas ayuda específica con este ticket?`;
+      response = `I understand you're working with ticket ${context?.jiraIssueKey || 'Jira'}. Do you need specific help with this ticket?`;
     } else if (lowerMessage.includes('ayuda') || lowerMessage.includes('help')) {
-      response = 'Puedo ayudarte con:\n• Consultas sobre tickets de Jira\n• Información sobre proyectos\n• Soporte técnico general\n¿Qué necesitas?';
+      response = 'I can help you with:\n• Queries about Jira tickets\n• Project information\n• General technical support\n• What do you need?';
     } else if (lowerMessage.includes('proyecto') || lowerMessage.includes('project')) {
-      response = 'En Movonte trabajamos en diversos proyectos de desarrollo. ¿Te refieres a algún proyecto específico?';
+      response = 'At Movonte we work on various development projects. Are you referring to a specific project?';
     } else {
-      response = 'Gracias por tu mensaje. Actualmente estoy en modo de respaldo debido a limitaciones de la API. ¿Puedo ayudarte con algo específico sobre Movonte o nuestros proyectos?';
+      response = 'Thank you for your message. I\'m currently in backup mode due to API limitations. Can I help you with something specific about Movonte or our projects?';
     }
 
     return {
@@ -499,7 +499,7 @@ ${context.specificInstructions}`;
     throw new Error('Run timed out');
   }
 
-  // Método para verificar si una respuesta es repetitiva
+  // Method to check if a response is repetitive
   private checkForRepetitiveResponse(currentResponse: string, previousResponses: string[]): boolean {
     if (previousResponses.length === 0) return false;
     
@@ -509,7 +509,7 @@ ${context.specificInstructions}`;
       const prevLower = prevResponse.toLowerCase();
       const similarity = this.calculateSimilarity(currentLower, prevLower);
       
-      if (similarity > 0.7) { // 70% de similitud
+      if (similarity > 0.7) { // 70% similarity
         console.log(`⚠️ High similarity detected: ${similarity.toFixed(2)}`);
         return true;
       }
@@ -518,7 +518,7 @@ ${context.specificInstructions}`;
     return false;
   }
 
-  // Método para calcular similitud entre textos
+  // Method to calculate similarity between texts
   private calculateSimilarity(text1: string, text2: string): number {
     const words1 = new Set(text1.split(/\s+/));
     const words2 = new Set(text2.split(/\s+/));
@@ -529,12 +529,12 @@ ${context.specificInstructions}`;
     return intersection.size / union.size;
   }
 
-  // Método para generar una respuesta alternativa
+  // Method to generate an alternative response
   private async generateAlternativeResponse(messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>, context?: any): Promise<string | null> {
     try {
-      // Modificar el prompt para solicitar una respuesta diferente
+      // Modify the prompt to request a different response
       const lastUserMessage = messages[messages.length - 1];
-      const alternativePrompt = `${lastUserMessage.content}\n\n[IMPORTANTE: Proporciona una respuesta completamente diferente y única. Evita frases genéricas y repeticiones.]`;
+      const alternativePrompt = `${lastUserMessage.content}\n\n[IMPORTANT: Provide a completely different and unique response. Avoid generic phrases and repetitions.]`;
       
       const modifiedMessages = [...messages.slice(0, -1), { role: 'user' as const, content: alternativePrompt }];
       
@@ -542,9 +542,9 @@ ${context.specificInstructions}`;
         model: 'gpt-3.5-turbo',
         messages: modifiedMessages,
         max_tokens: 800,
-        temperature: 0.9, // Mayor temperatura para más variedad
-        presence_penalty: 0.6, // Mayor penalización para repetición
-        frequency_penalty: 0.8 // Mayor penalización para frecuencia
+        temperature: 0.9, // Higher temperature for more variety
+        presence_penalty: 0.6, // Higher penalty for repetition
+        frequency_penalty: 0.8 // Higher penalty for frequency
       });
 
       return response.choices[0]?.message?.content || null;
@@ -554,59 +554,59 @@ ${context.specificInstructions}`;
     }
   }
 
-  // Método para listar todos los asistentes disponibles
+  // Method to list all available assistants
   async listAssistants(): Promise<Array<{id: string, name: string, description?: string, model: string, created_at: number}>> {
     try {
-      console.log('🔍 Listando asistentes disponibles...');
+      console.log('🔍 Listing available assistants...');
       
       const assistants = await this.openai.beta.assistants.list();
       
-      console.log(`✅ Encontrados ${assistants.data.length} asistente(s)`);
+      console.log(`✅ Found ${assistants.data.length} assistant(s)`);
       
       return assistants.data.map(assistant => ({
         id: assistant.id,
-        name: assistant.name || 'Sin nombre',
+        name: assistant.name || 'Unnamed',
         description: assistant.description || undefined,
         model: assistant.model,
         created_at: assistant.created_at
       }));
     } catch (error) {
-      console.error('❌ Error al listar asistentes:', error);
-      throw new Error(`Error al listar asistentes: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      console.error('❌ Error listing assistants:', error);
+      throw new Error(`Error listing assistants: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  // Método para cambiar el asistente activo
+  // Method to change the active assistant
   setActiveAssistant(assistantId: string): void {
     this.assistantId = assistantId;
-    console.log(`🔄 Asistente activo cambiado a: ${assistantId}`);
+    console.log(`🔄 Active assistant changed to: ${assistantId}`);
   }
 
-  // Método para obtener el asistente activo actual
+  // Method to get the current active assistant
   getActiveAssistant(): string {
     return this.assistantId;
   }
 
-  // Método para obtener el asistente activo de un servicio específico
+  // Method to get the active assistant for a specific service
   getActiveAssistantForService(serviceId: string): string | null {
     return this.configService.getActiveAssistantForService(serviceId);
   }
 
-  // Método para procesar chat con asistente específico de un servicio
+  // Method to process chat with a specific service assistant
   async processChatForService(message: string, serviceId: string, threadId?: string, context?: any): Promise<ChatbotResponse> {
     try {
-      // Obtener el asistente configurado para este servicio
+      // Get the assistant configured for this service
       const serviceAssistantId = this.configService.getActiveAssistantForService(serviceId);
       
       if (!serviceAssistantId) {
         return {
           success: false,
           threadId: '',
-          error: `No hay asistente configurado para el servicio '${serviceId}'`
+          error: `No assistant configured for service '${serviceId}'`
         };
       }
 
-      // Usar el asistente del servicio en lugar del asistente global
+      // Use the service assistant instead of the global assistant
       const originalAssistantId = this.assistantId;
       this.assistantId = serviceAssistantId;
 
@@ -614,7 +614,7 @@ ${context.specificInstructions}`;
         const result = await this.processWithChatCompletions(message, threadId, context);
         return result;
       } finally {
-        // Restaurar el asistente original
+        // Restore the original assistant
         this.assistantId = originalAssistantId;
       }
 

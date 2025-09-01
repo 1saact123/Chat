@@ -92,7 +92,7 @@ async function debugOpenAIIssue() {
     ...mockPayload,
     comment: {
       ...mockPayload.comment,
-      body: '¡Hola! Soy el asistente de Movonte. ¿En qué puedo ayudarte hoy?',
+              body: 'Hello! I am the Movonte assistant. How can I help you today?',
       author: {
         displayName: 'CA contact service account',
         emailAddress: 'bot@movonte.com',
