@@ -25,6 +25,7 @@ async function debugOpenAIIssue() {
   const mockPayload = {
     webhookEvent: 'comment_created',
     issue: {
+      id: '12345',
       key: 'BDM-61',
       fields: {
         summary: 'Test ticket',

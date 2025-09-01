@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Panel - AI Assistant Management</title>
+    <link rel="stylesheet" href="ceo-dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Control Panel</h1>
+            <p>Centralized AI Assistant Management by Service</p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalAssistants">-</div>
+                <div class="stat-label">Available Assistants</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalServices">-</div>
+                <div class="stat-label">Configured Services</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeServices">-</div>
+                <div class="stat-label">Active Services</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Available Assistants -->
+            <div class="section">
+                <h2>Available Assistants</h2>
+                <div id="assistantsList" class="assistant-list">
+                    <p style="text-align: center; color: #64748b;">Loading assistants...</p>
+                </div>
+            </div>
+
+            <!-- Service Configuration -->
+            <div class="section">
+                <h2>Service Configuration</h2>
+                <div id="servicesConfig">
+                    <p style="text-align: center; color: #64748b;">Loading services...</p>
+                </div>
+                
+                <!-- Form to add service -->
+                <div class="add-service-form">
+                    <h3>Add New Service</h3>
+                                        <div class="form-group">
+                        <label for="newServiceId">Service ID:</label>
+                        <input type="text" id="newServiceId" placeholder="e.g: customer-support">
+                    </div>
+                    <div class="form-group">
+                        <label for="newServiceName">Service Name:</label>
+                        <input type="text" id="newServiceName" placeholder="e.g: Customer Support">
+                    </div>
+                    <div class="form-group">
+                        <label for="newAssistantId">Assistant:</label>
+                        <select id="newAssistantId">
+                            <option value="">Select an assistant...</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="addServiceBtn">Add Service</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" class="status-message" style="display: none;"></div>
+
+        
+    </div>
+
+    <script>
+        class CEODashboard {
+            constructor() {
+                this.assistants = [];
+                this.serviceConfigs = [];
+                this.initialize();
+            }
+
+            async initialize() {
+                await this.loadDashboard();
+                this.setupEventListeners();
+            }
+
+            async loadDashboard() {
+                try {
+                    const response = await fetch('/api/admin/dashboard');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.assistants = data.data.assistants;
+                        this.serviceConfigs = data.data.serviceConfigurations;
+                        
+                        this.updateStats(data.data);
+                        this.renderAssistants();
+                        this.renderServices();
+                        this.populateAssistantDropdown();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                                         this.showStatus(`Error loading dashboard: ${error.message}`, 'error');
+                }
+            }
+
+            updateStats(data) {
+                document.getElementById('totalAssistants').textContent = data.totalAssistants;
+                document.getElementById('totalServices').textContent = data.totalServices;
+                document.getElementById('activeServices').textContent = 
+                    this.serviceConfigs.filter(s => s.isActive).length;
+            }
+
+            renderAssistants() {
+                const container = document.getElementById('assistantsList');
+                
+                                 if (this.assistants.length === 0) {
+                     container.innerHTML = '<p style="text-align: center; color: #64748b;">No assistants available</p>';
+                     return;
+                 }
+
+                                 container.innerHTML = this.assistants.map(assistant => `
+                     <div class="assistant-item">
+                         <div class="assistant-name">${assistant.name || 'Unnamed'}</div>
+                         <div class="assistant-details">
+                             <strong>ID:</strong> ${assistant.id}<br>
+                             <strong>Model:</strong> ${assistant.model}<br>
+                             <strong>Description:</strong> ${assistant.description || 'No description'}
+                         </div>
+                     </div>
+                 `).join('');
+            }
+
+                         renderServices() {
+                 const container = document.getElementById('servicesConfig');
+                 
+                 if (this.serviceConfigs.length === 0) {
+                     container.innerHTML = '<p style="text-align: center; color: #64748b;">No services configured</p>';
+                     return;
+                 }
+
+                 container.innerHTML = this.serviceConfigs.map(service => `
+                     <div class="service-config">
+                         <div class="service-header">
+                             <div class="service-name">${service.serviceName}</div>
+                             <div class="service-status ${service.isActive ? 'status-active' : 'status-inactive'}">
+                                 ${service.isActive ? 'ACTIVO' : 'INACTIVO'}
+                             </div>
+                         </div>
+                         
+                         <div class="assistant-details">
+                             <strong>Current Assistant:</strong> ${service.assistantName}<br>
+                             <strong>Service ID:</strong> ${service.serviceId}<br>
+                             <strong>Last Updated:</strong> ${new Date(service.lastUpdated).toLocaleString()}
+                         </div>
+                         
+                         <div class="form-group">
+                             <label>Change Assistant:</label>
+                             <select class="assistant-selector" id="assistant-${service.serviceId}">
+                                 <option value="">Select an assistant...</option>
+                                 ${this.assistants.map(a => `
+                                     <option value="${a.id}" ${a.id === service.assistantId ? 'selected' : ''}>
+                                         ${a.name || 'Unnamed'}
+                                     </option>
+                                 `).join('')}
+                             </select>
+                             <button class="btn btn-primary apply-change-btn" data-service-id="${service.serviceId}" style="margin-top: 10px;">
+                                 Apply Change
+                             </button>
+                         </div>
+                         
+                         <div class="service-actions">
+                             <button class="btn ${service.isActive ? 'btn-warning' : 'btn-success'} toggle-service-btn" 
+                                     data-service-id="${service.serviceId}" data-is-active="${!service.isActive}">
+                                 ${service.isActive ? 'Deactivate' : 'Activate'}
+                             </button>
+                             <button class="btn btn-danger remove-service-btn" 
+                                     data-service-id="${service.serviceId}">
+                                 Remove
+                             </button>
+                         </div>
+                     </div>
+                 `).join('');
+
+                 // Configurar event listeners después de renderizar
+                 this.setupDynamicEventListeners();
+             }
+
+                         populateAssistantDropdown() {
+                 const select = document.getElementById('newAssistantId');
+                 select.innerHTML = '<option value="">Select an assistant...</option>';
+                 
+                 this.assistants.forEach(assistant => {
+                     const option = document.createElement('option');
+                     option.value = assistant.id;
+                     option.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
+                     select.appendChild(option);
+                 });
+             }
+
+            async changeServiceAssistant(serviceId, assistantId) {
+                if (!assistantId) return;
+
+                const assistant = this.assistants.find(a => a.id === assistantId);
+                if (!assistant) return;
+
+                try {
+                    const response = await fetch(`/api/admin/services/${serviceId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            assistantId: assistantId,
+                            assistantName: assistant.name || 'Sin nombre'
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                                         if (data.success) {
+                         this.showStatus(`Assistant updated for ${serviceId}`, 'success');
+                         await this.loadDashboard(); // Reload data
+                     } else {
+                         throw new Error(data.error);
+                     }
+                 } catch (error) {
+                     this.showStatus(`Error updating assistant: ${error.message}`, 'error');
+                 }
+            }
+
+            // Nueva función para aplicar cambios
+            async applyAssistantChange(serviceId) {
+                const selectElement = document.getElementById(`assistant-${serviceId}`);
+                const selectedAssistantId = selectElement.value;
+                
+                                 if (!selectedAssistantId) {
+                     this.showStatus('Please select an assistant first', 'error');
+                     return;
+                 }
+
+                 const assistant = this.assistants.find(a => a.id === selectedAssistantId);
+                 if (!assistant) {
+                     this.showStatus('Assistant not found', 'error');
+                     return;
+                 }
+
+                try {
+                    console.log(`🔄 Aplicando cambio para servicio: ${serviceId}`);
+                    console.log(`📋 Asistente seleccionado:`, assistant);
+                    
+                    const response = await fetch(`/api/admin/services/${serviceId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            assistantId: selectedAssistantId,
+                            assistantName: assistant.name || 'Sin nombre'
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                                                              if (data.success) {
+                         console.log(`Change applied successfully:`, data);
+                         this.showStatus(`Assistant "${assistant.name}" applied to ${serviceId}`, 'success');
+                         
+                         // Reload dashboard
+                         await this.loadDashboard();
+                     } else {
+                         throw new Error(data.error);
+                     }
+                 } catch (error) {
+                     console.error(`Error applying change:`, error);
+                     this.showStatus(`Error applying change: ${error.message}`, 'error');
+                 }
+            }
+
+            
+
+            async toggleService(serviceId, isActive) {
+                try {
+                    const response = await fetch(`/api/admin/services/${serviceId}/toggle`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ isActive })
+                    });
+
+                    const data = await response.json();
+                    
+                                         if (data.success) {
+                         this.showStatus(`Service ${serviceId} ${isActive ? 'activated' : 'deactivated'}`, 'success');
+                         await this.loadDashboard(); // Reload data
+                     } else {
+                         throw new Error(data.error);
+                     }
+                 } catch (error) {
+                     this.showStatus(`Error changing status: ${error.message}`, 'error');
+                 }
+            }
+
+                         async removeService(serviceId) {
+                 if (!confirm(`Are you sure you want to remove the service '${serviceId}'?`)) {
+                     return;
+                 }
+
+                try {
+                    const response = await fetch(`/api/admin/services/${serviceId}`, {
+                        method: 'DELETE'
+                    });
+
+                    const data = await response.json();
+                    
+                                         if (data.success) {
+                         this.showStatus(`Service ${serviceId} removed`, 'success');
+                         await this.loadDashboard(); // Reload data
+                     } else {
+                         throw new Error(data.error);
+                     }
+                 } catch (error) {
+                     this.showStatus(`Error removing service: ${error.message}`, 'error');
+                 }
+            }
+
+            async addNewService() {
+                const serviceId = document.getElementById('newServiceId').value.trim();
+                const serviceName = document.getElementById('newServiceName').value.trim();
+                const assistantId = document.getElementById('newAssistantId').value;
+
+                                 if (!serviceId || !serviceName || !assistantId) {
+                     this.showStatus('All fields are required', 'error');
+                     return;
+                 }
+
+                try {
+                    const assistant = this.assistants.find(a => a.id === assistantId);
+                    const response = await fetch('/api/admin/services', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            serviceId,
+                            serviceName,
+                            assistantId,
+                            assistantName: assistant.name || 'Sin nombre'
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                                         if (data.success) {
+                         this.showStatus(`Service '${serviceName}' added successfully`, 'success');
+                         
+                         // Clear form
+                         document.getElementById('newServiceId').value = '';
+                         document.getElementById('newServiceId').value = '';
+                         document.getElementById('newAssistantId').value = '';
+                         
+                         await this.loadDashboard(); // Reload data
+                     } else {
+                         throw new Error(data.error);
+                     }
+                 } catch (error) {
+                     this.showStatus(`Error adding service: ${error.message}`, 'error');
+                 }
+            }
+
+            showStatus(message, type) {
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.textContent = message;
+                statusDiv.className = `status-message status-${type}`;
+                statusDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+
+                         setupEventListeners() {
+                 // Event listener para agregar servicio
+                 document.getElementById('addServiceBtn')?.addEventListener('click', () => this.addNewService());
+                 
+                 // Event listeners para botones dinámicos (se configuran después de renderizar)
+                 this.setupDynamicEventListeners();
+             }
+
+             setupDynamicEventListeners() {
+                 // Event listeners para botones de aplicar cambio
+                 document.querySelectorAll('.apply-change-btn').forEach(btn => {
+                     btn.addEventListener('click', (e) => {
+                         const serviceId = e.target.dataset.serviceId;
+                         this.applyAssistantChange(serviceId);
+                     });
+                 });
+
+                 // Event listeners para botones de toggle
+                 document.querySelectorAll('.toggle-service-btn').forEach(btn => {
+                     btn.addEventListener('click', (e) => {
+                         const serviceId = e.target.dataset.serviceId;
+                         const isActive = e.target.dataset.isActive === 'true';
+                         this.toggleService(serviceId, isActive);
+                     });
+                 });
+
+                 // Event listeners para botones de eliminar
+                 document.querySelectorAll('.remove-service-btn').forEach(btn => {
+                     btn.addEventListener('click', (e) => {
+                         const serviceId = e.target.dataset.serviceId;
+                         this.removeService(serviceId);
+                     });
+                 });
+             }
+
+            
+        }
+
+                 // Variable global para el dashboard
+         let dashboard;
+ 
+         // Inicializar cuando el DOM esté listo
+         document.addEventListener('DOMContentLoaded', function() {
+             dashboard = new CEODashboard();
+         });
+    </script>
+</body>
+</html>

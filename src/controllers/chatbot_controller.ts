@@ -523,4 +523,118 @@ export class ChatbotController {
     }
   }
   */
+
+  // Endpoint para listar asistentes disponibles
+  async listAssistants(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('📋 Solicitando lista de asistentes...');
+      
+      const assistants = await this.openaiService.listAssistants();
+      
+      res.json({
+        success: true,
+        assistants,
+        count: assistants.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error al listar asistentes:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido al listar asistentes'
+      });
+    }
+  }
+
+  // Endpoint para cambiar el asistente activo
+  async setActiveAssistant(req: Request, res: Response): Promise<void> {
+    try {
+      const { assistantId } = req.body;
+      
+      if (!assistantId) {
+        res.status(400).json({
+          success: false,
+          error: 'Se requiere el ID del asistente'
+        });
+        return;
+      }
+
+      console.log(`🔄 Cambiando asistente activo a: ${assistantId}`);
+      
+      this.openaiService.setActiveAssistant(assistantId);
+      
+      res.json({
+        success: true,
+        message: 'Asistente activo cambiado exitosamente',
+        activeAssistant: assistantId,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error al cambiar asistente activo:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido al cambiar asistente'
+      });
+    }
+  }
+
+  // Endpoint para obtener el asistente activo actual
+  async getActiveAssistant(req: Request, res: Response): Promise<void> {
+    try {
+      const activeAssistant = this.openaiService.getActiveAssistant();
+      
+      res.json({
+        success: true,
+        activeAssistant,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error al obtener asistente activo:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido al obtener asistente activo'
+      });
+    }
+  }
+
+  // Endpoint para chat específico por servicio
+  async handleServiceChat(req: Request, res: Response): Promise<void> {
+    try {
+      const { serviceId } = req.params;
+      const { message, threadId } = req.body;
+
+      if (!message) {
+        res.status(400).json({
+          success: false,
+          error: 'Se requiere el mensaje'
+        });
+        return;
+      }
+
+      console.log(`💬 Chat para servicio ${serviceId}: ${message}`);
+      
+      const result = await this.openaiService.processChatForService(message, serviceId, threadId);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          response: result.response,
+          threadId: result.threadId,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error en chat por servicio:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido en chat por servicio'
+      });
+    }
+  }
 }

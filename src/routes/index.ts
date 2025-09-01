@@ -3,6 +3,7 @@ import { ContactController } from '../controllers/contact_controller';
 import { ChatbotController } from '../controllers/chatbot_controller';
 import { HealthController } from '../controllers/health_controller';
 import { LandingController } from '../controllers/landing_controller';
+import { AdminController } from '../controllers/admin_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
@@ -17,6 +18,7 @@ const contactController = new ContactController(jiraService, null); // emailServ
 const chatbotController = new ChatbotController(openaiService, null); // emailService commented out
 const healthController = new HealthController();
 const landingController = new LandingController(jiraService);
+const adminController = new AdminController();
 
 const router = Router();
 
@@ -55,6 +57,14 @@ router.get('/landing-form', (req, res) => {
 
 router.get('/webhook-monitor', (req, res) => {
   res.sendFile('webhook-monitor.html', { root: 'public' });
+});
+
+router.get('/assistant-selector', (req, res) => {
+  res.sendFile('assistant-selector.html', { root: 'public' });
+});
+
+router.get('/ceo-dashboard', (req, res) => {
+  res.sendFile('ceo-dashboard.html', { root: 'public' });
 });
 
 // === CONTACT ROUTES ===
@@ -97,6 +107,33 @@ router.get('/api/webhook/jira', (req, res) => {
 
 // Direct chat
 router.post('/api/chatbot/chat', chatbotController.handleDirectChat.bind(chatbotController));
+
+// === ASSISTANT MANAGEMENT ROUTES ===
+// Listar asistentes disponibles
+router.get('/api/chatbot/assistants', chatbotController.listAssistants.bind(chatbotController));
+
+// Cambiar asistente activo
+router.post('/api/chatbot/assistants/set-active', chatbotController.setActiveAssistant.bind(chatbotController));
+
+// Obtener asistente activo actual
+router.get('/api/chatbot/assistants/active', chatbotController.getActiveAssistant.bind(chatbotController));
+
+// === ADMIN ROUTES (CEO Dashboard) ===
+// Dashboard principal del CEO
+router.get('/api/admin/dashboard', adminController.getDashboard.bind(adminController));
+
+// Gestión de configuraciones de servicios
+router.get('/api/admin/services/:serviceId', adminController.getServiceConfiguration.bind(adminController));
+router.put('/api/admin/services/:serviceId', adminController.updateServiceConfiguration.bind(adminController));
+router.patch('/api/admin/services/:serviceId/toggle', adminController.toggleService.bind(adminController));
+router.post('/api/admin/services', adminController.addService.bind(adminController));
+router.delete('/api/admin/services/:serviceId', adminController.removeService.bind(adminController));
+
+// Endpoint público para obtener asistente activo de un servicio
+router.get('/api/services/:serviceId/assistant', adminController.getActiveAssistantForService.bind(adminController));
+
+// Chat específico por servicio
+router.post('/api/services/:serviceId/chat', chatbotController.handleServiceChat.bind(chatbotController));
 
 // Chat with custom instructions
 router.post('/api/chatbot/chat-with-instructions', chatbotController.handleChatWithInstructions.bind(chatbotController));

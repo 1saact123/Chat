@@ -1,16 +1,19 @@
 import OpenAI from 'openai';
 import { ChatThread, ChatbotResponse, JiraWebhookPayload } from '../types';
+import { ConfigurationService } from './configuration_service';
 
 export class OpenAIService {
   private openai: OpenAI;
   private assistantId: string;
   private threads: Map<string, ChatThread> = new Map();
+  private configService: ConfigurationService;
 
   constructor() {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
     this.assistantId = process.env.OPENAI_ASSISTANT_ID || '';
+    this.configService = new ConfigurationService();
   }
 
   async processJiraComment(payload: JiraWebhookPayload, enrichedContext?: any): Promise<ChatbotResponse> {
@@ -548,6 +551,80 @@ ${context.specificInstructions}`;
     } catch (error) {
       console.error('Error generating alternative response:', error);
       return null;
+    }
+  }
+
+  // Método para listar todos los asistentes disponibles
+  async listAssistants(): Promise<Array<{id: string, name: string, description?: string, model: string, created_at: number}>> {
+    try {
+      console.log('🔍 Listando asistentes disponibles...');
+      
+      const assistants = await this.openai.beta.assistants.list();
+      
+      console.log(`✅ Encontrados ${assistants.data.length} asistente(s)`);
+      
+      return assistants.data.map(assistant => ({
+        id: assistant.id,
+        name: assistant.name || 'Sin nombre',
+        description: assistant.description || undefined,
+        model: assistant.model,
+        created_at: assistant.created_at
+      }));
+    } catch (error) {
+      console.error('❌ Error al listar asistentes:', error);
+      throw new Error(`Error al listar asistentes: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
+  }
+
+  // Método para cambiar el asistente activo
+  setActiveAssistant(assistantId: string): void {
+    this.assistantId = assistantId;
+    console.log(`🔄 Asistente activo cambiado a: ${assistantId}`);
+  }
+
+  // Método para obtener el asistente activo actual
+  getActiveAssistant(): string {
+    return this.assistantId;
+  }
+
+  // Método para obtener el asistente activo de un servicio específico
+  getActiveAssistantForService(serviceId: string): string | null {
+    return this.configService.getActiveAssistantForService(serviceId);
+  }
+
+  // Método para procesar chat con asistente específico de un servicio
+  async processChatForService(message: string, serviceId: string, threadId?: string, context?: any): Promise<ChatbotResponse> {
+    try {
+      // Obtener el asistente configurado para este servicio
+      const serviceAssistantId = this.configService.getActiveAssistantForService(serviceId);
+      
+      if (!serviceAssistantId) {
+        return {
+          success: false,
+          threadId: '',
+          error: `No hay asistente configurado para el servicio '${serviceId}'`
+        };
+      }
+
+      // Usar el asistente del servicio en lugar del asistente global
+      const originalAssistantId = this.assistantId;
+      this.assistantId = serviceAssistantId;
+
+      try {
+        const result = await this.processWithChatCompletions(message, threadId, context);
+        return result;
+      } finally {
+        // Restaurar el asistente original
+        this.assistantId = originalAssistantId;
+      }
+
+    } catch (error) {
+      console.error('Error processing chat for service:', error);
+      return {
+        success: false,
+        threadId: '',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   }
 }

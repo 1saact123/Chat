@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selector de Asistentes - Chat IA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .assistant-selector {
+            padding: 30px;
+            border-bottom: 1px solid #eee;
+            background: #f8f9fa;
+        }
+
+        .selector-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .selector-group label {
+            font-weight: 600;
+            color: #333;
+            min-width: 120px;
+        }
+
+        .assistant-dropdown {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .assistant-dropdown:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .assistant-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            display: none;
+        }
+
+        .assistant-info.show {
+            display: block;
+        }
+
+        .assistant-info h4 {
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .assistant-info p {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            max-height: 300px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant {
+            background: white;
+            color: #333;
+            border: 1px solid #ddd;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message.system {
+            background: #ff6b6b;
+            color: white;
+            text-align: center;
+            margin: 10px auto;
+            font-size: 0.9rem;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-btn {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            min-width: 80px;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .refresh-btn {
+            padding: 8px 15px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #666;
+            padding: 40px 20px;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Selector de Asistentes</h1>
+            <p>Elige el asistente de IA que mejor se adapte a tus necesidades</p>
+        </div>
+
+        <div class="assistant-selector">
+            <div class="selector-group">
+                <label for="assistantSelect">Asistente:</label>
+                <select id="assistantSelect" class="assistant-dropdown">
+                    <option value="">Cargando asistentes...</option>
+                </select>
+                <button id="refreshBtn" class="refresh-btn">🔄 Actualizar</button>
+            </div>
+            <div id="assistantInfo" class="assistant-info">
+                <h4 id="assistantName">Nombre del Asistente</h4>
+                <p id="assistantDescription">Descripción del asistente seleccionado...</p>
+                <p><strong>Modelo:</strong> <span id="assistantModel">gpt-4</span></p>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div id="status" class="status" style="display: none;"></div>
+            
+            <div id="chatMessages" class="chat-messages">
+                <div class="empty-state">
+                    <h3>💬 Chat con IA</h3>
+                    <p>Selecciona un asistente y comienza a chatear</p>
+                </div>
+            </div>
+
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Escribe tu mensaje aquí..." disabled>
+                <button id="sendBtn" class="send-btn" disabled>Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AssistantSelector {
+            constructor() {
+                this.assistants = [];
+                this.activeAssistant = null;
+                this.threadId = null;
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.loadAssistants();
+            }
+
+            initializeElements() {
+                this.assistantSelect = document.getElementById('assistantSelect');
+                this.refreshBtn = document.getElementById('refreshBtn');
+                this.assistantInfo = document.getElementById('assistantInfo');
+                this.assistantName = document.getElementById('assistantName');
+                this.assistantDescription = document.getElementById('assistantDescription');
+                this.assistantModel = document.getElementById('assistantModel');
+                this.status = document.getElementById('status');
+                this.chatMessages = document.getElementById('chatMessages');
+                this.messageInput = document.getElementById('messageInput');
+                this.sendBtn = document.getElementById('sendBtn');
+            }
+
+            bindEvents() {
+                this.assistantSelect.addEventListener('change', (e) => this.onAssistantChange(e));
+                this.refreshBtn.addEventListener('click', () => this.loadAssistants());
+                this.sendBtn.addEventListener('click', () => this.sendMessage());
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+            }
+
+            async loadAssistants() {
+                try {
+                    this.showStatus('Cargando asistentes...', 'info');
+                    this.refreshBtn.disabled = true;
+                    this.refreshBtn.innerHTML = '<span class="loading"></span>';
+
+                    const response = await fetch('/api/chatbot/assistants');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.assistants = data.assistants;
+                        this.populateDropdown();
+                        this.showStatus(`✅ ${data.count} asistentes cargados`, 'success');
+                    } else {
+                        throw new Error(data.error || 'Error al cargar asistentes');
+                    }
+                } catch (error) {
+                    console.error('Error loading assistants:', error);
+                    this.showStatus(`❌ Error: ${error.message}`, 'error');
+                } finally {
+                    this.refreshBtn.disabled = false;
+                    this.refreshBtn.innerHTML = '🔄 Actualizar';
+                }
+            }
+
+            populateDropdown() {
+                this.assistantSelect.innerHTML = '<option value="">Selecciona un asistente...</option>';
+                
+                this.assistants.forEach(assistant => {
+                    const option = document.createElement('option');
+                    option.value = assistant.id;
+                    option.textContent = assistant.name || `Asistente ${assistant.id.slice(0, 8)}`;
+                    this.assistantSelect.appendChild(option);
+                });
+            }
+
+            async onAssistantChange(event) {
+                const assistantId = event.target.value;
+                
+                if (!assistantId) {
+                    this.activeAssistant = null;
+                    this.assistantInfo.classList.remove('show');
+                    this.messageInput.disabled = true;
+                    this.sendBtn.disabled = true;
+                    return;
+                }
+
+                const assistant = this.assistants.find(a => a.id === assistantId);
+                if (!assistant) return;
+
+                this.activeAssistant = assistant;
+                this.updateAssistantInfo(assistant);
+                
+                try {
+                    // Cambiar el asistente activo en el servidor
+                    const response = await fetch('/api/chatbot/assistants/set-active', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ assistantId })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showStatus(`✅ Asistente "${assistant.name}" activado`, 'success');
+                        this.messageInput.disabled = false;
+                        this.sendBtn.disabled = false;
+                        this.messageInput.focus();
+                        this.clearChat();
+                    } else {
+                        throw new Error(data.error || 'Error al cambiar asistente');
+                    }
+                } catch (error) {
+                    console.error('Error setting active assistant:', error);
+                    this.showStatus(`❌ Error: ${error.message}`, 'error');
+                }
+            }
+
+            updateAssistantInfo(assistant) {
+                this.assistantName.textContent = assistant.name || 'Sin nombre';
+                this.assistantDescription.textContent = assistant.description || 'Sin descripción disponible';
+                this.assistantModel.textContent = assistant.model;
+                this.assistantInfo.classList.add('show');
+            }
+
+            async sendMessage() {
+                const message = this.messageInput.value.trim();
+                if (!message || !this.activeAssistant) return;
+
+                // Agregar mensaje del usuario al chat
+                this.addMessage(message, 'user');
+                this.messageInput.value = '';
+                this.sendBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/chatbot/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message,
+                            threadId: this.threadId
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.threadId = data.threadId;
+                        this.addMessage(data.response, 'assistant');
+                    } else {
+                        throw new Error(data.error || 'Error en la respuesta del asistente');
+                    }
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    this.addMessage(`❌ Error: ${error.message}`, 'system');
+                } finally {
+                    this.sendBtn.disabled = false;
+                    this.messageInput.focus();
+                }
+            }
+
+            addMessage(content, type) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}`;
+                messageDiv.textContent = content;
+                
+                this.chatMessages.appendChild(messageDiv);
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            }
+
+            clearChat() {
+                this.chatMessages.innerHTML = `
+                    <div class="empty-state">
+                        <h3>💬 Chat con ${this.activeAssistant.name}</h3>
+                        <p>Comienza a chatear con tu asistente seleccionado</p>
+                    </div>
+                `;
+                this.threadId = null;
+            }
+
+            showStatus(message, type) {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+                this.status.style.display = 'block';
+                
+                setTimeout(() => {
+                    this.status.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            new AssistantSelector();
+        });
+    </script>
+</body>
+</html>
