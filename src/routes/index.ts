@@ -4,6 +4,7 @@ import { ChatbotController } from '../controllers/chatbot_controller';
 import { HealthController } from '../controllers/health_controller';
 import { LandingController } from '../controllers/landing_controller';
 import { AdminController } from '../controllers/admin_controller';
+import { WidgetIntegrationController } from '../controllers/widget_integration_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
@@ -19,6 +20,7 @@ const chatbotController = new ChatbotController(openaiService, null); // emailSe
 const healthController = new HealthController();
 const landingController = new LandingController(jiraService);
 const adminController = new AdminController();
+const widgetIntegrationController = new WidgetIntegrationController();
 
 const router = Router();
 
@@ -65,6 +67,10 @@ router.get('/assistant-selector', (req, res) => {
 
 router.get('/ceo-dashboard', (req, res) => {
   res.sendFile('ceo-dashboard.html', { root: 'public' });
+});
+
+router.get('/jira-integrated-widget', (req, res) => {
+  res.sendFile('jira-integrated-widget.html', { root: 'public' });
 });
 
 // === CONTACT ROUTES ===
@@ -150,6 +156,28 @@ router.get('/api/chatbot/threads', chatbotController.listActiveThreads.bind(chat
 // Webhook monitoring
 router.get('/api/chatbot/webhook/stats', chatbotController.getWebhookStats.bind(chatbotController));
 router.post('/api/chatbot/webhook/reset', chatbotController.resetWebhookStats.bind(chatbotController));
+
+// === WIDGET INTEGRATION ROUTES ===
+// Connect widget to existing Jira ticket
+router.post('/api/widget/connect', widgetIntegrationController.connectToTicket.bind(widgetIntegrationController));
+
+// Send message from widget to Jira
+router.post('/api/widget/send-message', widgetIntegrationController.sendMessageToJira.bind(widgetIntegrationController));
+
+// Get conversation history for a ticket
+router.get('/api/widget/conversation/:issueKey', widgetIntegrationController.getConversationHistory.bind(widgetIntegrationController));
+
+// Search tickets by customer email
+router.get('/api/widget/search-tickets', widgetIntegrationController.searchTicketsByEmail.bind(widgetIntegrationController));
+
+// Update ticket status
+router.put('/api/widget/ticket/:issueKey/status', widgetIntegrationController.updateTicketStatus.bind(widgetIntegrationController));
+
+// Get ticket details
+router.get('/api/widget/ticket/:issueKey', widgetIntegrationController.getTicketDetails.bind(widgetIntegrationController));
+
+// Health check for widget integration
+router.get('/api/widget/health', widgetIntegrationController.healthCheck.bind(widgetIntegrationController));
 
 // Send email with chat context - COMMENTED OUT FOR TESTING
 // router.post('/api/chatbot/email/send-with-context', chatbotController.sendEmailWithChatContext.bind(chatbotController));
