@@ -151,7 +151,7 @@ export class ChatbotController {
       console.log(`   Usuario: ${payload.comment?.author?.displayName || 'N/A'}`);
       console.log(`   Timestamp: ${new Date().toISOString()}`);
       
-      // Solo procesar eventos de comentarios
+      // Solo procesar eventos de comentarios y creación de tickets
       if (payload.webhookEvent === 'comment_created' && payload.comment) {
         // Crear un ID único para este comentario
         const commentId = `${payload.issue.key}_${payload.comment.id}_${payload.comment.created}`;
@@ -270,6 +270,66 @@ export class ChatbotController {
         }
         
         res.json(response);
+      } else if (payload.webhookEvent === 'jira:issue_created') {
+        // Procesar evento de creación de ticket
+        console.log(`🎫 NUEVO TICKET CREADO:`);
+        console.log(`   Issue: ${payload.issue.key}`);
+        console.log(`   Summary: ${payload.issue.fields.summary}`);
+        console.log(`   Status: ${payload.issue.fields.status.name}`);
+        console.log(`   Creator: ${payload.issue.fields.creator?.displayName || 'N/A'}`);
+        console.log(`   Labels: ${payload.issue.fields.labels?.join(', ') || 'Ninguno'}`);
+        
+        // Verificar si es un ticket de contacto web
+        const isWebContact = payload.issue.fields.labels?.includes('contacto-web') || 
+                           payload.issue.fields.labels?.includes('lead') ||
+                           payload.issue.fields.summary?.toLowerCase().includes('web contact');
+        
+        if (isWebContact) {
+          console.log(`🌐 TICKET DE CONTACTO WEB DETECTADO`);
+          
+          try {
+            // Importar JiraService dinámicamente
+            const { JiraService } = await import('../services/jira_service');
+            const jiraService = new JiraService();
+            
+            // Agregar comentario de bienvenida automático
+            const welcomeMessage = `¡Hola! Soy el asistente de Movonte. 🚀
+
+He detectado que has creado un ticket de contacto. Estoy aquí para ayudarte con cualquier consulta o solicitud que tengas.
+
+**Información del ticket:**
+• **Ticket:** ${payload.issue.key}
+• **Asunto:** ${payload.issue.fields.summary}
+• **Estado:** ${payload.issue.fields.status.name}
+
+¿En qué puedo ayudarte hoy? Puedes escribir tu mensaje aquí y te responderé lo antes posible.
+
+---
+*Este es un mensaje automático de bienvenida*`;
+            
+            const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, welcomeMessage);
+            
+            if (jiraResponse) {
+              console.log(`✅ MENSAJE DE BIENVENIDA AGREGADO:`);
+              console.log(`   Issue: ${payload.issue.key}`);
+              console.log(`   Mensaje: Mensaje de bienvenida automático`);
+              
+              // Agregar al historial de conversación
+              this.addToConversationHistory(payload.issue.key, 'assistant', welcomeMessage);
+            }
+            
+          } catch (jiraError) {
+            console.error('❌ Error adding welcome message to Jira:', jiraError);
+          }
+        }
+        
+        res.json({ 
+          success: true, 
+          message: 'Ticket creation processed', 
+          ticketKey: payload.issue.key,
+          isWebContact: isWebContact
+        });
+        
       } else {
         console.log(`ℹ️  Evento ignorado: ${payload.webhookEvent}`);
         res.json({ success: true, message: 'Event processed but no action taken' });

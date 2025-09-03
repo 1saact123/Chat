@@ -12,6 +12,12 @@ export interface JiraWebhookPayload {
         status: {
           name: string;
         };
+        creator?: {
+          displayName: string;
+          emailAddress?: string;
+          accountId: string;
+        };
+        labels?: string[];
       };
     };
     comment?: {
