@@ -48,58 +48,20 @@ export class ChatbotController {
     console.log('🔄 Webhook stats reset');
   }
 
-  // Método para detectar comentarios de IA de manera más robusta
+  // Método simplificado para detectar comentarios de IA
   private isAIComment(comment: any): boolean {
     const authorName = comment.author.displayName.toLowerCase();
     const authorEmail = comment.author.emailAddress?.toLowerCase() || '';
-    const commentBody = comment.body.toLowerCase();
-    const authorAccountId = comment.author.accountId;
 
-    // Detectar por autor (más específico)
+    // Solo detectar por autor (patrones básicos)
     const aiAuthorPatterns = [
-      'ai', 'assistant', 'bot', 'movonte', 'automation', 'noreply',
-      'contact service account', 'ca contact service account',
-      'system', 'automated', 'chatbot', 'virtual assistant'
+      'ai', 'assistant', 'bot', 'automation', 'noreply',
+      'system', 'automated', 'chatbot'
     ];
     
-    const isAIAuthor = aiAuthorPatterns.some(pattern => 
+    return aiAuthorPatterns.some(pattern => 
       authorName.includes(pattern) || authorEmail.includes(pattern)
     );
-
-    // Detect by content (more specific)
-    const aiContentPatterns = [
-      'i am the movonte assistant',
-      'i am an assistant',
-      'as movonte assistant',
-      'i can help you',
-      'how can i help you?',
-      'thank you for contacting',
-      'automatic response',
-      'i understand you are working',
-      'you need specific help',
-      'i am here to help you',
-      'virtual assistant',
-      'support bot'
-    ];
-    
-    const isAIContent = aiContentPatterns.some(pattern => 
-      commentBody.includes(pattern)
-    );
-
-    // Detectar comentarios muy similares a respuestas anteriores
-    const issueKey = comment.issue?.key || 'unknown';
-    const history = this.conversationHistory.get(issueKey) || [];
-    const recentResponses = history
-      .filter(msg => msg.role === 'assistant')
-      .slice(-3)
-      .map(msg => msg.content.toLowerCase());
-    
-    const isSimilarToPrevious = recentResponses.some(prevResponse => {
-      const similarity = this.calculateSimilarity(commentBody, prevResponse);
-      return similarity > 0.8; // 80% similarity
-    });
-
-    return isAIAuthor || isAIContent || isSimilarToPrevious;
   }
 
   // Method to calculate similarity between texts
@@ -292,27 +254,15 @@ export class ChatbotController {
             const { JiraService } = await import('../services/jira_service');
             const jiraService = new JiraService();
             
-            // Agregar comentario de bienvenida automático
-            const welcomeMessage = `¡Hola! Soy el asistente de Movonte. 🚀
-
-He detectado que has creado un ticket de contacto. Estoy aquí para ayudarte con cualquier consulta o solicitud que tengas.
-
-**Información del ticket:**
-• **Ticket:** ${payload.issue.key}
-• **Asunto:** ${payload.issue.fields.summary}
-• **Estado:** ${payload.issue.fields.status.name}
-
-¿En qué puedo ayudarte hoy? Puedes escribir tu mensaje aquí y te responderé lo antes posible.
-
----
-*Este es un mensaje automático de bienvenida*`;
+            // Agregar mensaje de bienvenida simple
+            const welcomeMessage = `What can I help you?`;
             
             const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, welcomeMessage);
             
             if (jiraResponse) {
               console.log(`✅ MENSAJE DE BIENVENIDA AGREGADO:`);
               console.log(`   Issue: ${payload.issue.key}`);
-              console.log(`   Mensaje: Mensaje de bienvenida automático`);
+              console.log(`   Mensaje: ${welcomeMessage}`);
               
               // Agregar al historial de conversación
               this.addToConversationHistory(payload.issue.key, 'assistant', welcomeMessage);

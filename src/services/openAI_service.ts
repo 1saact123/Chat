@@ -23,26 +23,21 @@ export class OpenAIService {
       throw new Error('Comment data is missing');
     }
 
-          // Check that it's not an AI comment (more specific detection)
-      const commentText = comment.body.toLowerCase();
+      // Check that it's not an AI comment (simplified detection)
       const authorName = comment.author.displayName.toLowerCase();
+      const authorEmail = comment.author.emailAddress?.toLowerCase() || '';
       
-      // Only block if it's clearly an AI comment
+      // Only block if it's clearly an AI author
       const isAIAuthor = authorName.includes('ai') || 
                         authorName.includes('assistant') || 
                         authorName.includes('bot') ||
-                        authorName.includes('automation');
-      
-      // Detect AI comments more specifically
-      const isAIComment = commentText.includes('ai response') || 
-                         commentText.includes('automatic response') ||
-                         commentText.includes('as movonte assistant') ||
-                         (commentText.includes('i am an assistant') && commentText.length < 50); // Only if very short
+                        authorName.includes('automation') ||
+                        authorEmail.includes('ai') ||
+                        authorEmail.includes('assistant') ||
+                        authorEmail.includes('bot');
     
-    if (isAIAuthor || isAIComment) {
+    if (isAIAuthor) {
       console.log(`Skipping AI-generated comment from ${comment.author.displayName}`);
-      console.log(`Reason: ${isAIAuthor ? 'AI Author' : 'AI Content'}`);
-      console.log(`Comment text: ${comment.body}`);
       return {
         success: false,
         threadId: '',
@@ -118,14 +113,7 @@ export class OpenAIService {
         messageType: 'chat'
       };
 
-      // Chat-specific instructions
-      const chatInstructions = `
-        You are a Jira chat assistant for Movonte. 
-        Respond in a conversational and helpful manner.
-        If there's an associated ticket, provide relevant information.
-        Maintain a professional but friendly tone.
-        Suggest concrete actions when appropriate.
-      `;
+      // No specific instructions - let the OpenAI assistant handle the conversation directly
 
       const result = await this.processDirectChat(message, threadId, context);
       
@@ -187,24 +175,8 @@ export class OpenAIService {
         messages.push(...recentMessages);
       }
 
-      // Add the current message
-      let userPrompt = message;
-      
-      // Add Jira context if available
-      if (context?.jiraIssueKey) {
-        userPrompt = `[Jira Ticket: ${context.jiraIssueKey}] ${message}`;
-      }
-
-      // Add additional context if available
-      if (context?.additionalInfo) {
-        userPrompt = `[Additional context: ${context.additionalInfo}] ${userPrompt}`;
-      }
-
-      // Add specific instructions to avoid repetitions
-      if (context?.previousResponses && context.previousResponses.length > 0) {
-        const previousResponses = context.previousResponses.join('\n');
-        userPrompt = `${userPrompt}\n\n[IMPORTANT: Avoid repeating responses similar to these previous ones: ${previousResponses}]`;
-      }
+      // Use the message directly without additional prompts or context
+      const userPrompt = message;
 
       messages.push({ role: 'user', content: userPrompt });
 
@@ -281,168 +253,27 @@ export class OpenAIService {
   }
 
   private buildDynamicSystemPrompt(context?: any): string {
-    let basePrompt = `You are a Movonte assistant, a software development company specialized in innovative technological solutions.
-
-**Company Information:**
-- Company: Movonte
-- Sector: Software Development
-- Focus: Enterprise Technology Solutions
-
-**Main Capabilities:**
-- Technical support for development projects
-- Analysis and resolution of technical problems
-- Software architecture consulting
-- Project management and agile methodologies
-- Integration with tools like Jira, Git, etc.
-
-**Communication Style:**
-- Professional but approachable
-- Clear and concise responses
-- Use practical examples when appropriate
-- Always in English
-
-**IMPORTANT - Conversation Management:**
-- ALWAYS review the conversation history before responding
-- DO NOT repeat yourself if you've already answered something similar
-- Maintain the context of the previous conversation
-- If the user asks related questions, respond coherently
-- Avoid generic responses if you've already provided specific information
-- If you detect that your response is similar to a previous one, provide new or different information
-- Vary your vocabulary and sentence structure to avoid repetitions
-- Focus on specific and relevant information to the current context`;
-
-    // Add specific context for Service Desk
-    if (context?.serviceDesk) {
-      basePrompt += `
-
-**SERVICE DESK SPECIALIZATION:**
-- You are a Jira Service Desk specialized assistant
-- You help with tickets, SLA, technical support and customer service
-- You know Movonte's processes for problem resolution
-- You provide information about support policies and response times
-
-**Specific Service Desk Functions:**
-- Ticket creation and tracking
-- SLA and response time queries
-- Technical support and problem resolution
-- Information about company processes and policies
-- Guide for using the ticket system
-- Problem escalation when necessary`;
-    }
-
-    // Add specific context for Jira chat
-    if (context?.isChatMessage) {
-      basePrompt += `
-
-**JIRA CHAT SPECIALIZATION:**
-- You are a Jira-integrated chat assistant for Movonte
-- Respond in a conversational and helpful manner
-- Provide specific information about tickets and projects
-- Maintain a professional but friendly tone
-- Suggest concrete actions when appropriate
-
-**Specific Chat Functions:**
-- Help with queries about specific tickets
-- Provide information about status and progress
-- Suggest next steps and actions
-- Answer questions about processes and policies
-- Offer contextual technical support
-- Maintain fluid and useful conversations`;
-    }
-
-    // Add Jira-specific context if available
-    if (context?.jiraIssueKey) {
-      basePrompt += `
-
-**Jira Context:**
-- You are working with ticket: ${context.jiraIssueKey}
-- You can reference this ticket in your responses
-- If the user asks about the ticket, provide relevant information`;
-    }
-
-    // Add project context if available
-    if (context?.projectInfo) {
-      basePrompt += `
-
-**Project Information:**
-${context.projectInfo}`;
-    }
-
-    // Add specific instructions if available
-    if (context?.specificInstructions) {
-      basePrompt += `
-
-**Specific Instructions:**
-${context.specificInstructions}`;
-    }
-
-    // Add user context if available
-    if (context?.userRole) {
-      basePrompt += `
-
-**User Role:**
-- The user is: ${context.userRole}
-- Adapt your responses according to their technical experience level`;
-    }
-
-    basePrompt += `
-
-**Remember:**
-- Always be helpful and professional
-- If you don't have enough information, ask for more details
-- Suggest concrete actions when appropriate
-- Maintain a positive and constructive tone`;
-
-    return basePrompt;
+    // Devolver un prompt mínimo que permita al asistente de OpenAI responder directamente
+    return "You are a helpful assistant. Respond to the user's message directly and naturally.";
   }
 
   private getJiraFallbackResponse(comment: any, issue: any): ChatbotResponse {
-    console.log('Using Jira fallback response system...');
+    console.log('OpenAI API failed, returning error response...');
     
-    const commentText = comment.body.toLowerCase();
-    let response = '';
-
-    if (commentText.includes('hola') || commentText.includes('hello')) {
-      response = `Hello ${comment.author.displayName}! I'm the Movonte assistant. Thank you for your comment on ticket ${issue.key}. How can I help you with this ticket?`;
-    } else if (commentText.includes('ayuda') || commentText.includes('help')) {
-      response = `Hello ${comment.author.displayName}, I can help you with:\n• Queries about ticket ${issue.key}\n• Project information\n• General technical support\n• Progress tracking\n• What do you need specifically?`;
-    } else if (commentText.includes('estado') || commentText.includes('status')) {
-      response = `Hello ${comment.author.displayName}, I can see that ticket ${issue.key} is in status "${issue.fields.status.name}". Do you need information about the progress or help with something specific?`;
-    } else if (commentText.includes('proyecto') || commentText.includes('project')) {
-      response = `Hello ${comment.author.displayName}, this ticket belongs to project ${issue.fields.project.name}. Do you need specific information about the project or help with this ticket?`;
-    } else {
-      response = `Hello ${comment.author.displayName}, thank you for your comment on ticket ${issue.key}. I'm the Movonte assistant and I'm here to help you. I'm currently in backup mode, but I can assist you with queries about this ticket. How can I help you specifically?`;
-    }
-
     return {
-      success: true,
-      threadId: `jira_fallback_${issue.key}_${Date.now()}`,
-      response: response
+      success: false,
+      threadId: `jira_error_${issue.key}_${Date.now()}`,
+      error: 'OpenAI API is currently unavailable. Please try again later.'
     };
   }
 
   private getFallbackResponse(message: string, context?: any): ChatbotResponse {
-    console.log('Using fallback response system...');
+    console.log('OpenAI API failed, returning error response...');
     
-    const lowerMessage = message.toLowerCase();
-    let response = '';
-
-    if (lowerMessage.includes('hola') || lowerMessage.includes('hello')) {
-      response = 'Hello! I\'m the Movonte assistant. How can I help you today?';
-    } else if (lowerMessage.includes('jira') || context?.jiraIssueKey) {
-      response = `I understand you're working with ticket ${context?.jiraIssueKey || 'Jira'}. Do you need specific help with this ticket?`;
-    } else if (lowerMessage.includes('ayuda') || lowerMessage.includes('help')) {
-      response = 'I can help you with:\n• Queries about Jira tickets\n• Project information\n• General technical support\n• What do you need?';
-    } else if (lowerMessage.includes('proyecto') || lowerMessage.includes('project')) {
-      response = 'At Movonte we work on various development projects. Are you referring to a specific project?';
-    } else {
-      response = 'Thank you for your message. I\'m currently in backup mode due to API limitations. Can I help you with something specific about Movonte or our projects?';
-    }
-
     return {
-      success: true,
-      threadId: `fallback_${Date.now()}`,
-      response: response
+      success: false,
+      threadId: `error_${Date.now()}`,
+      error: 'OpenAI API is currently unavailable. Please try again later.'
     };
   }
 
