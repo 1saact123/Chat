@@ -9,308 +9,294 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Atlassian-style Header -->
-    <header class="atlassian-header">
-        <div class="header-container">
-            <div class="header-left">
-                <div class="logo">
-                    <div class="logo-icon">
-                        <i class="fas fa-robot"></i>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="brand-text">Movonte</span>
+            </div>
+            <div class="nav-links">
+                <a href="#" class="nav-link">Dashboard</a>
+                <a href="#" class="nav-link">Assistants</a>
+                <a href="#" class="nav-link">Services</a>
+                <a href="#" class="nav-link active">Settings</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs">
+        <div class="breadcrumb-container">
+            <span class="breadcrumb-item">Home</span>
+            <i class="fas fa-chevron-right"></i>
+            <span class="breadcrumb-item">AI Management</span>
+            <i class="fas fa-chevron-right"></i>
+            <span class="breadcrumb-item active">Control Panel</span>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1>AI Assistant Control Panel</h1>
+                <p>Manage your AI assistants, configure services, and monitor system activity</p>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="totalAssistants">-</div>
+                    <div class="stat-label">AVAILABLE ASSISTANTS</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="totalServices">2</div>
+                    <div class="stat-label">CONFIGURED SERVICES</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="activeServices">-</div>
+                    <div class="stat-label">ACTIVE SERVICES</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="systemUptime">98.5%</div>
+                    <div class="stat-label">SYSTEM UPTIME</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="content-grid">
+            <!-- Left Column -->
+            <div class="left-column">
+                <!-- AI Assistants Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>AI Assistants</h2>
                     </div>
-                    <div class="logo-text">
-                        <span class="logo-title">Movonte</span>
-                        <span class="logo-subtitle">AI Control Panel</span>
+                    <div class="section-content">
+                        <div id="assistantsList" class="assistant-list">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <span>Loading assistants...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Management Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Project Management</h2>
+                    </div>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <label for="activeProject" class="form-label">Active Jira Project</label>
+                            <select id="activeProject" class="form-select">
+                                <option value="">Loading projects...</option>
+                            </select>
+                        </div>
+                        <div class="project-info">
+                            <div class="info-row">
+                                <span class="info-label">Current Project:</span>
+                                <span class="info-value" id="currentProjectName">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Project Key:</span>
+                                <span class="info-value" id="currentProjectKey">-</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="header-right">
-                <div class="header-actions">
-                    <button class="btn btn-ghost">
-                        <i class="fas fa-bell"></i>
-                    </button>
-                    <button class="btn btn-ghost">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                    <div class="user-avatar">
-                        <i class="fas fa-user"></i>
+
+            <!-- Right Column -->
+            <div class="right-column">
+                <!-- Service Configuration Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Service Configuration</h2>
+                    </div>
+                    <div class="section-content">
+                        <!-- Landing Page Service -->
+                        <div class="service-config">
+                            <div class="service-header">
+                                <div class="service-info">
+                                    <div class="service-name">Landing Page</div>
+                                    <div class="service-details">
+                                        <div class="detail-row">
+                                            <span class="detail-label">Current Assistant:</span>
+                                            <span class="detail-value" id="landing-assistant-name">-</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Service ID:</span>
+                                            <span class="detail-value">landing-page</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Jira Project:</span>
+                                            <span class="detail-value" id="landing-project">-</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Last Updated:</span>
+                                            <span class="detail-value" id="landing-last-updated">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="service-controls">
+                                <div class="control-section">
+                                    <label class="control-label">CHANGE ASSISTANT</label>
+                                    <select class="control-select" id="assistant-landing-page">
+                                        <option value="">Select an assistant...</option>
+                                    </select>
+                                </div>
+                                <div class="control-buttons">
+                                    <button class="btn btn-primary apply-change-btn" data-service-id="landing-page">
+                                        APPLY
+                                    </button>
+                                    <button class="btn btn-secondary toggle-service-btn" 
+                                            data-service-id="landing-page" data-is-active="false">
+                                        DEACTIVATE
+                                    </button>
+                                    <button class="btn btn-danger remove-service-btn" 
+                                            data-service-id="landing-page">
+                                        REMOVE
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat General Service -->
+                        <div class="service-config">
+                            <div class="service-header">
+                                <div class="service-info">
+                                    <div class="service-name">Chat General</div>
+                                    <div class="service-details">
+                                        <div class="detail-row">
+                                            <span class="detail-label">Current Assistant:</span>
+                                            <span class="detail-value" id="chat-assistant-name">-</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Service ID:</span>
+                                            <span class="detail-value">chat-general</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Jira Project:</span>
+                                            <span class="detail-value" id="chat-project">-</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Last Updated:</span>
+                                            <span class="detail-value" id="chat-last-updated">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="service-controls">
+                                <div class="control-section">
+                                    <label class="control-label">CHANGE ASSISTANT</label>
+                                    <select class="control-select" id="assistant-chat-general">
+                                        <option value="">Select an assistant...</option>
+                                    </select>
+                                </div>
+                                <div class="control-buttons">
+                                    <button class="btn btn-primary apply-change-btn" data-service-id="chat-general">
+                                        APPLY
+                                    </button>
+                                    <button class="btn btn-secondary toggle-service-btn" 
+                                            data-service-id="chat-general" data-is-active="false">
+                                        DEACTIVATE
+                                    </button>
+                                    <button class="btn btn-danger remove-service-btn" 
+                                            data-service-id="chat-general">
+                                        REMOVE
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </header>
 
-    <!-- Main Layout -->
-    <div class="main-layout">
-        <!-- Sidebar Navigation -->
-        <nav class="sidebar">
-            <div class="sidebar-content">
-                <div class="nav-section">
-                    <div class="nav-title">Overview</div>
-                    <a href="#" class="nav-item active">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
+        <!-- Recent Activity Section -->
+        <div class="activity-section">
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>
+                        <i class="fas fa-file-alt"></i>
+                        Recent Activity
+                    </h2>
                 </div>
-                
-                <div class="nav-section">
-                    <div class="nav-title">AI Management</div>
-                    <a href="#" class="nav-item">
-                        <i class="fas fa-robot"></i>
-                        <span>Assistants</span>
-                    </a>
-                    <a href="#" class="nav-item">
-                        <i class="fas fa-cogs"></i>
-                        <span>Services</span>
-                    </a>
-                </div>
-                
-                <div class="nav-section">
-                    <div class="nav-title">Project Management</div>
-                    <a href="#" class="nav-item">
-                        <i class="fas fa-project-diagram"></i>
-                        <span>Jira Projects</span>
-                    </a>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <!-- Page Header -->
-            <div class="page-header">
-                <div class="page-title">
-                    <h1>AI Assistant Control Panel</h1>
-                    <p>Manage your AI assistants, configure services, and monitor system activity</p>
-                </div>
-                <div class="page-actions">
-                    <button class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        <span>Add Assistant</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Stats Cards -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-number" id="totalAssistants">-</div>
-                        <div class="stat-label">Available Assistants</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-cogs"></i>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-number" id="totalServices">2</div>
-                        <div class="stat-label">Configured Services</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-bolt"></i>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-number" id="activeServices">-</div>
-                        <div class="stat-label">Active Services</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-cloud"></i>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-number" id="systemUptime">98.5%</div>
-                        <div class="stat-label">System Uptime</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Content Grid -->
-            <div class="content-grid">
-                <!-- Left Column -->
-                <div class="content-column">
-                    <!-- AI Assistants Section -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h2>AI Assistants</h2>
-                            <div class="card-actions">
-                                <button class="btn btn-ghost btn-sm">
-                                    <i class="fas fa-refresh"></i>
-                                </button>
+                <div class="section-content">
+                    <div id="recentActivity" class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-indicator success"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Landing Page service updated successfully with Chatbot Test V3</div>
+                                <div class="activity-time">Today at 11:08 AM</div>
                             </div>
                         </div>
-                        <div class="card-content">
-                            <div id="assistantsList" class="assistant-list">
-                                <div class="loading-state">
-                                    <i class="fas fa-spinner fa-spin"></i>
-                                    <span>Loading assistants...</span>
-                                </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator success"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Jira Integration service has been activated</div>
+                                <div class="activity-time">Today at 10:45 AM</div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Project Management Section -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h2>Project Management</h2>
-                        </div>
-                        <div class="card-content">
-                            <div class="form-group">
-                                <label for="activeProject" class="form-label">Active Jira Project</label>
-                                <select id="activeProject" class="form-select">
-                                    <option value="">Loading projects...</option>
-                                </select>
-                            </div>
-                            <div class="project-info">
-                                <div class="info-row">
-                                    <span class="info-label">Current Project:</span>
-                                    <span class="info-value" id="currentProjectName">-</span>
-                                </div>
-                                <div class="info-row">
-                                    <span class="info-label">Project Key:</span>
-                                    <span class="info-value" id="currentProjectKey">-</span>
-                                </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator warning"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Performance degradation detected for Chatbot Test V2</div>
+                                <div class="activity-time">Today at 09:30 AM</div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Right Column -->
-                <div class="content-column">
-                    <!-- Service Configuration Section -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h2>Service Configuration</h2>
-                        </div>
-                        <div class="card-content">
-                            <!-- Landing Page Service -->
-                            <div class="service-config">
-                                <div class="service-header">
-                                    <div class="service-info">
-                                        <div class="service-name">Landing Page</div>
-                                        <div class="service-id">landing-page</div>
-                                    </div>
-                                    <div class="service-status" id="landing-status">
-                                        <span class="status-badge status-active">ACTIVE</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="service-details">
-                                    <div class="detail-row">
-                                        <span class="detail-label">Current Assistant:</span>
-                                        <span class="detail-value" id="landing-assistant-name">-</span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label">Last Updated:</span>
-                                        <span class="detail-value" id="landing-last-updated">-</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="service-controls">
-                                    <div class="form-group">
-                                        <label class="form-label">Change Assistant</label>
-                                        <select class="form-select" id="assistant-landing-page">
-                                            <option value="">Select an assistant...</option>
-                                        </select>
-                                    </div>
-                                    <div class="control-buttons">
-                                        <button class="btn btn-primary btn-sm apply-change-btn" data-service-id="landing-page">
-                                            Apply Change
-                                        </button>
-                                        <button class="btn btn-secondary btn-sm toggle-service-btn" 
-                                                data-service-id="landing-page" data-is-active="false">
-                                            Deactivate
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Divider -->
-                            <div class="divider"></div>
-
-                            <!-- Chat General Service -->
-                            <div class="service-config">
-                                <div class="service-header">
-                                    <div class="service-info">
-                                        <div class="service-name">Chat General</div>
-                                        <div class="service-id">chat-general</div>
-                                    </div>
-                                    <div class="service-status" id="chat-status">
-                                        <span class="status-badge status-active">ACTIVE</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="service-details">
-                                    <div class="detail-row">
-                                        <span class="detail-label">Current Assistant:</span>
-                                        <span class="detail-value" id="chat-assistant-name">-</span>
-                                    </div>
-                                    <div class="detail-row">
-                                        <span class="detail-label">Last Updated:</span>
-                                        <span class="detail-value" id="chat-last-updated">-</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="service-controls">
-                                    <div class="form-group">
-                                        <label class="form-label">Change Assistant</label>
-                                        <select class="form-select" id="assistant-chat-general">
-                                            <option value="">Select an assistant...</option>
-                                        </select>
-                                    </div>
-                                    <div class="control-buttons">
-                                        <button class="btn btn-primary btn-sm apply-change-btn" data-service-id="chat-general">
-                                            Apply Change
-                                        </button>
-                                        <button class="btn btn-secondary btn-sm toggle-service-btn" 
-                                                data-service-id="chat-general" data-is-active="false">
-                                            Deactivate
-                                        </button>
-                                    </div>
-                                </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator info"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">System backup completed successfully</div>
+                                <div class="activity-time">Today at 08:15 AM</div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Recent Activity Section -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h2>Recent Activity</h2>
+                        <div class="activity-item">
+                            <div class="activity-indicator error"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Connection timeout for assistant asst_8ttODMww5jd42lqe4nZ7JjG0</div>
+                                <div class="activity-time">Today at 07:22 AM</div>
+                            </div>
                         </div>
-                        <div class="card-content">
-                            <div id="recentActivity" class="activity-list">
-                                <div class="activity-item">
-                                    <div class="activity-indicator success"></div>
-                                    <div class="activity-content">
-                                        <div class="activity-text">Service configuration updated</div>
-                                        <div class="activity-time">Today at 11:47 AM</div>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-indicator info"></div>
-                                    <div class="activity-content">
-                                        <div class="activity-text">Backup process initiated</div>
-                                        <div class="activity-time">Today at 11:46 AM</div>
-                                    </div>
-                                </div>
-                                <div class="activity-item">
-                                    <div class="activity-indicator success"></div>
-                                    <div class="activity-content">
-                                        <div class="activity-text">New user session started</div>
-                                        <div class="activity-time">Today at 11:45 AM</div>
-                                    </div>
-                                </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator success"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">New assistant "Chatbot Test V3" has been registered</div>
+                                <div class="activity-time">Yesterday at 16:45 PM</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     </div>
 
     <!-- Status Messages -->
@@ -387,19 +373,17 @@
 
                 container.innerHTML = this.assistants.map(assistant => `
                     <div class="assistant-item ${assistant.id === this.activeAssistant ? 'active' : ''}">
-                        <div class="assistant-avatar">
-                            <i class="fas fa-robot"></i>
-                        </div>
                         <div class="assistant-info">
                             <div class="assistant-name">${assistant.name || 'Unnamed'}</div>
                             <div class="assistant-details">
-                                <span class="assistant-id">${assistant.id}</span>
-                                <span class="assistant-model">${assistant.model}</span>
+                                <span class="assistant-id">ID: ${assistant.id}</span>
+                                <span class="assistant-model">Model: ${assistant.model}</span>
                             </div>
                         </div>
                         <div class="assistant-status">
-                            <span class="status-badge ${assistant.id === this.activeAssistant ? 'status-active' : 'status-inactive'}">
-                                ${assistant.id === this.activeAssistant ? 'Active' : 'Inactive'}
+                            <span class="status-dot ${assistant.id === this.activeAssistant ? 'active' : 'inactive'}"></span>
+                            <span class="status-text ${assistant.id === this.activeAssistant ? 'active' : 'inactive'}">
+                                ${assistant.id === this.activeAssistant ? 'ACTIVE' : 'INACTIVE'}
                             </span>
                         </div>
                     </div>
@@ -475,11 +459,7 @@
                 if (landingService) {
                     document.getElementById('landing-assistant-name').textContent = landingService.assistantName || '-';
                     document.getElementById('landing-last-updated').textContent = new Date(landingService.lastUpdated).toLocaleString();
-                    
-                    const landingStatus = document.getElementById('landing-status');
-                    const statusBadge = landingStatus.querySelector('.status-badge');
-                    statusBadge.textContent = landingService.isActive ? 'ACTIVE' : 'INACTIVE';
-                    statusBadge.className = `status-badge ${landingService.isActive ? 'status-active' : 'status-inactive'}`;
+                    document.getElementById('landing-project').textContent = this.activeProject || '-';
                     
                     // Set selected assistant
                     const landingSelect = document.getElementById('assistant-landing-page');
@@ -488,8 +468,8 @@
                     // Update toggle button
                     const landingToggle = document.querySelector('[data-service-id="landing-page"].toggle-service-btn');
                     if (landingToggle) {
-                        landingToggle.textContent = landingService.isActive ? 'Deactivate' : 'Activate';
-                        landingToggle.className = `btn ${landingService.isActive ? 'btn-secondary' : 'btn-success'} btn-sm toggle-service-btn`;
+                        landingToggle.textContent = landingService.isActive ? 'DEACTIVATE' : 'ACTIVATE';
+                        landingToggle.className = `btn ${landingService.isActive ? 'btn-secondary' : 'btn-success'} toggle-service-btn`;
                         landingToggle.dataset.isActive = !landingService.isActive;
                     }
                 }
@@ -498,11 +478,7 @@
                 if (chatService) {
                     document.getElementById('chat-assistant-name').textContent = chatService.assistantName || '-';
                     document.getElementById('chat-last-updated').textContent = new Date(chatService.lastUpdated).toLocaleString();
-                    
-                    const chatStatus = document.getElementById('chat-status');
-                    const statusBadge = chatStatus.querySelector('.status-badge');
-                    statusBadge.textContent = chatService.isActive ? 'ACTIVE' : 'INACTIVE';
-                    statusBadge.className = `status-badge ${chatService.isActive ? 'status-active' : 'status-inactive'}`;
+                    document.getElementById('chat-project').textContent = this.activeProject || '-';
                     
                     // Set selected assistant
                     const chatSelect = document.getElementById('assistant-chat-general');
@@ -511,39 +487,10 @@
                     // Update toggle button
                     const chatToggle = document.querySelector('[data-service-id="chat-general"].toggle-service-btn');
                     if (chatToggle) {
-                        chatToggle.textContent = chatService.isActive ? 'Deactivate' : 'Activate';
-                        chatToggle.className = `btn ${chatService.isActive ? 'btn-secondary' : 'btn-success'} btn-sm toggle-service-btn`;
+                        chatToggle.textContent = chatService.isActive ? 'DEACTIVATE' : 'ACTIVATE';
+                        chatToggle.className = `btn ${chatService.isActive ? 'btn-secondary' : 'btn-success'} toggle-service-btn`;
                         chatToggle.dataset.isActive = !chatService.isActive;
                     }
-                }
-            }
-
-            async changeServiceAssistant(serviceId, assistantId) {
-                if (!assistantId) return;
-
-                const assistant = this.assistants.find(a => a.id === assistantId);
-                if (!assistant) return;
-
-                try {
-                    const response = await fetch(`/api/admin/services/${serviceId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            assistantId: assistantId,
-                            assistantName: assistant.name || 'Sin nombre'
-                        })
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        this.showStatus(`Assistant updated for ${serviceId}`, 'success');
-                        await this.loadDashboard(); // Reload data
-                    } else {
-                        throw new Error(data.error);
-                    }
-                } catch (error) {
-                    this.showStatus(`Error updating assistant: ${error.message}`, 'error');
                 }
             }
 
@@ -638,31 +585,6 @@
                 }
             }
 
-            async changeActiveAssistant(assistantId) {
-                if (!assistantId) return;
-
-                try {
-                    const response = await fetch('/api/chatbot/assistants/set-active', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ assistantId })
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        this.activeAssistant = assistantId;
-                        this.showStatus(`Assistant changed successfully`, 'success');
-                        this.renderAssistants();
-                        this.addActivity(`Assistant changed to ${assistantId}`, 'success');
-                    } else {
-                        throw new Error(data.error);
-                    }
-                } catch (error) {
-                    this.showStatus(`Error changing assistant: ${error.message}`, 'error');
-                }
-            }
-
             addActivity(text, type) {
                 const activityList = document.getElementById('recentActivity');
                 const now = new Date();
@@ -684,8 +606,8 @@
 
                 activityList.insertBefore(activityItem, activityList.firstChild);
                 
-                // Keep only last 5 activities
-                while (activityList.children.length > 5) {
+                // Keep only last 6 activities
+                while (activityList.children.length > 6) {
                     activityList.removeChild(activityList.lastChild);
                 }
             }
