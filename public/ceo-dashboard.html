@@ -110,7 +110,7 @@
                         <h2>Project Management</h2>
                     </div>
                     <div class="section-content">
-                    <div class="form-group">
+                        <div class="form-group">
                             <label for="activeProject" class="form-label">Active Jira Project</label>
                             <select id="activeProject" class="form-select">
                                 <option value="">Loading projects...</option>
@@ -125,6 +125,63 @@
                                 <span class="info-label">Project Key:</span>
                                 <span class="info-value" id="currentProjectKey">-</span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Remote Server Project Management Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Remote Server Project</h2>
+                        <div class="connection-status" id="remoteConnectionStatus">
+                            <span class="status-indicator" id="remoteStatusIndicator"></span>
+                            <span class="status-text" id="remoteStatusText">Disconnected</span>
+                        </div>
+                    </div>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <label for="remoteServerUrl" class="form-label">Remote Server URL</label>
+                            <input type="text" id="remoteServerUrl" class="form-input" 
+                                   placeholder="https://form.movonte.com" 
+                                   value="https://form.movonte.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="remoteActiveProject" class="form-label">Remote Active Project</label>
+                            <div class="remote-project-controls">
+                                <select id="remoteActiveProject" class="form-select">
+                                    <option value="">Loading remote projects...</option>
+                                </select>
+                                <button class="btn btn-primary btn-sm" id="refreshRemoteProjects">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="remote-project-info">
+                            <div class="info-row">
+                                <span class="info-label">Remote Current Project:</span>
+                                <span class="info-value" id="remoteCurrentProjectName">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Remote Project Key:</span>
+                                <span class="info-value" id="remoteCurrentProjectKey">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Last Updated:</span>
+                                <span class="info-value" id="remoteLastUpdated">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="remote-actions">
+                            <button class="btn btn-primary" id="changeRemoteProject">
+                                <i class="fas fa-exchange-alt"></i>
+                                Change Remote Project
+                            </button>
+                            <button class="btn btn-secondary" id="testRemoteConnection">
+                                <i class="fas fa-plug"></i>
+                                Test Connection
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -310,12 +367,16 @@
                 this.serviceConfigs = [];
                 this.activeProject = '';
                 this.activeAssistant = '';
+                this.remoteProjects = [];
+                this.remoteActiveProject = '';
+                this.remoteServerUrl = 'https://form.movonte.com';
                 this.initialize();
             }
 
             async initialize() {
                 await this.loadDashboard();
                 await this.loadProjects();
+                await this.loadRemoteProjects();
                 this.setupEventListeners();
             }
 
@@ -647,15 +708,33 @@
                 }, 5000);
             }
 
-                         setupEventListeners() {
+            setupEventListeners() {
                 // Event listener para cambiar proyecto activo
                 document.getElementById('activeProject')?.addEventListener('change', (e) => {
                     this.changeActiveProject(e.target.value);
                 });
-                 
-                 // Event listeners para botones dinámicos (se configuran después de renderizar)
-                 this.setupDynamicEventListeners();
-             }
+                
+                // Event listeners para servidor remoto
+                document.getElementById('remoteServerUrl')?.addEventListener('change', (e) => {
+                    this.remoteServerUrl = e.target.value;
+                    this.loadRemoteProjects();
+                });
+                
+                document.getElementById('refreshRemoteProjects')?.addEventListener('click', () => {
+                    this.loadRemoteProjects();
+                });
+                
+                document.getElementById('changeRemoteProject')?.addEventListener('click', () => {
+                    this.changeRemoteProject();
+                });
+                
+                document.getElementById('testRemoteConnection')?.addEventListener('click', () => {
+                    this.testRemoteConnection();
+                });
+                
+                // Event listeners para botones dinámicos (se configuran después de renderizar)
+                this.setupDynamicEventListeners();
+            }
 
              setupDynamicEventListeners() {
                  // Event listeners para botones de aplicar cambio
@@ -673,12 +752,159 @@
                          const isActive = e.target.dataset.isActive === 'true';
                          this.toggleService(serviceId, isActive);
                      });
-                 });
+                });
+            }
+
+            // === REMOTE SERVER FUNCTIONS ===
+
+            async loadRemoteProjects() {
+                try {
+                    this.updateRemoteConnectionStatus('connecting', 'Connecting...');
+                    
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/available`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.remoteProjects = data.projects || [];
+                        this.updateRemoteConnectionStatus('connected', 'Connected');
+                        this.renderRemoteProjects();
+                        await this.loadRemoteActiveProject();
+                    } else {
+                        throw new Error(data.error || 'Failed to load remote projects');
+                    }
+                } catch (error) {
+                    console.error('Error loading remote projects:', error);
+                    this.updateRemoteConnectionStatus('disconnected', 'Connection Failed');
+                    this.showStatus(`Error loading remote projects: ${error.message}`, 'error');
+                }
+            }
+
+            async loadRemoteActiveProject() {
+                try {
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/current`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.remoteActiveProject = data.projectKey || '';
+                        this.updateRemoteProjectInfo();
+                    }
+                } catch (error) {
+                    console.error('Error loading remote active project:', error);
+                }
+            }
+
+            renderRemoteProjects() {
+                const select = document.getElementById('remoteActiveProject');
+                
+                if (this.remoteProjects.length === 0) {
+                    select.innerHTML = '<option value="">No remote projects available</option>';
+                    return;
+                }
+
+                select.innerHTML = this.remoteProjects.map(project => `
+                    <option value="${project.key}" ${project.key === this.remoteActiveProject ? 'selected' : ''}>
+                        ${project.name} (${project.key})
+                    </option>
+                `).join('');
+            }
+
+            updateRemoteProjectInfo() {
+                const currentProjectName = document.getElementById('remoteCurrentProjectName');
+                const currentProjectKey = document.getElementById('remoteCurrentProjectKey');
+                const lastUpdated = document.getElementById('remoteLastUpdated');
+                
+                if (this.remoteActiveProject) {
+                    const project = this.remoteProjects.find(p => p.key === this.remoteActiveProject);
+                    currentProjectName.textContent = project ? project.name : '-';
+                    currentProjectKey.textContent = this.remoteActiveProject;
+                    lastUpdated.textContent = new Date().toLocaleString();
+                } else {
+                    currentProjectName.textContent = '-';
+                    currentProjectKey.textContent = '-';
+                    lastUpdated.textContent = '-';
+                }
+            }
+
+            async changeRemoteProject() {
+                const selectElement = document.getElementById('remoteActiveProject');
+                const selectedProjectKey = selectElement.value;
+                
+                if (!selectedProjectKey) {
+                    this.showStatus('Please select a remote project first', 'error');
+                    return;
+                }
+
+                try {
+                    this.updateRemoteConnectionStatus('connecting', 'Changing project...');
+                    
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/set-active`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ projectKey: selectedProjectKey })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.remoteActiveProject = selectedProjectKey;
+                        this.updateRemoteProjectInfo();
+                        this.updateRemoteConnectionStatus('connected', 'Connected');
+                        this.showStatus(`Remote project changed to: ${selectedProjectKey}`, 'success');
+                        this.addActivity(`Remote project changed to ${selectedProjectKey}`, 'success');
+                    } else {
+                        throw new Error(data.error || 'Failed to change remote project');
+                    }
+                } catch (error) {
+                    console.error('Error changing remote project:', error);
+                    this.updateRemoteConnectionStatus('disconnected', 'Connection Failed');
+                    this.showStatus(`Error changing remote project: ${error.message}`, 'error');
+                }
+            }
+
+            async testRemoteConnection() {
+                try {
+                    this.updateRemoteConnectionStatus('connecting', 'Testing...');
+                    
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/validate-connection`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.updateRemoteConnectionStatus('connected', 'Connection OK');
+                        this.showStatus('Remote server connection successful', 'success');
+                        this.addActivity('Remote server connection tested successfully', 'success');
+                    } else {
+                        throw new Error(data.error || 'Connection test failed');
+                    }
+                } catch (error) {
+                    console.error('Error testing remote connection:', error);
+                    this.updateRemoteConnectionStatus('disconnected', 'Connection Failed');
+                    this.showStatus(`Remote connection test failed: ${error.message}`, 'error');
+                }
+            }
+
+            updateRemoteConnectionStatus(status, text) {
+                const indicator = document.getElementById('remoteStatusIndicator');
+                const statusText = document.getElementById('remoteStatusText');
+                
+                // Remove existing classes
+                indicator.className = 'status-indicator';
+                statusText.className = 'status-text';
+                
+                // Add new classes
+                if (status === 'connected') {
+                    indicator.classList.add('connected');
+                    statusText.classList.add('connected');
+                } else if (status === 'connecting') {
+                    indicator.classList.add('connecting');
+                    statusText.classList.add('connecting');
+                }
+                
+                statusText.textContent = text;
             }
         }
 
-                 // Variable global para el dashboard
-         let dashboard;
+        // Variable global para el dashboard
+        let dashboard;
  
          // Inicializar cuando el DOM esté listo
          document.addEventListener('DOMContentLoaded', function() {
