@@ -28,6 +28,9 @@ export class AdminController {
       // Obtener proyecto activo actual
       const activeProject = jiraService.getActiveProject();
       
+      // Obtener asistente activo actual
+      const activeAssistant = this.openaiService.getActiveAssistant();
+      
       res.json({
         success: true,
         data: {
@@ -35,6 +38,7 @@ export class AdminController {
           projects: projects,
           serviceConfigurations: serviceConfigs,
           activeProject: activeProject,
+          activeAssistant: activeAssistant,
           totalAssistants: assistants.length,
           totalProjects: projects.length,
           totalServices: serviceConfigs.length
