@@ -72,7 +72,7 @@ export class AdminController {
   async updateServiceConfiguration(req: Request, res: Response): Promise<void> {
     try {
       const { serviceId } = req.params;
-      const { assistantId, assistantName } = req.body;
+      const { assistantId, assistantName, projectKey } = req.body;
 
       if (!assistantId || !assistantName) {
         res.status(400).json({
@@ -95,7 +95,7 @@ export class AdminController {
       }
 
       // Actualizar configuración
-      const success = this.configService.updateServiceConfiguration(serviceId, assistantId, assistantName);
+      const success = this.configService.updateServiceConfiguration(serviceId, assistantId, assistantName, projectKey);
       
       if (success) {
         res.json({
@@ -160,12 +160,12 @@ export class AdminController {
   // Agregar nuevo servicio
   async addService(req: Request, res: Response): Promise<void> {
     try {
-      const { serviceId, serviceName, assistantId, assistantName } = req.body;
+      const { serviceId, serviceName, assistantId, assistantName, projectKey } = req.body;
 
-      if (!serviceId || !serviceName || !assistantId || !assistantName) {
+      if (!serviceId || !serviceName || !assistantId || !assistantName || !projectKey) {
         res.status(400).json({
           success: false,
-          error: 'Se requieren serviceId, serviceName, assistantId y assistantName'
+          error: 'Se requieren serviceId, serviceName, assistantId, assistantName y projectKey'
         });
         return;
       }
@@ -193,7 +193,7 @@ export class AdminController {
       }
 
       // Agregar servicio
-      const success = this.configService.addService(serviceId, serviceName, assistantId, assistantName);
+      const success = this.configService.addService(serviceId, serviceName, assistantId, assistantName, projectKey);
       
       if (success) {
         res.json({

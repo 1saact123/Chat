@@ -321,6 +321,94 @@ export class JiraService {
     }
   }
 
+  /**
+   * Get all available projects from Jira
+   */
+  async getAvailableProjects(): Promise<any> {
+    try {
+      console.log('Getting available projects from Jira...');
+      
+      const response = await axios.get(
+        `${this.baseUrl}/rest/api/3/project`,
+        {
+          headers: {
+            'Authorization': `Basic ${this.auth}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      // Format projects for easier use
+      const projects = response.data.map((project: any) => ({
+        id: project.id,
+        key: project.key,
+        name: project.name,
+        projectTypeKey: project.projectTypeKey,
+        description: project.description || '',
+        lead: project.lead?.displayName || '',
+        url: project.self
+      }));
+
+      console.log(`Found ${projects.length} projects`);
+      return projects;
+    } catch (error) {
+      console.error('Error getting available projects:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create contact issue in a specific project
+   */
+  async createContactIssueInProject(formData: ContactFormData, projectKey: string): Promise<JiraResponse> {
+    const fields: JiraIssueRequest['fields'] = {
+      project: {
+        key: projectKey
+      },
+      summary: `Web Contact: ${formData.name} - ${formData.company || 'No company'}`,
+      description: this.formatContactDescriptionADF(formData),
+      issuetype: {
+        name: 'Task'
+      },
+      priority: {
+        name: 'Medium'
+      },
+      labels: ['contacto-web', 'lead', 'widget-chat']
+    };
+
+    // Optional custom fields, only add if they exist in the project
+    const emailFieldId = process.env.JIRA_FIELD_EMAIL;
+    const phoneFieldId = process.env.JIRA_FIELD_PHONE;
+    const companyFieldId = process.env.JIRA_FIELD_COMPANY;
+
+    // Only add custom fields if they are configured and exist
+    if (emailFieldId && emailFieldId.trim() !== '') {
+      (fields as any)[emailFieldId] = formData.email;
+    }
+    if (phoneFieldId && phoneFieldId.trim() !== '' && formData.phone) {
+      (fields as any)[phoneFieldId] = formData.phone;
+    }
+    if (companyFieldId && companyFieldId.trim() !== '' && formData.company) {
+      (fields as any)[companyFieldId] = formData.company;
+    }
+
+    const issueData: JiraIssueRequest = { fields };
+
+    const response = await axios.post(
+      `${this.baseUrl}/rest/api/3/issue`,
+      issueData,
+      {
+        headers: {
+          'Authorization': `Basic ${this.auth}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    return response.data;
+  }
+
   // === EXISTING METHODS ===
   async testConnection(): Promise<any> {
     const response = await axios.get(

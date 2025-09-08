@@ -81,6 +81,7 @@ router.get('/api/contact/test-jira', contactController.testJiraConnection.bind(c
 router.post('/api/landing/create-ticket', landingController.createTicketFromLanding.bind(landingController));
 router.post('/api/landing/validate-form', landingController.validateLandingForm.bind(landingController));
 router.get('/api/landing/form-fields', landingController.getLandingFormFields.bind(landingController));
+router.get('/api/landing/projects', landingController.getAvailableProjects.bind(landingController));
 
 // === CHATBOT ROUTES ===
 // Jira webhook

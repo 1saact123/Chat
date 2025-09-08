@@ -3,6 +3,7 @@ interface ServiceConfiguration {
   serviceName: string;
   assistantId: string;
   assistantName: string;
+  projectKey?: string;
   isActive: boolean;
   lastUpdated: Date;
 }
@@ -25,6 +26,7 @@ export class ConfigurationService {
         serviceName: 'Landing Page',
         assistantId: process.env.OPENAI_ASSISTANT_ID || '',
         assistantName: 'AI Assistant Chat',
+        projectKey: process.env.JIRA_PROJECT_KEY || 'CONTACT',
         isActive: true,
         lastUpdated: new Date()
       });
@@ -34,6 +36,7 @@ export class ConfigurationService {
         serviceName: 'Integración Jira',
         assistantId: process.env.OPENAI_ASSISTANT_ID || '',
         assistantName: 'AI Assistant Chat',
+        projectKey: process.env.JIRA_PROJECT_KEY || 'CONTACT',
         isActive: true,
         lastUpdated: new Date()
       });
@@ -43,6 +46,7 @@ export class ConfigurationService {
         serviceName: 'Chat General',
         assistantId: process.env.OPENAI_ASSISTANT_ID || '',
         assistantName: ' AI Assistant Chat',
+        projectKey: process.env.JIRA_PROJECT_KEY || 'CONTACT',
         isActive: true,
         lastUpdated: new Date()
       });
@@ -64,12 +68,15 @@ export class ConfigurationService {
   }
 
   // Actualizar configuración de un servicio
-  updateServiceConfiguration(serviceId: string, assistantId: string, assistantName: string): boolean {
+  updateServiceConfiguration(serviceId: string, assistantId: string, assistantName: string, projectKey?: string): boolean {
     try {
       const config = this.configurations.get(serviceId);
       if (config) {
         config.assistantId = assistantId;
         config.assistantName = assistantName;
+        if (projectKey) {
+          config.projectKey = projectKey;
+        }
         config.lastUpdated = new Date();
         this.configurations.set(serviceId, config);
         
@@ -89,6 +96,12 @@ export class ConfigurationService {
     return config && config.isActive ? config.assistantId : null;
   }
 
+  // Obtener projectKey para un servicio
+  getProjectKeyForService(serviceId: string): string | null {
+    const config = this.configurations.get(serviceId);
+    return config && config.isActive ? (config.projectKey || process.env.JIRA_PROJECT_KEY || 'CONTACT') : null;
+  }
+
   // Activar/desactivar un servicio
   toggleService(serviceId: string, isActive: boolean): boolean {
     const config = this.configurations.get(serviceId);
@@ -102,13 +115,14 @@ export class ConfigurationService {
   }
 
   // Agregar nuevo servicio
-  addService(serviceId: string, serviceName: string, assistantId: string, assistantName: string): boolean {
+  addService(serviceId: string, serviceName: string, assistantId: string, assistantName: string, projectKey: string): boolean {
     try {
       const newConfig: ServiceConfiguration = {
         serviceId,
         serviceName,
         assistantId,
         assistantName,
+        projectKey,
         isActive: true,
         lastUpdated: new Date()
       };

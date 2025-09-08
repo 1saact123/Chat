@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Panel - AI Assistant Management</title>
+    <title>Movonte Control Panel - AI Assistant Management</title>
     <link rel="stylesheet" href="ceo-dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>Control Panel</h1>
+            <h1>Movonte Control Panel</h1>
             <p>Centralized AI Assistant Management by Service</p>
         </div>
 
@@ -34,22 +35,28 @@
         <div class="main-content">
             <!-- Available Assistants -->
             <div class="section">
-                <h2>Available Assistants</h2>
+                <h2>🤖 Available Assistants</h2>
                 <div id="assistantsList" class="assistant-list">
-                    <p style="text-align: center; color: #64748b;">Loading assistants...</p>
+                    <div class="loading-container">
+                        <div class="loading"></div>
+                        <p>Loading assistants...</p>
+                    </div>
                 </div>
             </div>
 
             <!-- Service Configuration -->
             <div class="section">
-                <h2>Service Configuration</h2>
+                <h2>⚙️ Service Configuration</h2>
                 <div id="servicesConfig">
-                    <p style="text-align: center; color: #64748b;">Loading services...</p>
+                    <div class="loading-container">
+                        <div class="loading"></div>
+                        <p>Loading services...</p>
+                    </div>
                 </div>
                 
                 <!-- Form to add service -->
                 <div class="add-service-form">
-                    <h3>Add New Service</h3>
+                    <h3>➕ Add New Service</h3>
                                         <div class="form-group">
                         <label for="newServiceId">Service ID:</label>
                         <input type="text" id="newServiceId" placeholder="e.g: customer-support">
@@ -64,9 +71,16 @@
                             <option value="">Select an assistant...</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="newProjectKey">Jira Project:</label>
+                        <select id="newProjectKey">
+                            <option value="">Select a project...</option>
+                        </select>
+                    </div>
                     <button class="btn btn-primary" id="addServiceBtn">Add Service</button>
                 </div>
             </div>
+
         </div>
 
         <!-- Status Messages -->
@@ -80,11 +94,13 @@
             constructor() {
                 this.assistants = [];
                 this.serviceConfigs = [];
+                this.availableProjects = [];
                 this.initialize();
             }
 
             async initialize() {
                 await this.loadDashboard();
+                await this.loadAvailableProjects();
                 this.setupEventListeners();
             }
 
@@ -109,6 +125,23 @@
                 }
             }
 
+            async loadAvailableProjects() {
+                try {
+                    const response = await fetch('/api/landing/projects');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.availableProjects = data.projects;
+                        this.populateProjectDropdown();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error loading projects:', error);
+                    this.showStatus(`Error loading projects: ${error.message}`, 'error');
+                }
+            }
+
             updateStats(data) {
                 document.getElementById('totalAssistants').textContent = data.totalAssistants;
                 document.getElementById('totalServices').textContent = data.totalServices;
@@ -120,7 +153,7 @@
                 const container = document.getElementById('assistantsList');
                 
                                  if (this.assistants.length === 0) {
-                     container.innerHTML = '<p style="text-align: center; color: #64748b;">No assistants available</p>';
+                     container.innerHTML = '<div class="loading-container"><p>No assistants available</p></div>';
                      return;
                  }
 
@@ -140,7 +173,7 @@
                  const container = document.getElementById('servicesConfig');
                  
                  if (this.serviceConfigs.length === 0) {
-                     container.innerHTML = '<p style="text-align: center; color: #64748b;">No services configured</p>';
+                     container.innerHTML = '<div class="loading-container"><p>No services configured</p></div>';
                      return;
                  }
 
@@ -156,6 +189,7 @@
                          <div class="assistant-details">
                              <strong>Current Assistant:</strong> ${service.assistantName}<br>
                              <strong>Service ID:</strong> ${service.serviceId}<br>
+                             <strong>Jira Project:</strong> ${service.projectKey || 'Not configured'}<br>
                              <strong>Last Updated:</strong> ${new Date(service.lastUpdated).toLocaleString()}
                          </div>
                          
@@ -199,6 +233,18 @@
                      const option = document.createElement('option');
                      option.value = assistant.id;
                      option.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
+                     select.appendChild(option);
+                 });
+             }
+
+             populateProjectDropdown() {
+                 const select = document.getElementById('newProjectKey');
+                 select.innerHTML = '<option value="">Select a project...</option>';
+                 
+                 this.availableProjects.forEach(project => {
+                     const option = document.createElement('option');
+                     option.value = project.key;
+                     option.textContent = `${project.name} (${project.key})`;
                      select.appendChild(option);
                  });
              }
@@ -328,8 +374,9 @@
                 const serviceId = document.getElementById('newServiceId').value.trim();
                 const serviceName = document.getElementById('newServiceName').value.trim();
                 const assistantId = document.getElementById('newAssistantId').value;
+                const projectKey = document.getElementById('newProjectKey').value;
 
-                                 if (!serviceId || !serviceName || !assistantId) {
+                                 if (!serviceId || !serviceName || !assistantId || !projectKey) {
                      this.showStatus('All fields are required', 'error');
                      return;
                  }
@@ -343,7 +390,8 @@
                             serviceId,
                             serviceName,
                             assistantId,
-                            assistantName: assistant.name || 'Sin nombre'
+                            assistantName: assistant.name || 'Sin nombre',
+                            projectKey
                         })
                     });
 
@@ -354,8 +402,9 @@
                          
                          // Clear form
                          document.getElementById('newServiceId').value = '';
-                         document.getElementById('newServiceId').value = '';
+                         document.getElementById('newServiceName').value = '';
                          document.getElementById('newAssistantId').value = '';
+                         document.getElementById('newProjectKey').value = '';
                          
                          await this.loadDashboard(); // Reload data
                      } else {
@@ -365,6 +414,7 @@
                      this.showStatus(`Error adding service: ${error.message}`, 'error');
                  }
             }
+
 
             showStatus(message, type) {
                 const statusDiv = document.getElementById('statusMessage');

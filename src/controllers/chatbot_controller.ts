@@ -182,6 +182,9 @@ export class ChatbotController {
         // Obtener historial de conversación para contexto
         const conversationHistory = this.conversationHistory.get(issueKey) || [];
         
+        // Obtener el projectKey del servicio (si está disponible)
+        const projectKey = (payload.issue as any).fields.project?.key || 'CONTACT';
+        
         // Crear contexto enriquecido con historial
         const enrichedContext = {
           jiraIssueKey: issueKey,
@@ -190,6 +193,7 @@ export class ChatbotController {
           authorName: payload.comment.author.displayName,
           isJiraComment: true,
           conversationType: 'jira-ticket',
+          projectKey: projectKey,
           conversationHistory: conversationHistory.slice(-6), // Últimos 6 mensajes
           previousResponses: conversationHistory
             .filter(msg => msg.role === 'assistant')
@@ -623,13 +627,26 @@ export class ChatbotController {
 
       console.log(`💬 Chat para servicio ${serviceId}: ${message}`);
       
-      const result = await this.openaiService.processChatForService(message, serviceId, threadId);
+      // Obtener el projectKey configurado para este servicio
+      const { ConfigurationService } = await import('../services/configuration_service');
+      const configService = new ConfigurationService();
+      const projectKey = configService.getProjectKeyForService(serviceId);
+      
+      // Crear contexto con el projectKey del servicio
+      const context = {
+        serviceId,
+        projectKey: projectKey || 'CONTACT',
+        isServiceChat: true
+      };
+      
+      const result = await this.openaiService.processChatForService(message, serviceId, threadId, context);
       
       if (result.success) {
         res.json({
           success: true,
           response: result.response,
           threadId: result.threadId,
+          projectKey: projectKey,
           timestamp: new Date().toISOString()
         });
       } else {

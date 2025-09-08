@@ -7,13 +7,22 @@ export class LandingController {
 
   async createTicketFromLanding(req: Request, res: Response): Promise<void> {
     try {
-      const { name, email, phone, company, message } = req.body;
+      const { name, email, phone, company, message, projectKey } = req.body;
 
       // Validar campos requeridos
       if (!name || !email) {
         res.status(400).json({
           success: false,
           error: 'Name and email are required'
+        });
+        return;
+      }
+
+      // Validar projectKey si se proporciona
+      if (projectKey && typeof projectKey !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'Project key must be a string'
         });
         return;
       }
@@ -45,8 +54,10 @@ export class LandingController {
         phone: formData.phone ? '***' : 'Not provided'
       });
 
-      // Crear ticket en Jira
-      const jiraResponse = await this.jiraService.createContactIssue(formData);
+      // Crear ticket en Jira (usar projectKey específico si se proporciona)
+      const jiraResponse = projectKey 
+        ? await this.jiraService.createContactIssueInProject(formData, projectKey)
+        : await this.jiraService.createContactIssue(formData);
 
       console.log('Ticket created successfully:', jiraResponse.key);
 
@@ -139,7 +150,7 @@ export class LandingController {
       // Devolver información sobre los campos del formulario
       const formFields = {
         required: ['name', 'email'],
-        optional: ['phone', 'company', 'message'],
+        optional: ['phone', 'company', 'message', 'projectKey'],
         validation: {
           name: {
             minLength: 2,
@@ -163,6 +174,10 @@ export class LandingController {
           message: {
             maxLength: 1000,
             description: 'Additional message (optional)'
+          },
+          projectKey: {
+            type: 'string',
+            description: 'Jira project key where the ticket will be created (optional)'
           }
         }
       };
@@ -177,6 +192,27 @@ export class LandingController {
       res.status(500).json({
         success: false,
         error: 'Failed to get form fields'
+      });
+    }
+  }
+
+  async getAvailableProjects(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('Getting available Jira projects...');
+      
+      const projects = await this.jiraService.getAvailableProjects();
+      
+      res.json({
+        success: true,
+        projects,
+        count: projects.length
+      });
+
+    } catch (error) {
+      console.error('Error getting available projects:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get available projects'
       });
     }
   }
