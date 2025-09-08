@@ -7,7 +7,7 @@ export class WidgetIntegrationController {
   private openaiService: OpenAIService;
 
   constructor() {
-    this.jiraService = new JiraService();
+    this.jiraService = JiraService.getInstance();
     this.openaiService = new OpenAIService();
   }
 

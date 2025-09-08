@@ -3,7 +3,7 @@ import { JiraService } from '../services/jira_service';
 import { ContactFormData, ContactApiResponse } from '../types';
 
 export class LandingController {
-  constructor(private jiraService: JiraService) {}
+  constructor() {}
 
   async createTicketFromLanding(req: Request, res: Response): Promise<void> {
     try {
@@ -45,8 +45,9 @@ export class LandingController {
         phone: formData.phone ? '***' : 'Not provided'
       });
 
-      // Crear ticket en Jira
-      const jiraResponse = await this.jiraService.createContactIssue(formData);
+      // Crear ticket en Jira usando la instancia singleton
+      const jiraService = JiraService.getInstance();
+      const jiraResponse = await jiraService.createContactIssue(formData);
 
       console.log('Ticket created successfully:', jiraResponse.key);
 

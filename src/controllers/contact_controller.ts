@@ -6,7 +6,6 @@ import { isValidEmail } from '../utils/validations';
 
 export class ContactController {
   constructor(
-    private jiraService: JiraService,
     private emailService: any | null // EmailService commented out for testing
   ) {}
 
@@ -40,7 +39,8 @@ export class ContactController {
 
       // Try to create issue in Jira
       try {
-        const jiraIssue = await this.jiraService.createContactIssue(formData);
+        const jiraService = JiraService.getInstance();
+        const jiraIssue = await jiraService.createContactIssue(formData);
         
         const response: ContactApiResponse = {
           success: true,
@@ -97,7 +97,8 @@ export class ContactController {
 
   async testJiraConnection(req: Request, res: Response): Promise<void> {
     try {
-      const project = await this.jiraService.testConnection();
+      const jiraService = JiraService.getInstance();
+      const project = await jiraService.testConnection();
       
       res.json({
         success: true,

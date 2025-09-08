@@ -6,12 +6,10 @@ import { JiraService } from '../services/jira_service';
 export class AdminController {
   private openaiService: OpenAIService;
   private configService: ConfigurationService;
-  private jiraService: JiraService;
 
   constructor() {
     this.openaiService = new OpenAIService();
     this.configService = new ConfigurationService();
-    this.jiraService = new JiraService();
   }
 
   // Dashboard principal del CEO
@@ -21,13 +19,14 @@ export class AdminController {
       const assistants = await this.openaiService.listAssistants();
       
       // Obtener todos los proyectos de Jira disponibles
-      const projects = await this.jiraService.listProjects();
+      const jiraService = JiraService.getInstance();
+      const projects = await jiraService.listProjects();
       
       // Obtener configuraciones actuales de servicios
       const serviceConfigs = this.configService.getAllConfigurations();
       
       // Obtener proyecto activo actual
-      const activeProject = this.jiraService.getActiveProject();
+      const activeProject = jiraService.getActiveProject();
       
       res.json({
         success: true,
@@ -298,7 +297,8 @@ export class AdminController {
     try {
       console.log('📋 Solicitando lista de proyectos de Jira...');
       
-      const projects = await this.jiraService.listProjects();
+      const jiraService = JiraService.getInstance();
+      const projects = await jiraService.listProjects();
       
       res.json({
         success: true,
@@ -331,7 +331,8 @@ export class AdminController {
       console.log(`🔄 Cambiando proyecto activo a: ${projectKey}`);
       
       // Verificar que el proyecto existe
-      const projects = await this.jiraService.listProjects();
+      const jiraService = JiraService.getInstance();
+      const projects = await jiraService.listProjects();
       const projectExists = projects.some(p => p.key === projectKey);
       
       if (!projectExists) {
@@ -342,7 +343,7 @@ export class AdminController {
         return;
       }
       
-      this.jiraService.setActiveProject(projectKey);
+      jiraService.setActiveProject(projectKey);
       
       res.json({
         success: true,
@@ -362,7 +363,8 @@ export class AdminController {
   // Obtener el proyecto activo actual
   async getActiveProject(req: Request, res: Response): Promise<void> {
     try {
-      const activeProject = this.jiraService.getActiveProject();
+      const jiraService = JiraService.getInstance();
+      const activeProject = jiraService.getActiveProject();
       
       res.json({
         success: true,
@@ -393,7 +395,8 @@ export class AdminController {
 
       console.log(`🔍 Obteniendo detalles del proyecto: ${projectKey}`);
       
-      const projectDetails = await this.jiraService.getProjectByKey(projectKey);
+      const jiraService = JiraService.getInstance();
+      const projectDetails = await jiraService.getProjectByKey(projectKey);
       
       res.json({
         success: true,
@@ -414,7 +417,8 @@ export class AdminController {
     try {
       console.log('🔗 Probando conexión con Jira...');
       
-      const connectionTest = await this.jiraService.testConnection();
+      const jiraService = JiraService.getInstance();
+      const connectionTest = await jiraService.testConnection();
       
       res.json({
         success: true,

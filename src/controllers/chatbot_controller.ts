@@ -207,7 +207,7 @@ export class ChatbotController {
           try {
             // Importar JiraService dinámicamente para evitar dependencias circulares
             const { JiraService } = await import('../services/jira_service');
-            const jiraService = new JiraService();
+            const jiraService = JiraService.getInstance();
             
             // Agregar comentario de la IA a Jira
             const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, response.response);
@@ -252,7 +252,7 @@ export class ChatbotController {
           try {
             // Importar JiraService dinámicamente
             const { JiraService } = await import('../services/jira_service');
-            const jiraService = new JiraService();
+            const jiraService = JiraService.getInstance();
             
             // Agregar mensaje de bienvenida simple
             const welcomeMessage = `What can I help you?`;

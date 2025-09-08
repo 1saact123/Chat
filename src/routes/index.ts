@@ -10,15 +10,14 @@ import { JiraService } from '../services/jira_service';
 import { OpenAIService } from '../services/openAI_service';
 
 // Initialize services
-const jiraService = new JiraService();
 // const emailService = new EmailService();
 const openaiService = new OpenAIService();
 
 // Initialize controllers
-const contactController = new ContactController(jiraService, null); // emailService commented out
+const contactController = new ContactController(null); // emailService commented out
 const chatbotController = new ChatbotController(openaiService, null); // emailService commented out
 const healthController = new HealthController();
-const landingController = new LandingController(jiraService);
+const landingController = new LandingController();
 const adminController = new AdminController();
 const widgetIntegrationController = new WidgetIntegrationController();
 

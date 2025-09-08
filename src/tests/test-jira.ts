@@ -3,7 +3,7 @@ import { JiraService } from '../services/jira_service';
 import type { ContactFormData } from '../types';
 
 async function main(): Promise<void> {
-    const jiraService = new JiraService();
+    const jiraService = JiraService.getInstance();
 
     try {
         console.log('Testing connection with Jira...');

@@ -4,17 +4,26 @@ import process from 'process';
 import { Buffer } from 'buffer';
 
 export class JiraService {
+  private static instance: JiraService;
   private baseUrl: string;
   private auth: string;
   private projectKey: string;
 
-  constructor() {
+  private constructor() {
     this.baseUrl = process.env.JIRA_BASE_URL || 'https://movonte.atlassian.net';
     this.projectKey = process.env.JIRA_PROJECT_KEY || 'CONTACT';
     
     const email = process.env.JIRA_EMAIL || '';
     const token = process.env.JIRA_API_TOKEN || '';
     this.auth = Buffer.from(`${email}:${token}`).toString('base64');
+  }
+
+  // Singleton pattern
+  public static getInstance(): JiraService {
+    if (!JiraService.instance) {
+      JiraService.instance = new JiraService();
+    }
+    return JiraService.instance;
   }
 
   // === EXISTING METHODS ===
