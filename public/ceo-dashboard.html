@@ -6,210 +6,315 @@
     <title>AI Assistant Control Panel - Movonte</title>
     <link rel="stylesheet" href="ceo-dashboard.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-brand">
+    <!-- Atlassian-style Header -->
+    <header class="atlassian-header">
+        <div class="header-container">
+            <div class="header-left">
                 <div class="logo">
-                    <i class="fas fa-robot"></i>
-                    <span>Movonte</span>
-                </div>
-            </div>
-            <div class="nav-menu">
-                <a href="#" class="nav-link">Dashboard</a>
-                <a href="#" class="nav-link">Assistants</a>
-                <a href="#" class="nav-link">Services</a>
-                <a href="#" class="nav-link active">Settings</a>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container">
-        <!-- Breadcrumbs -->
-        <div class="breadcrumbs">
-            <span class="breadcrumb-item">Home</span>
-            <i class="fas fa-chevron-right"></i>
-            <span class="breadcrumb-item">AI Management</span>
-            <i class="fas fa-chevron-right"></i>
-            <span class="breadcrumb-item active">Control Panel</span>
-        </div>
-
-        <!-- Header -->
-        <div class="header">
-            <h1>AI Assistant Control Panel</h1>
-            <p>Manage your AI assistants, configure services, and monitor system activity</p>
-        </div>
-
-        <!-- Statistics -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="stat-number" id="totalAssistants">-</div>
-                <div class="stat-label">Available Assistants</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-cogs"></i>
-                </div>
-                <div class="stat-number" id="totalServices">-</div>
-                <div class="stat-label">Configured Services</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-bolt"></i>
-                </div>
-                <div class="stat-number" id="activeServices">-</div>
-                <div class="stat-label">Active Services</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-cloud"></i>
-                </div>
-                <div class="stat-number" id="systemUptime">98.5%</div>
-                <div class="stat-label">System Uptime</div>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Left Column -->
-            <div class="left-column">
-                <!-- Available Assistants -->
-                <div class="section">
-                    <div class="section-header">
-                        <h2>AI Assistants</h2>
-                        <button class="btn btn-primary btn-sm" id="addAssistantBtn">
-                            <i class="fas fa-plus"></i> Add new
-                        </button>
+                    <div class="logo-icon">
+                        <i class="fas fa-robot"></i>
                     </div>
-                    <div id="assistantsList" class="assistant-list">
-                        <p style="text-align: center; color: #64748b;">Loading assistants...</p>
-                    </div>
-                </div>
-
-                <!-- Project Management -->
-                <div class="section">
-                    <div class="section-header">
-                        <h2>Project Management</h2>
-                    </div>
-                    <div class="project-selector">
-                        <div class="form-group">
-                            <label for="activeProject">Active Jira Project:</label>
-                            <select id="activeProject" class="project-select">
-                                <option value="">Loading projects...</option>
-                            </select>
-                        </div>
-                        <div class="project-info">
-                            <div class="info-item">
-                                <span class="info-label">Current Project:</span>
-                                <span class="info-value" id="currentProjectName">-</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Project Key:</span>
-                                <span class="info-value" id="currentProjectKey">-</span>
-                            </div>
-                        </div>
+                    <div class="logo-text">
+                        <span class="logo-title">Movonte</span>
+                        <span class="logo-subtitle">AI Control Panel</span>
                     </div>
                 </div>
             </div>
-
-            <!-- Right Column -->
-            <div class="right-column">
-                <!-- Service Configuration -->
-                <div class="section">
-                    <div class="section-header">
-                        <h2>Service Configuration</h2>
-                    </div>
-                    <div id="servicesConfig">
-                        <p style="text-align: center; color: #64748b;">Loading services...</p>
-                    </div>
-                </div>
-
-                <!-- Recent Activity -->
-                <div class="section">
-                    <div class="section-header">
-                        <h2>Recent Activity</h2>
-                    </div>
-                    <div id="recentActivity" class="activity-list">
-                        <div class="activity-item">
-                            <div class="activity-indicator success"></div>
-                            <div class="activity-content">
-                                <div class="activity-text">Service configuration updated</div>
-                                <div class="activity-time">Today at 11:47 AM</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-indicator info"></div>
-                            <div class="activity-content">
-                                <div class="activity-text">Backup process initiated</div>
-                                <div class="activity-time">Today at 11:46 AM</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-indicator success"></div>
-                            <div class="activity-content">
-                                <div class="activity-text">New user session started</div>
-                                <div class="activity-time">Today at 11:45 AM</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-indicator info"></div>
-                            <div class="activity-content">
-                                <div class="activity-text">Service configuration updated</div>
-                                <div class="activity-time">Today at 11:45 AM</div>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-indicator success"></div>
-                            <div class="activity-content">
-                                <div class="activity-text">Backup process initiated</div>
-                                <div class="activity-time">Today at 11:44 AM</div>
-                            </div>
-                        </div>
+            <div class="header-right">
+                <div class="header-actions">
+                    <button class="btn btn-ghost">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button class="btn btn-ghost">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
                     </div>
                 </div>
             </div>
         </div>
+    </header>
 
-        <!-- Add Service Modal -->
-        <div id="addServiceModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Add New Service</h3>
-                    <button class="modal-close" id="closeModal">&times;</button>
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-content">
+                <div class="nav-section">
+                    <div class="nav-title">Overview</div>
+                    <a href="#" class="nav-item active">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
                 </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="newServiceId">Service ID:</label>
-                        <input type="text" id="newServiceId" placeholder="e.g: customer-support">
-                    </div>
-                    <div class="form-group">
-                        <label for="newServiceName">Service Name:</label>
-                        <input type="text" id="newServiceName" placeholder="e.g: Customer Support">
-                    </div>
-                    <div class="form-group">
-                        <label for="newAssistantId">Assistant:</label>
-                        <select id="newAssistantId">
-                            <option value="">Select an assistant...</option>
-                        </select>
-                    </div>
+                
+                <div class="nav-section">
+                    <div class="nav-title">AI Management</div>
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-robot"></i>
+                        <span>Assistants</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-cogs"></i>
+                        <span>Services</span>
+                    </a>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" id="cancelAddService">Cancel</button>
-                    <button class="btn btn-primary" id="addServiceBtn">Add Service</button>
+                
+                <div class="nav-section">
+                    <div class="nav-title">Project Management</div>
+                    <a href="#" class="nav-item">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>Jira Projects</span>
+                    </a>
                 </div>
             </div>
-        </div>
+        </nav>
 
-        <!-- Status Messages -->
-        <div id="statusMessage" class="status-message" style="display: none;"></div>
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-title">
+                    <h1>AI Assistant Control Panel</h1>
+                    <p>Manage your AI assistants, configure services, and monitor system activity</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        <span>Add Assistant</span>
+                    </button>
+                </div>
+            </div>
 
-        
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalAssistants">-</div>
+                        <div class="stat-label">Available Assistants</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalServices">2</div>
+                        <div class="stat-label">Configured Services</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="activeServices">-</div>
+                        <div class="stat-label">Active Services</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="systemUptime">98.5%</div>
+                        <div class="stat-label">System Uptime</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content-grid">
+                <!-- Left Column -->
+                <div class="content-column">
+                    <!-- AI Assistants Section -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>AI Assistants</h2>
+                            <div class="card-actions">
+                                <button class="btn btn-ghost btn-sm">
+                                    <i class="fas fa-refresh"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div id="assistantsList" class="assistant-list">
+                                <div class="loading-state">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <span>Loading assistants...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Project Management Section -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Project Management</h2>
+                        </div>
+                        <div class="card-content">
+                            <div class="form-group">
+                                <label for="activeProject" class="form-label">Active Jira Project</label>
+                                <select id="activeProject" class="form-select">
+                                    <option value="">Loading projects...</option>
+                                </select>
+                            </div>
+                            <div class="project-info">
+                                <div class="info-row">
+                                    <span class="info-label">Current Project:</span>
+                                    <span class="info-value" id="currentProjectName">-</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Project Key:</span>
+                                    <span class="info-value" id="currentProjectKey">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="content-column">
+                    <!-- Service Configuration Section -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Service Configuration</h2>
+                        </div>
+                        <div class="card-content">
+                            <!-- Landing Page Service -->
+                            <div class="service-config">
+                                <div class="service-header">
+                                    <div class="service-info">
+                                        <div class="service-name">Landing Page</div>
+                                        <div class="service-id">landing-page</div>
+                                    </div>
+                                    <div class="service-status" id="landing-status">
+                                        <span class="status-badge status-active">ACTIVE</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="service-details">
+                                    <div class="detail-row">
+                                        <span class="detail-label">Current Assistant:</span>
+                                        <span class="detail-value" id="landing-assistant-name">-</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Last Updated:</span>
+                                        <span class="detail-value" id="landing-last-updated">-</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="service-controls">
+                                    <div class="form-group">
+                                        <label class="form-label">Change Assistant</label>
+                                        <select class="form-select" id="assistant-landing-page">
+                                            <option value="">Select an assistant...</option>
+                                        </select>
+                                    </div>
+                                    <div class="control-buttons">
+                                        <button class="btn btn-primary btn-sm apply-change-btn" data-service-id="landing-page">
+                                            Apply Change
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm toggle-service-btn" 
+                                                data-service-id="landing-page" data-is-active="false">
+                                            Deactivate
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Divider -->
+                            <div class="divider"></div>
+
+                            <!-- Chat General Service -->
+                            <div class="service-config">
+                                <div class="service-header">
+                                    <div class="service-info">
+                                        <div class="service-name">Chat General</div>
+                                        <div class="service-id">chat-general</div>
+                                    </div>
+                                    <div class="service-status" id="chat-status">
+                                        <span class="status-badge status-active">ACTIVE</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="service-details">
+                                    <div class="detail-row">
+                                        <span class="detail-label">Current Assistant:</span>
+                                        <span class="detail-value" id="chat-assistant-name">-</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Last Updated:</span>
+                                        <span class="detail-value" id="chat-last-updated">-</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="service-controls">
+                                    <div class="form-group">
+                                        <label class="form-label">Change Assistant</label>
+                                        <select class="form-select" id="assistant-chat-general">
+                                            <option value="">Select an assistant...</option>
+                                        </select>
+                                    </div>
+                                    <div class="control-buttons">
+                                        <button class="btn btn-primary btn-sm apply-change-btn" data-service-id="chat-general">
+                                            Apply Change
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm toggle-service-btn" 
+                                                data-service-id="chat-general" data-is-active="false">
+                                            Deactivate
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity Section -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Recent Activity</h2>
+                        </div>
+                        <div class="card-content">
+                            <div id="recentActivity" class="activity-list">
+                                <div class="activity-item">
+                                    <div class="activity-indicator success"></div>
+                                    <div class="activity-content">
+                                        <div class="activity-text">Service configuration updated</div>
+                                        <div class="activity-time">Today at 11:47 AM</div>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-indicator info"></div>
+                                    <div class="activity-content">
+                                        <div class="activity-text">Backup process initiated</div>
+                                        <div class="activity-time">Today at 11:46 AM</div>
+                                    </div>
+                                </div>
+                                <div class="activity-item">
+                                    <div class="activity-indicator success"></div>
+                                    <div class="activity-content">
+                                        <div class="activity-text">New user session started</div>
+                                        <div class="activity-time">Today at 11:45 AM</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
+
+    <!-- Status Messages -->
+    <div id="statusMessage" class="status-message" style="display: none;"></div>
 
     <script>
         class CEODashboard {
@@ -244,7 +349,6 @@
                         this.renderAssistants();
                         this.renderServices();
                         this.renderProjects();
-                        this.populateAssistantDropdown();
                     } else {
                         throw new Error(data.error);
                     }
@@ -269,42 +373,34 @@
 
             updateStats(data) {
                 document.getElementById('totalAssistants').textContent = data.totalAssistants;
-                document.getElementById('totalServices').textContent = data.totalServices;
                 document.getElementById('activeServices').textContent = 
-                    this.serviceConfigs.filter(s => s.isActive).length;
+                    this.serviceConfigs.filter(s => s.isActive && (s.serviceId === 'landing-page' || s.serviceId === 'chat-general')).length;
             }
 
             renderAssistants() {
                 const container = document.getElementById('assistantsList');
                 
                 if (this.assistants.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #64748b;">No assistants available</p>';
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-robot"></i><span>No assistants available</span></div>';
                     return;
                 }
 
                 container.innerHTML = this.assistants.map(assistant => `
                     <div class="assistant-item ${assistant.id === this.activeAssistant ? 'active' : ''}">
-                        <div class="assistant-header">
+                        <div class="assistant-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="assistant-info">
                             <div class="assistant-name">${assistant.name || 'Unnamed'}</div>
-                            <div class="assistant-status ${assistant.id === this.activeAssistant ? 'status-active' : 'status-inactive'}">
-                                ${assistant.id === this.activeAssistant ? 'Active' : 'Inactive'}
+                            <div class="assistant-details">
+                                <span class="assistant-id">${assistant.id}</span>
+                                <span class="assistant-model">${assistant.model}</span>
                             </div>
                         </div>
-                        <div class="assistant-details">
-                            <div class="detail-item">
-                                <span class="detail-label">ID:</span>
-                                <span class="detail-value">${assistant.id}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Model:</span>
-                                <span class="detail-value">${assistant.model}</span>
-                            </div>
-                            ${assistant.description ? `
-                                <div class="detail-item">
-                                    <span class="detail-label">Description:</span>
-                                    <span class="detail-value">${assistant.description}</span>
-                                </div>
-                            ` : ''}
+                        <div class="assistant-status">
+                            <span class="status-badge ${assistant.id === this.activeAssistant ? 'status-active' : 'status-inactive'}">
+                                ${assistant.id === this.activeAssistant ? 'Active' : 'Inactive'}
+                            </span>
                         </div>
                     </div>
                 `).join('');
@@ -337,72 +433,90 @@
                 }
             }
 
-                         renderServices() {
-                 const container = document.getElementById('servicesConfig');
-                 
-                 if (this.serviceConfigs.length === 0) {
-                     container.innerHTML = '<p style="text-align: center; color: #64748b;">No services configured</p>';
-                     return;
-                 }
+            renderServices() {
+                // Populate assistant dropdowns
+                this.populateServiceAssistantDropdowns();
+                
+                // Update service information
+                this.updateServiceInfo();
+                
+                // Setup event listeners
+                this.setupDynamicEventListeners();
+            }
 
-                 container.innerHTML = this.serviceConfigs.map(service => `
-                     <div class="service-config">
-                         <div class="service-header">
-                             <div class="service-name">${service.serviceName}</div>
-                             <div class="service-status ${service.isActive ? 'status-active' : 'status-inactive'}">
-                                 ${service.isActive ? 'ACTIVO' : 'INACTIVO'}
-                             </div>
-                         </div>
-                         
-                         <div class="assistant-details">
-                             <strong>Current Assistant:</strong> ${service.assistantName}<br>
-                             <strong>Service ID:</strong> ${service.serviceId}<br>
-                             <strong>Last Updated:</strong> ${new Date(service.lastUpdated).toLocaleString()}
-                         </div>
-                         
-                         <div class="form-group">
-                             <label>Change Assistant:</label>
-                             <select class="assistant-selector" id="assistant-${service.serviceId}">
-                                 <option value="">Select an assistant...</option>
-                                 ${this.assistants.map(a => `
-                                     <option value="${a.id}" ${a.id === service.assistantId ? 'selected' : ''}>
-                                         ${a.name || 'Unnamed'}
-                                     </option>
-                                 `).join('')}
-                             </select>
-                             <button class="btn btn-primary apply-change-btn" data-service-id="${service.serviceId}" style="margin-top: 10px;">
-                                 Apply Change
-                             </button>
-                         </div>
-                         
-                         <div class="service-actions">
-                             <button class="btn ${service.isActive ? 'btn-warning' : 'btn-success'} toggle-service-btn" 
-                                     data-service-id="${service.serviceId}" data-is-active="${!service.isActive}">
-                                 ${service.isActive ? 'Deactivate' : 'Activate'}
-                             </button>
-                             <button class="btn btn-danger remove-service-btn" 
-                                     data-service-id="${service.serviceId}">
-                                 Remove
-                             </button>
-                         </div>
-                     </div>
-                 `).join('');
+            populateServiceAssistantDropdowns() {
+                // Landing Page dropdown
+                const landingSelect = document.getElementById('assistant-landing-page');
+                landingSelect.innerHTML = '<option value="">Select an assistant...</option>';
+                
+                // Chat General dropdown
+                const chatSelect = document.getElementById('assistant-chat-general');
+                chatSelect.innerHTML = '<option value="">Select an assistant...</option>';
+                
+                this.assistants.forEach(assistant => {
+                    const option1 = document.createElement('option');
+                    option1.value = assistant.id;
+                    option1.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
+                    landingSelect.appendChild(option1);
+                    
+                    const option2 = document.createElement('option');
+                    option2.value = assistant.id;
+                    option2.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
+                    chatSelect.appendChild(option2);
+                });
+            }
 
-                 // Configurar event listeners después de renderizar
-                 this.setupDynamicEventListeners();
-             }
-
-                         populateAssistantDropdown() {
-                 const select = document.getElementById('newAssistantId');
-                 select.innerHTML = '<option value="">Select an assistant...</option>';
-                 
-                 this.assistants.forEach(assistant => {
-                     const option = document.createElement('option');
-                     option.value = assistant.id;
-                     option.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
-                     select.appendChild(option);
-                 });
-             }
+            updateServiceInfo() {
+                // Find service configurations
+                const landingService = this.serviceConfigs.find(s => s.serviceId === 'landing-page');
+                const chatService = this.serviceConfigs.find(s => s.serviceId === 'chat-general');
+                
+                // Update Landing Page service
+                if (landingService) {
+                    document.getElementById('landing-assistant-name').textContent = landingService.assistantName || '-';
+                    document.getElementById('landing-last-updated').textContent = new Date(landingService.lastUpdated).toLocaleString();
+                    
+                    const landingStatus = document.getElementById('landing-status');
+                    const statusBadge = landingStatus.querySelector('.status-badge');
+                    statusBadge.textContent = landingService.isActive ? 'ACTIVE' : 'INACTIVE';
+                    statusBadge.className = `status-badge ${landingService.isActive ? 'status-active' : 'status-inactive'}`;
+                    
+                    // Set selected assistant
+                    const landingSelect = document.getElementById('assistant-landing-page');
+                    landingSelect.value = landingService.assistantId || '';
+                    
+                    // Update toggle button
+                    const landingToggle = document.querySelector('[data-service-id="landing-page"].toggle-service-btn');
+                    if (landingToggle) {
+                        landingToggle.textContent = landingService.isActive ? 'Deactivate' : 'Activate';
+                        landingToggle.className = `btn ${landingService.isActive ? 'btn-secondary' : 'btn-success'} btn-sm toggle-service-btn`;
+                        landingToggle.dataset.isActive = !landingService.isActive;
+                    }
+                }
+                
+                // Update Chat General service
+                if (chatService) {
+                    document.getElementById('chat-assistant-name').textContent = chatService.assistantName || '-';
+                    document.getElementById('chat-last-updated').textContent = new Date(chatService.lastUpdated).toLocaleString();
+                    
+                    const chatStatus = document.getElementById('chat-status');
+                    const statusBadge = chatStatus.querySelector('.status-badge');
+                    statusBadge.textContent = chatService.isActive ? 'ACTIVE' : 'INACTIVE';
+                    statusBadge.className = `status-badge ${chatService.isActive ? 'status-active' : 'status-inactive'}`;
+                    
+                    // Set selected assistant
+                    const chatSelect = document.getElementById('assistant-chat-general');
+                    chatSelect.value = chatService.assistantId || '';
+                    
+                    // Update toggle button
+                    const chatToggle = document.querySelector('[data-service-id="chat-general"].toggle-service-btn');
+                    if (chatToggle) {
+                        chatToggle.textContent = chatService.isActive ? 'Deactivate' : 'Activate';
+                        chatToggle.className = `btn ${chatService.isActive ? 'btn-secondary' : 'btn-success'} btn-sm toggle-service-btn`;
+                        chatToggle.dataset.isActive = !chatService.isActive;
+                    }
+                }
+            }
 
             async changeServiceAssistant(serviceId, assistantId) {
                 if (!assistantId) return;
@@ -422,32 +536,31 @@
 
                     const data = await response.json();
                     
-                                         if (data.success) {
-                         this.showStatus(`Assistant updated for ${serviceId}`, 'success');
-                         await this.loadDashboard(); // Reload data
-                     } else {
-                         throw new Error(data.error);
-                     }
-                 } catch (error) {
-                     this.showStatus(`Error updating assistant: ${error.message}`, 'error');
-                 }
+                    if (data.success) {
+                        this.showStatus(`Assistant updated for ${serviceId}`, 'success');
+                        await this.loadDashboard(); // Reload data
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    this.showStatus(`Error updating assistant: ${error.message}`, 'error');
+                }
             }
 
-            // Nueva función para aplicar cambios
             async applyAssistantChange(serviceId) {
                 const selectElement = document.getElementById(`assistant-${serviceId}`);
                 const selectedAssistantId = selectElement.value;
                 
-                                 if (!selectedAssistantId) {
-                     this.showStatus('Please select an assistant first', 'error');
-                     return;
-                 }
+                if (!selectedAssistantId) {
+                    this.showStatus('Please select an assistant first', 'error');
+                    return;
+                }
 
-                 const assistant = this.assistants.find(a => a.id === selectedAssistantId);
-                 if (!assistant) {
-                     this.showStatus('Assistant not found', 'error');
-                     return;
-                 }
+                const assistant = this.assistants.find(a => a.id === selectedAssistantId);
+                if (!assistant) {
+                    this.showStatus('Assistant not found', 'error');
+                    return;
+                }
 
                 try {
                     console.log(`🔄 Aplicando cambio para servicio: ${serviceId}`);
@@ -464,22 +577,20 @@
 
                     const data = await response.json();
                     
-                                                              if (data.success) {
-                         console.log(`Change applied successfully:`, data);
-                         this.showStatus(`Assistant "${assistant.name}" applied to ${serviceId}`, 'success');
-                         
-                         // Reload dashboard
-                         await this.loadDashboard();
-                     } else {
-                         throw new Error(data.error);
-                     }
-                 } catch (error) {
-                     console.error(`Error applying change:`, error);
-                     this.showStatus(`Error applying change: ${error.message}`, 'error');
-                 }
+                    if (data.success) {
+                        console.log(`Change applied successfully:`, data);
+                        this.showStatus(`Assistant "${assistant.name}" applied to ${serviceId}`, 'success');
+                        
+                        // Reload dashboard
+                        await this.loadDashboard();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error(`Error applying change:`, error);
+                    this.showStatus(`Error applying change: ${error.message}`, 'error');
+                }
             }
-
-            
 
             async toggleService(serviceId, isActive) {
                 try {
@@ -491,80 +602,15 @@
 
                     const data = await response.json();
                     
-                                         if (data.success) {
-                         this.showStatus(`Service ${serviceId} ${isActive ? 'activated' : 'deactivated'}`, 'success');
-                         await this.loadDashboard(); // Reload data
-                     } else {
-                         throw new Error(data.error);
-                     }
-                 } catch (error) {
-                     this.showStatus(`Error changing status: ${error.message}`, 'error');
-                 }
-            }
-
-                         async removeService(serviceId) {
-                 if (!confirm(`Are you sure you want to remove the service '${serviceId}'?`)) {
-                     return;
-                 }
-
-                try {
-                    const response = await fetch(`/api/admin/services/${serviceId}`, {
-                        method: 'DELETE'
-                    });
-
-                    const data = await response.json();
-                    
-                                         if (data.success) {
-                         this.showStatus(`Service ${serviceId} removed`, 'success');
-                         await this.loadDashboard(); // Reload data
-                     } else {
-                         throw new Error(data.error);
-                     }
-                 } catch (error) {
-                     this.showStatus(`Error removing service: ${error.message}`, 'error');
-                 }
-            }
-
-            async addNewService() {
-                const serviceId = document.getElementById('newServiceId').value.trim();
-                const serviceName = document.getElementById('newServiceName').value.trim();
-                const assistantId = document.getElementById('newAssistantId').value;
-
-                                 if (!serviceId || !serviceName || !assistantId) {
-                     this.showStatus('All fields are required', 'error');
-                     return;
-                 }
-
-                try {
-                    const assistant = this.assistants.find(a => a.id === assistantId);
-                    const response = await fetch('/api/admin/services', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            serviceId,
-                            serviceName,
-                            assistantId,
-                            assistantName: assistant.name || 'Sin nombre'
-                        })
-                    });
-
-                    const data = await response.json();
-                    
-                                         if (data.success) {
-                         this.showStatus(`Service '${serviceName}' added successfully`, 'success');
-                         
-                         // Clear form
-                         document.getElementById('newServiceId').value = '';
-                         document.getElementById('newServiceId').value = '';
-                         document.getElementById('newAssistantId').value = '';
-                         
-                         await this.loadDashboard(); // Reload data
-                     } else {
-                         throw new Error(data.error);
-                     }
-                 } catch (error) {
-                     this.showStatus(`Error adding service: ${error.message}`, 'error');
-                 }
+                    if (data.success) {
+                        this.showStatus(`Service ${serviceId} ${isActive ? 'activated' : 'deactivated'}`, 'success');
+                        await this.loadDashboard(); // Reload data
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    this.showStatus(`Error changing status: ${error.message}`, 'error');
+                }
             }
 
             async changeActiveProject(projectKey) {
@@ -656,76 +702,42 @@
             }
 
             setupEventListeners() {
-                // Event listener para agregar servicio
-                document.getElementById('addServiceBtn')?.addEventListener('click', () => this.addNewService());
-                
                 // Event listener para cambiar proyecto activo
                 document.getElementById('activeProject')?.addEventListener('change', (e) => {
                     this.changeActiveProject(e.target.value);
-                });
-
-                // Event listeners para modal
-                document.getElementById('addAssistantBtn')?.addEventListener('click', () => {
-                    document.getElementById('addServiceModal').style.display = 'block';
-                });
-
-                document.getElementById('closeModal')?.addEventListener('click', () => {
-                    document.getElementById('addServiceModal').style.display = 'none';
-                });
-
-                document.getElementById('cancelAddService')?.addEventListener('click', () => {
-                    document.getElementById('addServiceModal').style.display = 'none';
-                });
-
-                // Close modal when clicking outside
-                window.addEventListener('click', (e) => {
-                    const modal = document.getElementById('addServiceModal');
-                    if (e.target === modal) {
-                        modal.style.display = 'none';
-                    }
                 });
                 
                 // Event listeners para botones dinámicos (se configuran después de renderizar)
                 this.setupDynamicEventListeners();
             }
 
-             setupDynamicEventListeners() {
-                 // Event listeners para botones de aplicar cambio
-                 document.querySelectorAll('.apply-change-btn').forEach(btn => {
-                     btn.addEventListener('click', (e) => {
-                         const serviceId = e.target.dataset.serviceId;
-                         this.applyAssistantChange(serviceId);
-                     });
-                 });
+            setupDynamicEventListeners() {
+                // Event listeners para botones de aplicar cambio
+                document.querySelectorAll('.apply-change-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const serviceId = e.target.dataset.serviceId;
+                        this.applyAssistantChange(serviceId);
+                    });
+                });
 
-                 // Event listeners para botones de toggle
-                 document.querySelectorAll('.toggle-service-btn').forEach(btn => {
-                     btn.addEventListener('click', (e) => {
-                         const serviceId = e.target.dataset.serviceId;
-                         const isActive = e.target.dataset.isActive === 'true';
-                         this.toggleService(serviceId, isActive);
-                     });
-                 });
-
-                 // Event listeners para botones de eliminar
-                 document.querySelectorAll('.remove-service-btn').forEach(btn => {
-                     btn.addEventListener('click', (e) => {
-                         const serviceId = e.target.dataset.serviceId;
-                         this.removeService(serviceId);
-                     });
-                 });
-             }
-
-            
+                // Event listeners para botones de toggle
+                document.querySelectorAll('.toggle-service-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const serviceId = e.target.dataset.serviceId;
+                        const isActive = e.target.dataset.isActive === 'true';
+                        this.toggleService(serviceId, isActive);
+                    });
+                });
+            }
         }
 
-                 // Variable global para el dashboard
-         let dashboard;
- 
-         // Inicializar cuando el DOM esté listo
-         document.addEventListener('DOMContentLoaded', function() {
-             dashboard = new CEODashboard();
-         });
+        // Variable global para el dashboard
+        let dashboard;
+
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            dashboard = new CEODashboard();
+        });
     </script>
 </body>
 </html>
