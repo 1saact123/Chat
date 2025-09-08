@@ -370,109 +370,10 @@ body {
 }
 
 /* Remote Server Project Management */
-.connection-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #dc3545;
-}
-
-.status-indicator.connected {
-    background: #28a745;
-}
-
-.status-indicator.connecting {
-    background: #ffc107;
-    animation: pulse 1.5s infinite;
-}
-
-.status-text {
-    font-size: 12px;
-    font-weight: 500;
-    color: #666;
-}
-
-.status-text.connected {
-    color: #28a745;
-}
-
-.status-text.connecting {
-    color: #ffc107;
-}
-
-.remote-url-controls {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.remote-url-controls .form-input {
-    flex: 1;
-}
-
-.remote-search-controls {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.remote-search-controls .form-input {
-    flex: 1;
-}
-
-.remote-project-controls {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.remote-project-controls .form-select {
-    flex: 1;
-}
-
 .remote-project-info {
     margin-top: 20px;
     padding-top: 20px;
     border-top: 1px solid #e1e5e9;
-    background: #f8f9fa;
-    padding: 16px;
-    border-radius: 6px;
-}
-
-.remote-actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 20px;
-    flex-wrap: wrap;
-}
-
-.remote-actions .btn {
-    flex: 1;
-    min-width: 140px;
-}
-
-.remote-advanced-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-    justify-content: center;
-}
-
-.remote-advanced-actions .btn {
-    flex: 1;
-    min-width: 120px;
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
 }
 
 /* Service Configuration */
