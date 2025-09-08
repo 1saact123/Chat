@@ -31,10 +31,25 @@ export class AdminController {
       // Obtener asistente activo actual
       const activeAssistant = this.openaiService.getActiveAssistant();
       
+      // Determinar qué asistentes están siendo utilizados por servicios activos
+      const activeAssistantIds = new Set<string>();
+      serviceConfigs.forEach(config => {
+        if (config.isActive && config.assistantId) {
+          activeAssistantIds.add(config.assistantId);
+        }
+      });
+      
+      // Marcar asistentes como activos si están siendo utilizados por servicios
+      const assistantsWithStatus = assistants.map(assistant => ({
+        ...assistant,
+        isActive: activeAssistantIds.has(assistant.id),
+        isGlobalActive: assistant.id === activeAssistant
+      }));
+      
       res.json({
         success: true,
         data: {
-          assistants: assistants,
+          assistants: assistantsWithStatus,
           projects: projects,
           serviceConfigurations: serviceConfigs,
           activeProject: activeProject,
