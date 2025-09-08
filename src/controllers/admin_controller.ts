@@ -1,14 +1,17 @@
 import { Request, Response } from 'express';
 import { OpenAIService } from '../services/openAI_service';
 import { ConfigurationService } from '../services/configuration_service';
+import { JiraService } from '../services/jira_service';
 
 export class AdminController {
   private openaiService: OpenAIService;
   private configService: ConfigurationService;
+  private jiraService: JiraService;
 
   constructor() {
     this.openaiService = new OpenAIService();
     this.configService = new ConfigurationService();
+    this.jiraService = new JiraService();
   }
 
   // Dashboard principal del CEO
@@ -17,15 +20,24 @@ export class AdminController {
       // Obtener todos los asistentes disponibles
       const assistants = await this.openaiService.listAssistants();
       
+      // Obtener todos los proyectos de Jira disponibles
+      const projects = await this.jiraService.listProjects();
+      
       // Obtener configuraciones actuales de servicios
       const serviceConfigs = this.configService.getAllConfigurations();
+      
+      // Obtener proyecto activo actual
+      const activeProject = this.jiraService.getActiveProject();
       
       res.json({
         success: true,
         data: {
           assistants: assistants,
+          projects: projects,
           serviceConfigurations: serviceConfigs,
+          activeProject: activeProject,
           totalAssistants: assistants.length,
+          totalProjects: projects.length,
           totalServices: serviceConfigs.length
         },
         timestamp: new Date().toISOString()
@@ -72,7 +84,7 @@ export class AdminController {
   async updateServiceConfiguration(req: Request, res: Response): Promise<void> {
     try {
       const { serviceId } = req.params;
-      const { assistantId, assistantName, projectKey } = req.body;
+      const { assistantId, assistantName } = req.body;
 
       if (!assistantId || !assistantName) {
         res.status(400).json({
@@ -95,7 +107,7 @@ export class AdminController {
       }
 
       // Actualizar configuración
-      const success = this.configService.updateServiceConfiguration(serviceId, assistantId, assistantName, projectKey);
+      const success = this.configService.updateServiceConfiguration(serviceId, assistantId, assistantName);
       
       if (success) {
         res.json({
@@ -160,12 +172,12 @@ export class AdminController {
   // Agregar nuevo servicio
   async addService(req: Request, res: Response): Promise<void> {
     try {
-      const { serviceId, serviceName, assistantId, assistantName, projectKey } = req.body;
+      const { serviceId, serviceName, assistantId, assistantName } = req.body;
 
-      if (!serviceId || !serviceName || !assistantId || !assistantName || !projectKey) {
+      if (!serviceId || !serviceName || !assistantId || !assistantName) {
         res.status(400).json({
           success: false,
-          error: 'Se requieren serviceId, serviceName, assistantId, assistantName y projectKey'
+          error: 'Se requieren serviceId, serviceName, assistantId y assistantName'
         });
         return;
       }
@@ -193,7 +205,7 @@ export class AdminController {
       }
 
       // Agregar servicio
-      const success = this.configService.addService(serviceId, serviceName, assistantId, assistantName, projectKey);
+      const success = this.configService.addService(serviceId, serviceName, assistantId, assistantName);
       
       if (success) {
         res.json({
@@ -275,6 +287,146 @@ export class AdminController {
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // === PROJECT MANAGEMENT METHODS ===
+
+  // Listar todos los proyectos disponibles
+  async listProjects(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('📋 Solicitando lista de proyectos de Jira...');
+      
+      const projects = await this.jiraService.listProjects();
+      
+      res.json({
+        success: true,
+        projects,
+        count: projects.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error al listar proyectos:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido al listar proyectos'
+      });
+    }
+  }
+
+  // Cambiar el proyecto activo
+  async setActiveProject(req: Request, res: Response): Promise<void> {
+    try {
+      const { projectKey } = req.body;
+      
+      if (!projectKey) {
+        res.status(400).json({
+          success: false,
+          error: 'Se requiere el key del proyecto'
+        });
+        return;
+      }
+
+      console.log(`🔄 Cambiando proyecto activo a: ${projectKey}`);
+      
+      // Verificar que el proyecto existe
+      const projects = await this.jiraService.listProjects();
+      const projectExists = projects.some(p => p.key === projectKey);
+      
+      if (!projectExists) {
+        res.status(400).json({
+          success: false,
+          error: 'El proyecto especificado no existe'
+        });
+        return;
+      }
+      
+      this.jiraService.setActiveProject(projectKey);
+      
+      res.json({
+        success: true,
+        message: 'Proyecto activo cambiado exitosamente',
+        activeProject: projectKey,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error al cambiar proyecto activo:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido al cambiar proyecto'
+      });
+    }
+  }
+
+  // Obtener el proyecto activo actual
+  async getActiveProject(req: Request, res: Response): Promise<void> {
+    try {
+      const activeProject = this.jiraService.getActiveProject();
+      
+      res.json({
+        success: true,
+        activeProject,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error al obtener proyecto activo:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido al obtener proyecto activo'
+      });
+    }
+  }
+
+  // Obtener detalles de un proyecto específico
+  async getProjectDetails(req: Request, res: Response): Promise<void> {
+    try {
+      const { projectKey } = req.params;
+      
+      if (!projectKey) {
+        res.status(400).json({
+          success: false,
+          error: 'Se requiere el key del proyecto'
+        });
+        return;
+      }
+
+      console.log(`🔍 Obteniendo detalles del proyecto: ${projectKey}`);
+      
+      const projectDetails = await this.jiraService.getProjectByKey(projectKey);
+      
+      res.json({
+        success: true,
+        project: projectDetails,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error al obtener detalles del proyecto:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido al obtener detalles del proyecto'
+      });
+    }
+  }
+
+  // Probar conexión con Jira
+  async testJiraConnection(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('🔗 Probando conexión con Jira...');
+      
+      const connectionTest = await this.jiraService.testConnection();
+      
+      res.json({
+        success: true,
+        message: 'Conexión con Jira exitosa',
+        data: connectionTest,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error al probar conexión con Jira:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido al probar conexión con Jira'
       });
     }
   }

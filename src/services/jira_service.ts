@@ -321,12 +321,14 @@ export class JiraService {
     }
   }
 
+  // === PROJECT MANAGEMENT METHODS ===
+  
   /**
-   * Get all available projects from Jira
+   * List all available projects
    */
-  async getAvailableProjects(): Promise<any> {
+  async listProjects(): Promise<Array<{id: string, key: string, name: string, projectTypeKey: string, description?: string}>> {
     try {
-      console.log('Getting available projects from Jira...');
+      console.log('🔍 Listing available Jira projects...');
       
       const response = await axios.get(
         `${this.baseUrl}/rest/api/3/project`,
@@ -338,75 +340,58 @@ export class JiraService {
         }
       );
 
-      // Format projects for easier use
-      const projects = response.data.map((project: any) => ({
+      console.log(`✅ Found ${response.data.length} project(s)`);
+      
+      return response.data.map((project: any) => ({
         id: project.id,
         key: project.key,
         name: project.name,
         projectTypeKey: project.projectTypeKey,
-        description: project.description || '',
-        lead: project.lead?.displayName || '',
-        url: project.self
+        description: project.description || undefined
       }));
-
-      console.log(`Found ${projects.length} projects`);
-      return projects;
     } catch (error) {
-      console.error('Error getting available projects:', error);
+      console.error('❌ Error listing projects:', error);
+      throw new Error(`Error listing projects: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get project details by key
+   */
+  async getProjectByKey(projectKey: string): Promise<any> {
+    try {
+      console.log(`Getting project details for ${projectKey}`);
+      
+      const response = await axios.get(
+        `${this.baseUrl}/rest/api/3/project/${projectKey}`,
+        {
+          headers: {
+            'Authorization': `Basic ${this.auth}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting project ${projectKey}:`, error);
       throw error;
     }
   }
 
   /**
-   * Create contact issue in a specific project
+   * Set active project key
    */
-  async createContactIssueInProject(formData: ContactFormData, projectKey: string): Promise<JiraResponse> {
-    const fields: JiraIssueRequest['fields'] = {
-      project: {
-        key: projectKey
-      },
-      summary: `Web Contact: ${formData.name} - ${formData.company || 'No company'}`,
-      description: this.formatContactDescriptionADF(formData),
-      issuetype: {
-        name: 'Task'
-      },
-      priority: {
-        name: 'Medium'
-      },
-      labels: ['contacto-web', 'lead', 'widget-chat']
-    };
+  setActiveProject(projectKey: string): void {
+    this.projectKey = projectKey;
+    console.log(`🔄 Active project changed to: ${projectKey}`);
+  }
 
-    // Optional custom fields, only add if they exist in the project
-    const emailFieldId = process.env.JIRA_FIELD_EMAIL;
-    const phoneFieldId = process.env.JIRA_FIELD_PHONE;
-    const companyFieldId = process.env.JIRA_FIELD_COMPANY;
-
-    // Only add custom fields if they are configured and exist
-    if (emailFieldId && emailFieldId.trim() !== '') {
-      (fields as any)[emailFieldId] = formData.email;
-    }
-    if (phoneFieldId && phoneFieldId.trim() !== '' && formData.phone) {
-      (fields as any)[phoneFieldId] = formData.phone;
-    }
-    if (companyFieldId && companyFieldId.trim() !== '' && formData.company) {
-      (fields as any)[companyFieldId] = formData.company;
-    }
-
-    const issueData: JiraIssueRequest = { fields };
-
-    const response = await axios.post(
-      `${this.baseUrl}/rest/api/3/issue`,
-      issueData,
-      {
-        headers: {
-          'Authorization': `Basic ${this.auth}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      }
-    );
-
-    return response.data;
+  /**
+   * Get current active project key
+   */
+  getActiveProject(): string {
+    return this.projectKey;
   }
 
   // === EXISTING METHODS ===

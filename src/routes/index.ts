@@ -81,7 +81,6 @@ router.get('/api/contact/test-jira', contactController.testJiraConnection.bind(c
 router.post('/api/landing/create-ticket', landingController.createTicketFromLanding.bind(landingController));
 router.post('/api/landing/validate-form', landingController.validateLandingForm.bind(landingController));
 router.get('/api/landing/form-fields', landingController.getLandingFormFields.bind(landingController));
-router.get('/api/landing/projects', landingController.getAvailableProjects.bind(landingController));
 
 // === CHATBOT ROUTES ===
 // Jira webhook
@@ -135,6 +134,22 @@ router.put('/api/admin/services/:serviceId', adminController.updateServiceConfig
 router.patch('/api/admin/services/:serviceId/toggle', adminController.toggleService.bind(adminController));
 router.post('/api/admin/services', adminController.addService.bind(adminController));
 router.delete('/api/admin/services/:serviceId', adminController.removeService.bind(adminController));
+
+// === PROJECT MANAGEMENT ROUTES ===
+// Listar proyectos disponibles
+router.get('/api/admin/projects', adminController.listProjects.bind(adminController));
+
+// Cambiar proyecto activo
+router.post('/api/admin/projects/set-active', adminController.setActiveProject.bind(adminController));
+
+// Obtener proyecto activo actual
+router.get('/api/admin/projects/active', adminController.getActiveProject.bind(adminController));
+
+// Obtener detalles de un proyecto específico
+router.get('/api/admin/projects/:projectKey', adminController.getProjectDetails.bind(adminController));
+
+// Probar conexión con Jira
+router.get('/api/admin/jira/test-connection', adminController.testJiraConnection.bind(adminController));
 
 // Endpoint público para obtener asistente activo de un servicio
 router.get('/api/services/:serviceId/assistant', adminController.getActiveAssistantForService.bind(adminController));

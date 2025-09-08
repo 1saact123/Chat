@@ -3,61 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Movonte Control Panel - AI Assistant Management</title>
+    <title>AI Assistant Control Panel - Movonte</title>
     <link rel="stylesheet" href="ceo-dashboard.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo">
+                    <i class="fas fa-robot"></i>
+                    <span>Movonte</span>
+                </div>
+            </div>
+            <div class="nav-menu">
+                <a href="#" class="nav-link">Dashboard</a>
+                <a href="#" class="nav-link">Assistants</a>
+                <a href="#" class="nav-link">Services</a>
+                <a href="#" class="nav-link active">Settings</a>
+            </div>
+        </div>
+    </nav>
+
     <div class="container">
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs">
+            <span class="breadcrumb-item">Home</span>
+            <i class="fas fa-chevron-right"></i>
+            <span class="breadcrumb-item">AI Management</span>
+            <i class="fas fa-chevron-right"></i>
+            <span class="breadcrumb-item active">Control Panel</span>
+        </div>
+
         <!-- Header -->
         <div class="header">
-            <h1>Movonte Control Panel</h1>
-            <p>Centralized AI Assistant Management by Service</p>
+            <h1>AI Assistant Control Panel</h1>
+            <p>Manage your AI assistants, configure services, and monitor system activity</p>
         </div>
 
         <!-- Statistics -->
         <div class="stats-grid">
             <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
                 <div class="stat-number" id="totalAssistants">-</div>
                 <div class="stat-label">Available Assistants</div>
             </div>
             <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
                 <div class="stat-number" id="totalServices">-</div>
                 <div class="stat-label">Configured Services</div>
             </div>
             <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
                 <div class="stat-number" id="activeServices">-</div>
                 <div class="stat-label">Active Services</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-cloud"></i>
+                </div>
+                <div class="stat-number" id="systemUptime">98.5%</div>
+                <div class="stat-label">System Uptime</div>
             </div>
         </div>
 
         <!-- Main Content -->
         <div class="main-content">
-            <!-- Available Assistants -->
-            <div class="section">
-                <h2>🤖 Available Assistants</h2>
-                <div id="assistantsList" class="assistant-list">
-                    <div class="loading-container">
-                        <div class="loading"></div>
-                        <p>Loading assistants...</p>
+            <!-- Left Column -->
+            <div class="left-column">
+                <!-- Available Assistants -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>AI Assistants</h2>
+                        <button class="btn btn-primary btn-sm" id="addAssistantBtn">
+                            <i class="fas fa-plus"></i> Add new
+                        </button>
+                    </div>
+                    <div id="assistantsList" class="assistant-list">
+                        <p style="text-align: center; color: #64748b;">Loading assistants...</p>
+                    </div>
+                </div>
+
+                <!-- Project Management -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Project Management</h2>
+                    </div>
+                    <div class="project-selector">
+                        <div class="form-group">
+                            <label for="activeProject">Active Jira Project:</label>
+                            <select id="activeProject" class="project-select">
+                                <option value="">Loading projects...</option>
+                            </select>
+                        </div>
+                        <div class="project-info">
+                            <div class="info-item">
+                                <span class="info-label">Current Project:</span>
+                                <span class="info-value" id="currentProjectName">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Project Key:</span>
+                                <span class="info-value" id="currentProjectKey">-</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Service Configuration -->
-            <div class="section">
-                <h2>⚙️ Service Configuration</h2>
-                <div id="servicesConfig">
-                    <div class="loading-container">
-                        <div class="loading"></div>
-                        <p>Loading services...</p>
+            <!-- Right Column -->
+            <div class="right-column">
+                <!-- Service Configuration -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Service Configuration</h2>
+                    </div>
+                    <div id="servicesConfig">
+                        <p style="text-align: center; color: #64748b;">Loading services...</p>
                     </div>
                 </div>
-                
-                <!-- Form to add service -->
-                <div class="add-service-form">
-                    <h3>➕ Add New Service</h3>
-                                        <div class="form-group">
+
+                <!-- Recent Activity -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Recent Activity</h2>
+                    </div>
+                    <div id="recentActivity" class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-indicator success"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Service configuration updated</div>
+                                <div class="activity-time">Today at 11:47 AM</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator info"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Backup process initiated</div>
+                                <div class="activity-time">Today at 11:46 AM</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator success"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">New user session started</div>
+                                <div class="activity-time">Today at 11:45 AM</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator info"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Service configuration updated</div>
+                                <div class="activity-time">Today at 11:45 AM</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator success"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Backup process initiated</div>
+                                <div class="activity-time">Today at 11:44 AM</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Service Modal -->
+        <div id="addServiceModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add New Service</h3>
+                    <button class="modal-close" id="closeModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
                         <label for="newServiceId">Service ID:</label>
                         <input type="text" id="newServiceId" placeholder="e.g: customer-support">
                     </div>
@@ -71,16 +197,12 @@
                             <option value="">Select an assistant...</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="newProjectKey">Jira Project:</label>
-                        <select id="newProjectKey">
-                            <option value="">Select a project...</option>
-                        </select>
-                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelAddService">Cancel</button>
                     <button class="btn btn-primary" id="addServiceBtn">Add Service</button>
                 </div>
             </div>
-
         </div>
 
         <!-- Status Messages -->
@@ -93,14 +215,16 @@
         class CEODashboard {
             constructor() {
                 this.assistants = [];
+                this.projects = [];
                 this.serviceConfigs = [];
-                this.availableProjects = [];
+                this.activeProject = '';
+                this.activeAssistant = '';
                 this.initialize();
             }
 
             async initialize() {
                 await this.loadDashboard();
-                await this.loadAvailableProjects();
+                await this.loadProjects();
                 this.setupEventListeners();
             }
 
@@ -111,34 +235,35 @@
 
                     if (data.success) {
                         this.assistants = data.data.assistants;
+                        this.projects = data.data.projects;
                         this.serviceConfigs = data.data.serviceConfigurations;
+                        this.activeProject = data.data.activeProject;
+                        this.activeAssistant = data.data.activeAssistant;
                         
                         this.updateStats(data.data);
                         this.renderAssistants();
                         this.renderServices();
+                        this.renderProjects();
                         this.populateAssistantDropdown();
                     } else {
                         throw new Error(data.error);
                     }
                 } catch (error) {
-                                         this.showStatus(`Error loading dashboard: ${error.message}`, 'error');
+                    this.showStatus(`Error loading dashboard: ${error.message}`, 'error');
                 }
             }
 
-            async loadAvailableProjects() {
+            async loadProjects() {
                 try {
-                    const response = await fetch('/api/landing/projects');
+                    const response = await fetch('/api/admin/projects');
                     const data = await response.json();
 
                     if (data.success) {
-                        this.availableProjects = data.projects;
-                        this.populateProjectDropdown();
-                    } else {
-                        throw new Error(data.error);
+                        this.projects = data.projects;
+                        this.renderProjects();
                     }
                 } catch (error) {
                     console.error('Error loading projects:', error);
-                    this.showStatus(`Error loading projects: ${error.message}`, 'error');
                 }
             }
 
@@ -152,28 +277,71 @@
             renderAssistants() {
                 const container = document.getElementById('assistantsList');
                 
-                                 if (this.assistants.length === 0) {
-                     container.innerHTML = '<div class="loading-container"><p>No assistants available</p></div>';
-                     return;
-                 }
+                if (this.assistants.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #64748b;">No assistants available</p>';
+                    return;
+                }
 
-                                 container.innerHTML = this.assistants.map(assistant => `
-                     <div class="assistant-item">
-                         <div class="assistant-name">${assistant.name || 'Unnamed'}</div>
-                         <div class="assistant-details">
-                             <strong>ID:</strong> ${assistant.id}<br>
-                             <strong>Model:</strong> ${assistant.model}<br>
-                             <strong>Description:</strong> ${assistant.description || 'No description'}
-                         </div>
-                     </div>
-                 `).join('');
+                container.innerHTML = this.assistants.map(assistant => `
+                    <div class="assistant-item ${assistant.id === this.activeAssistant ? 'active' : ''}">
+                        <div class="assistant-header">
+                            <div class="assistant-name">${assistant.name || 'Unnamed'}</div>
+                            <div class="assistant-status ${assistant.id === this.activeAssistant ? 'status-active' : 'status-inactive'}">
+                                ${assistant.id === this.activeAssistant ? 'Active' : 'Inactive'}
+                            </div>
+                        </div>
+                        <div class="assistant-details">
+                            <div class="detail-item">
+                                <span class="detail-label">ID:</span>
+                                <span class="detail-value">${assistant.id}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Model:</span>
+                                <span class="detail-value">${assistant.model}</span>
+                            </div>
+                            ${assistant.description ? `
+                                <div class="detail-item">
+                                    <span class="detail-label">Description:</span>
+                                    <span class="detail-value">${assistant.description}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderProjects() {
+                const select = document.getElementById('activeProject');
+                const currentProjectName = document.getElementById('currentProjectName');
+                const currentProjectKey = document.getElementById('currentProjectKey');
+                
+                if (this.projects.length === 0) {
+                    select.innerHTML = '<option value="">No projects available</option>';
+                    return;
+                }
+
+                select.innerHTML = this.projects.map(project => `
+                    <option value="${project.key}" ${project.key === this.activeProject ? 'selected' : ''}>
+                        ${project.name} (${project.key})
+                    </option>
+                `).join('');
+
+                // Update current project info
+                const currentProject = this.projects.find(p => p.key === this.activeProject);
+                if (currentProject) {
+                    currentProjectName.textContent = currentProject.name;
+                    currentProjectKey.textContent = currentProject.key;
+                } else {
+                    currentProjectName.textContent = '-';
+                    currentProjectKey.textContent = '-';
+                }
             }
 
                          renderServices() {
                  const container = document.getElementById('servicesConfig');
                  
                  if (this.serviceConfigs.length === 0) {
-                     container.innerHTML = '<div class="loading-container"><p>No services configured</p></div>';
+                     container.innerHTML = '<p style="text-align: center; color: #64748b;">No services configured</p>';
                      return;
                  }
 
@@ -189,7 +357,6 @@
                          <div class="assistant-details">
                              <strong>Current Assistant:</strong> ${service.assistantName}<br>
                              <strong>Service ID:</strong> ${service.serviceId}<br>
-                             <strong>Jira Project:</strong> ${service.projectKey || 'Not configured'}<br>
                              <strong>Last Updated:</strong> ${new Date(service.lastUpdated).toLocaleString()}
                          </div>
                          
@@ -233,18 +400,6 @@
                      const option = document.createElement('option');
                      option.value = assistant.id;
                      option.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
-                     select.appendChild(option);
-                 });
-             }
-
-             populateProjectDropdown() {
-                 const select = document.getElementById('newProjectKey');
-                 select.innerHTML = '<option value="">Select a project...</option>';
-                 
-                 this.availableProjects.forEach(project => {
-                     const option = document.createElement('option');
-                     option.value = project.key;
-                     option.textContent = `${project.name} (${project.key})`;
                      select.appendChild(option);
                  });
              }
@@ -374,9 +529,8 @@
                 const serviceId = document.getElementById('newServiceId').value.trim();
                 const serviceName = document.getElementById('newServiceName').value.trim();
                 const assistantId = document.getElementById('newAssistantId').value;
-                const projectKey = document.getElementById('newProjectKey').value;
 
-                                 if (!serviceId || !serviceName || !assistantId || !projectKey) {
+                                 if (!serviceId || !serviceName || !assistantId) {
                      this.showStatus('All fields are required', 'error');
                      return;
                  }
@@ -390,8 +544,7 @@
                             serviceId,
                             serviceName,
                             assistantId,
-                            assistantName: assistant.name || 'Sin nombre',
-                            projectKey
+                            assistantName: assistant.name || 'Sin nombre'
                         })
                     });
 
@@ -402,9 +555,8 @@
                          
                          // Clear form
                          document.getElementById('newServiceId').value = '';
-                         document.getElementById('newServiceName').value = '';
+                         document.getElementById('newServiceId').value = '';
                          document.getElementById('newAssistantId').value = '';
-                         document.getElementById('newProjectKey').value = '';
                          
                          await this.loadDashboard(); // Reload data
                      } else {
@@ -415,6 +567,82 @@
                  }
             }
 
+            async changeActiveProject(projectKey) {
+                if (!projectKey) return;
+
+                try {
+                    const response = await fetch('/api/admin/projects/set-active', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ projectKey })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.activeProject = projectKey;
+                        this.showStatus(`Project changed to: ${projectKey}`, 'success');
+                        this.renderProjects();
+                        this.addActivity(`Project changed to ${projectKey}`, 'success');
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    this.showStatus(`Error changing project: ${error.message}`, 'error');
+                }
+            }
+
+            async changeActiveAssistant(assistantId) {
+                if (!assistantId) return;
+
+                try {
+                    const response = await fetch('/api/chatbot/assistants/set-active', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ assistantId })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.activeAssistant = assistantId;
+                        this.showStatus(`Assistant changed successfully`, 'success');
+                        this.renderAssistants();
+                        this.addActivity(`Assistant changed to ${assistantId}`, 'success');
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    this.showStatus(`Error changing assistant: ${error.message}`, 'error');
+                }
+            }
+
+            addActivity(text, type) {
+                const activityList = document.getElementById('recentActivity');
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
+                });
+
+                const activityItem = document.createElement('div');
+                activityItem.className = 'activity-item';
+                activityItem.innerHTML = `
+                    <div class="activity-indicator ${type}"></div>
+                    <div class="activity-content">
+                        <div class="activity-text">${text}</div>
+                        <div class="activity-time">Today at ${timeString}</div>
+                    </div>
+                `;
+
+                activityList.insertBefore(activityItem, activityList.firstChild);
+                
+                // Keep only last 5 activities
+                while (activityList.children.length > 5) {
+                    activityList.removeChild(activityList.lastChild);
+                }
+            }
 
             showStatus(message, type) {
                 const statusDiv = document.getElementById('statusMessage');
@@ -427,13 +655,39 @@
                 }, 5000);
             }
 
-                         setupEventListeners() {
-                 // Event listener para agregar servicio
-                 document.getElementById('addServiceBtn')?.addEventListener('click', () => this.addNewService());
-                 
-                 // Event listeners para botones dinámicos (se configuran después de renderizar)
-                 this.setupDynamicEventListeners();
-             }
+            setupEventListeners() {
+                // Event listener para agregar servicio
+                document.getElementById('addServiceBtn')?.addEventListener('click', () => this.addNewService());
+                
+                // Event listener para cambiar proyecto activo
+                document.getElementById('activeProject')?.addEventListener('change', (e) => {
+                    this.changeActiveProject(e.target.value);
+                });
+
+                // Event listeners para modal
+                document.getElementById('addAssistantBtn')?.addEventListener('click', () => {
+                    document.getElementById('addServiceModal').style.display = 'block';
+                });
+
+                document.getElementById('closeModal')?.addEventListener('click', () => {
+                    document.getElementById('addServiceModal').style.display = 'none';
+                });
+
+                document.getElementById('cancelAddService')?.addEventListener('click', () => {
+                    document.getElementById('addServiceModal').style.display = 'none';
+                });
+
+                // Close modal when clicking outside
+                window.addEventListener('click', (e) => {
+                    const modal = document.getElementById('addServiceModal');
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+                
+                // Event listeners para botones dinámicos (se configuran después de renderizar)
+                this.setupDynamicEventListeners();
+            }
 
              setupDynamicEventListeners() {
                  // Event listeners para botones de aplicar cambio
