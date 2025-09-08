@@ -141,9 +141,25 @@
                     <div class="section-content">
                         <div class="form-group">
                             <label for="remoteServerUrl" class="form-label">Remote Server URL</label>
-                            <input type="text" id="remoteServerUrl" class="form-input" 
-                                   placeholder="https://form.movonte.com" 
-                                   value="https://form.movonte.com">
+                            <div class="remote-url-controls">
+                                <input type="text" id="remoteServerUrl" class="form-input" 
+                                       placeholder="https://form.movonte.com" 
+                                       value="https://form.movonte.com">
+                                <button class="btn btn-secondary btn-sm" id="updateRemoteUrl">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="remoteProjectSearch" class="form-label">Search Projects</label>
+                            <div class="remote-search-controls">
+                                <input type="text" id="remoteProjectSearch" class="form-input" 
+                                       placeholder="Search by name or key...">
+                                <button class="btn btn-secondary btn-sm" id="searchRemoteProjects">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="form-group">
@@ -168,6 +184,14 @@
                                 <span class="info-value" id="remoteCurrentProjectKey">-</span>
                             </div>
                             <div class="info-row">
+                                <span class="info-label">System Status:</span>
+                                <span class="info-value" id="remoteSystemStatus">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Cache Status:</span>
+                                <span class="info-value" id="remoteCacheStatus">-</span>
+                            </div>
+                            <div class="info-row">
                                 <span class="info-label">Last Updated:</span>
                                 <span class="info-value" id="remoteLastUpdated">-</span>
                             </div>
@@ -181,6 +205,21 @@
                             <button class="btn btn-secondary" id="testRemoteConnection">
                                 <i class="fas fa-plug"></i>
                                 Test Connection
+                            </button>
+                            <button class="btn btn-info" id="getRemoteSystemStatus">
+                                <i class="fas fa-info-circle"></i>
+                                System Status
+                            </button>
+                        </div>
+                        
+                        <div class="remote-advanced-actions">
+                            <button class="btn btn-warning btn-sm" id="updateRemoteAuth">
+                                <i class="fas fa-key"></i>
+                                Update Auth
+                            </button>
+                            <button class="btn btn-warning btn-sm" id="updateRemoteBaseUrl">
+                                <i class="fas fa-link"></i>
+                                Update Base URL
                             </button>
                         </div>
                     </div>
@@ -715,9 +754,12 @@
                 });
                 
                 // Event listeners para servidor remoto
-                document.getElementById('remoteServerUrl')?.addEventListener('change', (e) => {
-                    this.remoteServerUrl = e.target.value;
-                    this.loadRemoteProjects();
+                document.getElementById('updateRemoteUrl')?.addEventListener('click', () => {
+                    this.updateRemoteUrl();
+                });
+                
+                document.getElementById('searchRemoteProjects')?.addEventListener('click', () => {
+                    this.searchRemoteProjects();
                 });
                 
                 document.getElementById('refreshRemoteProjects')?.addEventListener('click', () => {
@@ -730,6 +772,18 @@
                 
                 document.getElementById('testRemoteConnection')?.addEventListener('click', () => {
                     this.testRemoteConnection();
+                });
+                
+                document.getElementById('getRemoteSystemStatus')?.addEventListener('click', () => {
+                    this.getRemoteSystemStatus();
+                });
+                
+                document.getElementById('updateRemoteAuth')?.addEventListener('click', () => {
+                    this.updateRemoteAuth();
+                });
+                
+                document.getElementById('updateRemoteBaseUrl')?.addEventListener('click', () => {
+                    this.updateRemoteBaseUrl();
                 });
                 
                 // Event listeners para botones dinámicos (se configuran después de renderizar)
@@ -811,6 +865,8 @@
             updateRemoteProjectInfo() {
                 const currentProjectName = document.getElementById('remoteCurrentProjectName');
                 const currentProjectKey = document.getElementById('remoteCurrentProjectKey');
+                const systemStatus = document.getElementById('remoteSystemStatus');
+                const cacheStatus = document.getElementById('remoteCacheStatus');
                 const lastUpdated = document.getElementById('remoteLastUpdated');
                 
                 if (this.remoteActiveProject) {
@@ -823,6 +879,10 @@
                     currentProjectKey.textContent = '-';
                     lastUpdated.textContent = '-';
                 }
+                
+                // Update system and cache status
+                systemStatus.textContent = this.remoteSystemStatus || '-';
+                cacheStatus.textContent = this.remoteCacheStatus || '-';
             }
 
             async changeRemoteProject() {
@@ -900,6 +960,168 @@
                 }
                 
                 statusText.textContent = text;
+            }
+
+            // === NEW ENDPOINT FUNCTIONS ===
+
+            async updateRemoteUrl() {
+                const urlInput = document.getElementById('remoteServerUrl');
+                const newUrl = urlInput.value.trim();
+                
+                if (!newUrl) {
+                    this.showStatus('Please enter a valid URL', 'error');
+                    return;
+                }
+
+                try {
+                    this.updateRemoteConnectionStatus('connecting', 'Updating URL...');
+                    
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/update-base-url`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ baseUrl: newUrl })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.remoteServerUrl = newUrl;
+                        this.updateRemoteConnectionStatus('connected', 'URL Updated');
+                        this.showStatus('Remote server URL updated successfully', 'success');
+                        this.addActivity(`Remote server URL updated to ${newUrl}`, 'success');
+                        await this.loadRemoteProjects();
+                    } else {
+                        throw new Error(data.error || 'Failed to update URL');
+                    }
+                } catch (error) {
+                    console.error('Error updating remote URL:', error);
+                    this.updateRemoteConnectionStatus('disconnected', 'URL Update Failed');
+                    this.showStatus(`Error updating URL: ${error.message}`, 'error');
+                }
+            }
+
+            async searchRemoteProjects() {
+                const searchInput = document.getElementById('remoteProjectSearch');
+                const searchTerm = searchInput.value.trim();
+                
+                if (!searchTerm) {
+                    this.showStatus('Please enter a search term', 'error');
+                    return;
+                }
+
+                try {
+                    this.updateRemoteConnectionStatus('connecting', 'Searching...');
+                    
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/search?q=${encodeURIComponent(searchTerm)}`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.remoteProjects = data.projects || [];
+                        this.renderRemoteProjects();
+                        this.updateRemoteConnectionStatus('connected', 'Search Complete');
+                        this.showStatus(`Found ${this.remoteProjects.length} projects matching "${searchTerm}"`, 'success');
+                        this.addActivity(`Searched for projects: "${searchTerm}"`, 'info');
+                    } else {
+                        throw new Error(data.error || 'Search failed');
+                    }
+                } catch (error) {
+                    console.error('Error searching remote projects:', error);
+                    this.updateRemoteConnectionStatus('disconnected', 'Search Failed');
+                    this.showStatus(`Error searching projects: ${error.message}`, 'error');
+                }
+            }
+
+            async getRemoteSystemStatus() {
+                try {
+                    this.updateRemoteConnectionStatus('connecting', 'Getting Status...');
+                    
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/status`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.remoteSystemStatus = data.status || 'Unknown';
+                        this.remoteCacheStatus = data.cache ? 'Active' : 'Inactive';
+                        this.updateRemoteProjectInfo();
+                        this.updateRemoteConnectionStatus('connected', 'Status Retrieved');
+                        this.showStatus('System status retrieved successfully', 'success');
+                        this.addActivity('Retrieved remote system status', 'info');
+                    } else {
+                        throw new Error(data.error || 'Failed to get system status');
+                    }
+                } catch (error) {
+                    console.error('Error getting remote system status:', error);
+                    this.updateRemoteConnectionStatus('disconnected', 'Status Failed');
+                    this.showStatus(`Error getting system status: ${error.message}`, 'error');
+                }
+            }
+
+            async updateRemoteAuth() {
+                const email = prompt('Enter Jira email:');
+                const token = prompt('Enter Jira API token:');
+                
+                if (!email || !token) {
+                    this.showStatus('Email and token are required', 'error');
+                    return;
+                }
+
+                try {
+                    this.updateRemoteConnectionStatus('connecting', 'Updating Auth...');
+                    
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/update-auth`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, token })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.updateRemoteConnectionStatus('connected', 'Auth Updated');
+                        this.showStatus('Remote authentication updated successfully', 'success');
+                        this.addActivity('Remote authentication updated', 'success');
+                        await this.loadRemoteProjects();
+                    } else {
+                        throw new Error(data.error || 'Failed to update authentication');
+                    }
+                } catch (error) {
+                    console.error('Error updating remote auth:', error);
+                    this.updateRemoteConnectionStatus('disconnected', 'Auth Update Failed');
+                    this.showStatus(`Error updating authentication: ${error.message}`, 'error');
+                }
+            }
+
+            async updateRemoteBaseUrl() {
+                const newBaseUrl = prompt('Enter new Jira base URL:');
+                
+                if (!newBaseUrl) {
+                    this.showStatus('Base URL is required', 'error');
+                    return;
+                }
+
+                try {
+                    this.updateRemoteConnectionStatus('connecting', 'Updating Base URL...');
+                    
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/update-base-url`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ baseUrl: newBaseUrl })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.updateRemoteConnectionStatus('connected', 'Base URL Updated');
+                        this.showStatus('Remote Jira base URL updated successfully', 'success');
+                        this.addActivity(`Remote Jira base URL updated to ${newBaseUrl}`, 'success');
+                        await this.loadRemoteProjects();
+                    } else {
+                        throw new Error(data.error || 'Failed to update base URL');
+                    }
+                } catch (error) {
+                    console.error('Error updating remote base URL:', error);
+                    this.updateRemoteConnectionStatus('disconnected', 'Base URL Update Failed');
+                    this.showStatus(`Error updating base URL: ${error.message}`, 'error');
+                }
             }
         }
 

@@ -406,6 +406,26 @@ body {
     color: #ffc107;
 }
 
+.remote-url-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.remote-url-controls .form-input {
+    flex: 1;
+}
+
+.remote-search-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.remote-search-controls .form-input {
+    flex: 1;
+}
+
 .remote-project-controls {
     display: flex;
     gap: 8px;
@@ -435,6 +455,18 @@ body {
 .remote-actions .btn {
     flex: 1;
     min-width: 140px;
+}
+
+.remote-advanced-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: center;
+}
+
+.remote-advanced-actions .btn {
+    flex: 1;
+    min-width: 120px;
 }
 
 @keyframes pulse {
