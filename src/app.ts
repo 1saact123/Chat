@@ -32,8 +32,10 @@ class MovonteAPI {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
           imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'", "https://form.movonte.com", "https://api.openai.com"],
+          fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
         },
       },
     }));
