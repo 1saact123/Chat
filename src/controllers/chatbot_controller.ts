@@ -254,19 +254,8 @@ export class ChatbotController {
             const { JiraService } = await import('../services/jira_service');
             const jiraService = JiraService.getInstance();
             
-            // Agregar mensaje de bienvenida simple
-            const welcomeMessage = `What can I help you?`;
-            
-            const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, welcomeMessage);
-            
-            if (jiraResponse) {
-              console.log(`✅ MENSAJE DE BIENVENIDA AGREGADO:`);
-              console.log(`   Issue: ${payload.issue.key}`);
-              console.log(`   Mensaje: ${welcomeMessage}`);
-              
-              // Agregar al historial de conversación
-              this.addToConversationHistory(payload.issue.key, 'assistant', welcomeMessage);
-            }
+            console.log(`✅ TICKET DE CONTACTO WEB CREADO SIN MENSAJE DE BIENVENIDA:`);
+            console.log(`   Issue: ${payload.issue.key}`);
             
           } catch (jiraError) {
             console.error('❌ Error adding welcome message to Jira:', jiraError);

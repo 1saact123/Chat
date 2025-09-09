@@ -113,9 +113,8 @@ export class OpenAIService {
         messageType: 'chat'
       };
 
-      // No specific instructions - let the OpenAI assistant handle the conversation directly
-
-      const result = await this.processDirectChat(message, threadId, context);
+      // Use the active assistant for chat general service
+      const result = await this.processChatForService(message, 'chat-general', threadId, context);
       
       return result;
 
@@ -253,7 +252,9 @@ export class OpenAIService {
   }
 
   private buildDynamicSystemPrompt(context?: any): string {
-    // Devolver un prompt mínimo que permita al asistente de OpenAI responder directamente
+    // Por ahora, devolver un prompt genérico
+    // Las instrucciones específicas del asistente se manejan en el proceso principal
+    console.log('🎯 Using generic system prompt - assistant instructions handled separately');
     return "You are a helpful assistant. Respond to the user's message directly and naturally.";
   }
 
@@ -437,16 +438,60 @@ export class OpenAIService {
         };
       }
 
-      // Use the service assistant instead of the global assistant
-      const originalAssistantId = this.assistantId;
-      this.assistantId = serviceAssistantId;
-
+      console.log(`🎯 Using assistant ${serviceAssistantId} for service ${serviceId}`);
+      
+      // Use the OpenAI Assistant API directly to get the assistant's instructions
       try {
-        const result = await this.processWithChatCompletions(message, threadId, context);
-        return result;
-      } finally {
-        // Restore the original assistant
-        this.assistantId = originalAssistantId;
+        const assistant = await this.openai.beta.assistants.retrieve(serviceAssistantId);
+        console.log(`✅ Retrieved assistant: ${assistant.name}`);
+        console.log(`📝 Assistant instructions: ${assistant.instructions?.substring(0, 100)}...`);
+        
+        // Use the assistant's instructions in the system prompt
+        const systemPrompt = assistant.instructions || "You are a helpful assistant.";
+        
+        // Create a thread for this conversation
+        const thread = await this.openai.beta.threads.create();
+        
+        // Add the user message to the thread
+        await this.openai.beta.threads.messages.create(thread.id, {
+          role: 'user',
+          content: message
+        });
+        
+        // Run the assistant
+        const run = await this.openai.beta.threads.runs.create(thread.id, {
+          assistant_id: serviceAssistantId
+        });
+        
+        // Wait for completion
+        let runStatus = await this.openai.beta.threads.runs.retrieve(thread.id, run.id);
+        while (runStatus.status === 'queued' || runStatus.status === 'in_progress') {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          runStatus = await this.openai.beta.threads.runs.retrieve(thread.id, run.id);
+        }
+        
+        if (runStatus.status === 'completed') {
+          // Get the assistant's response
+          const messages = await this.openai.beta.threads.messages.list(thread.id);
+          const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
+          
+          if (assistantMessage && assistantMessage.content[0].type === 'text') {
+            return {
+              success: true,
+              threadId: thread.id,
+              response: assistantMessage.content[0].text.value,
+              assistantId: serviceAssistantId,
+              assistantName: assistant.name || 'Unknown Assistant'
+            };
+          }
+        }
+        
+        throw new Error(`Assistant run failed with status: ${runStatus.status}`);
+        
+      } catch (assistantError) {
+        console.error('Error using OpenAI Assistant API:', assistantError);
+        // Fallback to Chat Completions with assistant instructions
+        return await this.processWithChatCompletions(message, threadId, context);
       }
 
     } catch (error) {

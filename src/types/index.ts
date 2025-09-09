@@ -48,6 +48,8 @@ export interface JiraWebhookPayload {
     threadId: string;
     response?: string;
     error?: string;
+    assistantId?: string;
+    assistantName?: string;
   }
 
   // === Atlassian Document Format (ADF) minimal types ===
