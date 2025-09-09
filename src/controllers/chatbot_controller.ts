@@ -52,16 +52,32 @@ export class ChatbotController {
   private isAIComment(comment: any): boolean {
     const authorName = comment.author.displayName.toLowerCase();
     const authorEmail = comment.author.emailAddress?.toLowerCase() || '';
+    const commentBody = comment.body.toLowerCase();
 
-    // Solo detectar por autor (patrones básicos)
+    // Patrones de autor que indican comentarios de IA
     const aiAuthorPatterns = [
       'ai', 'assistant', 'bot', 'automation', 'noreply',
-      'system', 'automated', 'chatbot'
+      'system', 'automated', 'chatbot', 'contact service account'
     ];
     
-    return aiAuthorPatterns.some(pattern => 
+    // Patrones en el contenido que indican comentarios de IA
+    const aiContentPatterns = [
+      '[jira] ai assistant:', '[widget chat]', 'sent via widget chat',
+      'sent via jira', 'complete.', 'how can i assist you',
+      '🎯 **chat session started**', 'chat widget connected'
+    ];
+    
+    // Detectar por autor
+    const isAIAuthor = aiAuthorPatterns.some(pattern => 
       authorName.includes(pattern) || authorEmail.includes(pattern)
     );
+    
+    // Detectar por contenido
+    const isAIContent = aiContentPatterns.some(pattern => 
+      commentBody.includes(pattern)
+    );
+    
+    return isAIAuthor || isAIContent;
   }
 
   // Method to calculate similarity between texts
