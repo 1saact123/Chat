@@ -733,6 +733,8 @@
                     if (data.success) {
                         this.remoteProjects = data.availableProjects || [];
                         this.renderRemoteProjects();
+                        
+                        // Cargar el proyecto activo después de renderizar los proyectos
                         await this.loadRemoteActiveProject();
                     } else {
                         throw new Error(data.error || 'Failed to load remote projects');
@@ -751,6 +753,14 @@
                     if (data.success) {
                         this.remoteActiveProject = data.currentProject?.key || '';
                         this.updateRemoteProjectInfo();
+                        
+                        // Actualizar el dropdown para mostrar el proyecto seleccionado
+                        const select = document.getElementById('remoteActiveProject');
+                        if (select && this.remoteActiveProject) {
+                            select.value = this.remoteActiveProject;
+                        }
+                        
+                        console.log(`✅ Remote active project loaded: ${this.remoteActiveProject}`);
                     }
                 } catch (error) {
                     console.error('Error loading remote active project:', error);
@@ -770,6 +780,8 @@
                         ${project.name} (${project.key})
                     </option>
                 `).join('');
+                
+                console.log(`✅ Remote projects rendered: ${this.remoteProjects.length} projects, active: ${this.remoteActiveProject}`);
             }
 
             updateRemoteProjectInfo() {
