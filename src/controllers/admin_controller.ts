@@ -9,7 +9,7 @@ export class AdminController {
 
   constructor() {
     this.openaiService = new OpenAIService();
-    this.configService = new ConfigurationService();
+    this.configService = ConfigurationService.getInstance();
   }
 
   // Dashboard principal del CEO

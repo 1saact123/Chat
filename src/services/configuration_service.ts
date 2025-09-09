@@ -8,11 +8,19 @@ interface ServiceConfiguration {
 }
 
 export class ConfigurationService {
+  private static instance: ConfigurationService;
   private configurations: Map<string, ServiceConfiguration> = new Map();
   private readonly CONFIG_FILE = 'service-config.json';
 
-  constructor() {
+  private constructor() {
     this.loadConfigurations();
+  }
+
+  public static getInstance(): ConfigurationService {
+    if (!ConfigurationService.instance) {
+      ConfigurationService.instance = new ConfigurationService();
+    }
+    return ConfigurationService.instance;
   }
 
   // Cargar configuraciones desde archivo

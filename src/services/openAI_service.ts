@@ -13,7 +13,7 @@ export class OpenAIService {
       apiKey: process.env.OPENAI_API_KEY,
     });
     this.assistantId = process.env.OPENAI_ASSISTANT_ID || '';
-    this.configService = new ConfigurationService();
+    this.configService = ConfigurationService.getInstance();
   }
 
   async processJiraComment(payload: JiraWebhookPayload, enrichedContext?: any): Promise<ChatbotResponse> {
@@ -101,8 +101,8 @@ export class OpenAIService {
     try {
       console.log(`Processing Jira chat message for issue ${issueKey}: ${message}`);
       
-      // Specific thread for chat
-      const threadId = `jira_chat_${issueKey || 'general'}_${Date.now()}`;
+      // Specific thread for chat - use persistent thread based on issue key
+      const threadId = `jira_chat_${issueKey || 'general'}`;
       
       // Chat-specific context
       const context = {
@@ -449,8 +449,22 @@ export class OpenAIService {
         // Use the assistant's instructions in the system prompt
         const systemPrompt = assistant.instructions || "You are a helpful assistant.";
         
-        // Create a thread for this conversation
-        const thread = await this.openai.beta.threads.create();
+        // Use existing thread or create a new one
+        let thread;
+        if (threadId) {
+          try {
+            // Try to retrieve existing thread
+            thread = await this.openai.beta.threads.retrieve(threadId);
+            console.log(`✅ Using existing thread: ${threadId}`);
+          } catch (error) {
+            console.log(`⚠️ Thread ${threadId} not found, creating new one`);
+            thread = await this.openai.beta.threads.create();
+          }
+        } else {
+          // Create a new thread
+          thread = await this.openai.beta.threads.create();
+          console.log(`✅ Created new thread: ${thread.id}`);
+        }
         
         // Add the user message to the thread
         await this.openai.beta.threads.messages.create(thread.id, {
