@@ -83,46 +83,20 @@ export class WidgetIntegrationController {
 
       console.log(`📤 Sending message to Jira ticket ${issueKey}: ${message}`);
 
-      // Add message to Jira
+      // Add message to Jira - let the webhook handle AI response
       await this.jiraService.addCommentToIssue(issueKey, message, {
         name: customerInfo.name,
         email: customerInfo.email,
         source: 'widget'
       });
 
-      // Process with AI and get response
-      const aiResponse = await this.openaiService.processChatForService(
-        message,
-        'landing-page',
-        `widget_${issueKey}`,
-        {
-          jiraIssueKey: issueKey,
-          customerInfo,
-          isWidgetMessage: true
-        }
-      );
-
-      if (aiResponse.success && aiResponse.response) {
-        // Add AI response to Jira
-        await this.jiraService.addCommentToIssue(issueKey, aiResponse.response, {
-          name: 'AI Assistant',
-          source: 'jira'
-        });
-
-        res.json({
-          success: true,
-          message: 'Message sent to Jira successfully',
-          aiResponse: aiResponse.response,
-          threadId: aiResponse.threadId
-        });
-      } else {
-        res.json({
-          success: true,
-          message: 'Message sent to Jira successfully',
-          aiResponse: null,
-          error: aiResponse.error
-        });
-      }
+      // Don't process AI response here - let the webhook handle it
+      // This prevents duplicate responses
+      res.json({
+        success: true,
+        message: 'Message sent to Jira successfully. AI response will be processed by webhook.',
+        aiResponse: null
+      });
 
     } catch (error) {
       console.error('Error sending message to Jira:', error);
