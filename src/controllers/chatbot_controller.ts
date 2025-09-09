@@ -297,12 +297,15 @@ export class ChatbotController {
     try {
       const { message, threadId, context } = req.body;
       
+      console.log('🔵 handleDirectChat called:', { message: message.substring(0, 50), threadId, context });
+      
       if (!message) {
         res.status(400).json({ success: false, error: 'Message is required' });
         return;
       }
 
       const response = await this.openaiService.processDirectChat(message, threadId, context);
+      console.log('🔵 handleDirectChat response:', { success: response.success, threadId: response.threadId });
       res.json(response);
 
     } catch (error) {
@@ -602,6 +605,8 @@ export class ChatbotController {
       const { serviceId } = req.params;
       const { message, threadId } = req.body;
 
+      console.log('🟢 handleServiceChat called:', { serviceId, message: message?.substring(0, 50), threadId });
+
       if (!message) {
         res.status(400).json({
           success: false,
@@ -613,6 +618,7 @@ export class ChatbotController {
       console.log(`💬 Chat para servicio ${serviceId}: ${message}`);
       
       const result = await this.openaiService.processChatForService(message, serviceId, threadId);
+      console.log('🟢 handleServiceChat response:', { success: result.success, threadId: result.threadId, assistantId: result.assistantId });
       
       if (result.success) {
         res.json({

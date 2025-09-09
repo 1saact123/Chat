@@ -285,15 +285,14 @@
                     context.jiraIssueKey = currentIssueKey;
                 }
 
-                const response = await fetch(`${API_BASE}/api/chatbot/chat`, {
+                const response = await fetch(`${API_BASE}/api/services/chat-general/chat`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         message: message,
-                        threadId: currentThreadId,
-                        context: context
+                        threadId: currentThreadId
                     })
                 });
 
