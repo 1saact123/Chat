@@ -110,7 +110,7 @@
                         <h2>Project Management</h2>
                     </div>
                     <div class="section-content">
-                        <div class="form-group">
+                                        <div class="form-group">
                             <label for="activeProject" class="form-label">Active Jira Project</label>
                             <select id="activeProject" class="form-select">
                                 <option value="">Loading projects...</option>
@@ -142,7 +142,7 @@
                                    value="https://form.movonte.com">
                         </div>
                         
-                        <div class="form-group">
+                    <div class="form-group">
                             <label for="remoteActiveProject" class="form-label">Remote Active Project</label>
                             <select id="remoteActiveProject" class="form-select">
                                 <option value="">Loading remote projects...</option>
@@ -684,7 +684,7 @@
                 }, 5000);
             }
 
-            setupEventListeners() {
+                         setupEventListeners() {
                 // Event listener para cambiar proyecto activo
                 document.getElementById('activeProject')?.addEventListener('change', (e) => {
                     this.changeActiveProject(e.target.value);
@@ -699,10 +699,10 @@
                 document.getElementById('remoteActiveProject')?.addEventListener('change', (e) => {
                     this.changeRemoteProject(e.target.value);
                 });
-                
-                // Event listeners para botones dinámicos (se configuran después de renderizar)
-                this.setupDynamicEventListeners();
-            }
+                 
+                 // Event listeners para botones dinámicos (se configuran después de renderizar)
+                 this.setupDynamicEventListeners();
+             }
 
              setupDynamicEventListeners() {
                  // Event listeners para botones de aplicar cambio
@@ -720,7 +720,7 @@
                          const isActive = e.target.dataset.isActive === 'true';
                          this.toggleService(serviceId, isActive);
                      });
-                });
+                 });
             }
 
             // === REMOTE SERVER FUNCTIONS ===
@@ -828,8 +828,8 @@
             }
         }
 
-        // Variable global para el dashboard
-        let dashboard;
+                 // Variable global para el dashboard
+         let dashboard;
  
          // Inicializar cuando el DOM esté listo
          document.addEventListener('DOMContentLoaded', function() {

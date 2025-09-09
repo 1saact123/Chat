@@ -150,15 +150,6 @@ export class ChatbotController {
           res.json({ success: true, message: 'Skipped AI comment', aiComment: true });
           return;
         }
-
-        // Verificar si es una respuesta del widget (para evitar duplicados)
-        if (payload.comment.body?.includes('[Widget Response]')) {
-          console.log(`📱 RESPUESTA DEL WIDGET DETECTADA - IGNORANDO:`);
-          console.log(`   Issue: ${payload.issue.key}`);
-          console.log(`   Comment ID: ${payload.comment.id}`);
-          res.json({ success: true, message: 'Widget response ignored' });
-          return;
-        }
         
         // Sistema de throttling para evitar respuestas muy rápidas
         const issueKey = payload.issue.key;

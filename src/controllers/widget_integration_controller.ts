@@ -90,10 +90,10 @@ export class WidgetIntegrationController {
         source: 'widget'
       });
 
-      // Process with AI and get response immediately for widget
+      // Process with AI and get response
       const aiResponse = await this.openaiService.processChatForService(
         message,
-        'chat-general', // Use chat-general service instead of landing-page
+        'landing-page',
         `widget_${issueKey}`,
         {
           jiraIssueKey: issueKey,
@@ -103,8 +103,8 @@ export class WidgetIntegrationController {
       );
 
       if (aiResponse.success && aiResponse.response) {
-        // Add AI response to Jira with a special marker to prevent webhook processing
-        await this.jiraService.addCommentToIssue(issueKey, `[Widget Response] ${aiResponse.response}`, {
+        // Add AI response to Jira
+        await this.jiraService.addCommentToIssue(issueKey, aiResponse.response, {
           name: 'AI Assistant',
           source: 'jira'
         });
