@@ -104,14 +104,6 @@ export class OpenAIService {
       // Specific thread for chat - use persistent thread based on issue key
       const threadId = `jira_chat_${issueKey || 'general'}`;
       
-      // Check if user is asking for a conversation report
-      const isReportRequest = this.isReportRequest(message);
-      
-      if (isReportRequest && issueKey) {
-        console.log(`📊 Report request detected for issue ${issueKey}`);
-        return await this.generateConversationReport(issueKey, threadId);
-      }
-      
       // Chat-specific context
       const context = {
         jiraIssueKey: issueKey,
@@ -132,71 +124,6 @@ export class OpenAIService {
         success: false,
         threadId: '',
         error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  }
-
-  // Helper method to detect report requests
-  private isReportRequest(message: string): boolean {
-    const reportKeywords = [
-      'reporte', 'report', 'resumen', 'summary', 'conversación', 'conversation',
-      'historial', 'history', 'resume', 'dame un reporte', 'genera un reporte',
-      '¿puedes darme un reporte?', 'can you give me a report?'
-    ];
-    
-    const lowerMessage = message.toLowerCase();
-    return reportKeywords.some(keyword => lowerMessage.includes(keyword));
-  }
-
-  // Generate conversation report using the assistant
-  private async generateConversationReport(issueKey: string, threadId: string): Promise<ChatbotResponse> {
-    try {
-      // Get conversation history from the thread
-      const thread = this.threads.get(threadId);
-      if (!thread || thread.messages.length === 0) {
-        return {
-          success: true,
-          threadId,
-          response: `No hay historial de conversación disponible para el ticket ${issueKey}.`
-        };
-      }
-
-      // Build conversation history
-      const conversationHistory = thread.messages.map(msg => 
-        `${msg.role.toUpperCase()}: ${msg.content}`
-      ).join('\n');
-
-      const reportPrompt = `Analiza la siguiente conversación y genera un reporte detallado:
-
-CONVERSACIÓN:
-${conversationHistory}
-
-Por favor, genera un reporte que incluya:
-1. Resumen de la conversación
-2. Temas principales discutidos
-3. Problemas identificados
-4. Soluciones propuestas
-5. Estado actual de la conversación
-6. Recomendaciones para el agente de soporte
-
-Formato el reporte de manera clara y profesional.`;
-
-      // Use the assistant to generate the report
-      const reportResponse = await this.processChatForService(
-        reportPrompt,
-        'chat-general',
-        `report_${issueKey}_${Date.now()}`,
-        { isReportGeneration: true, originalIssueKey: issueKey }
-      );
-
-      return reportResponse;
-
-    } catch (error) {
-      console.error('Error generating conversation report:', error);
-      return {
-        success: false,
-        threadId,
-        error: 'Error generando el reporte de conversación'
       };
     }
   }

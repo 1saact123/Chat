@@ -194,9 +194,11 @@ export class ChatbotController {
         
         // Agregar el comentario del usuario al historial
         this.addToConversationHistory(issueKey, 'user', payload.comment.body);
+        console.log(`📝 Comentario agregado al historial para ${issueKey}`);
         
         // Obtener historial de conversación para contexto
         const conversationHistory = this.conversationHistory.get(issueKey) || [];
+        console.log(`📋 Historial de conversación obtenido: ${conversationHistory.length} mensajes`);
         
         // Crear contexto enriquecido con historial
         const enrichedContext = {
@@ -213,6 +215,9 @@ export class ChatbotController {
             .map(msg => msg.content)
         };
         
+        console.log(`🔧 Contexto enriquecido creado para ${issueKey}`);
+        console.log(`📤 Llamando a processChatForService con mensaje: "${payload.comment.body}"`);
+        
         // Usar el asistente específico del servicio chat-general para mantener consistencia
         const response = await this.openaiService.processChatForService(
           payload.comment.body, 
@@ -221,19 +226,30 @@ export class ChatbotController {
           enrichedContext
         );
         
+        console.log(`🤖 Respuesta de processChatForService recibida:`, {
+          success: response.success,
+          hasResponse: !!response.response,
+          error: response.error
+        });
+        
         // Actualizar tiempo de última respuesta
         this.lastResponseTime.set(issueKey, nowTimestamp);
         
         // Si la IA respondió exitosamente, agregar el comentario a Jira
         if (response.success && response.response) {
+          console.log(`✅ Respuesta exitosa recibida, agregando a Jira...`);
           try {
             // Importar JiraService dinámicamente para evitar dependencias circulares
             const { JiraService } = await import('../services/jira_service');
             const jiraService = JiraService.getInstance();
             
+            console.log(`📤 Agregando comentario a Jira: "${response.response.substring(0, 50)}..."`);
+            
             // Agregar comentario de la IA a Jira
             const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, response.response);
             this.webhookStats.successfulResponses++;
+            
+            console.log(`✅ Comentario agregado exitosamente a Jira`);
             
             // Agregar la respuesta de la IA al historial
             this.addToConversationHistory(issueKey, 'assistant', response.response);
@@ -251,6 +267,12 @@ export class ChatbotController {
             console.error('❌ Error adding AI response to Jira:', jiraError);
             // No fallar el webhook si no se puede agregar el comentario
           }
+        } else {
+          console.log(`❌ Respuesta fallida o vacía:`, {
+            success: response.success,
+            hasResponse: !!response.response,
+            error: response.error
+          });
         }
         
         res.json(response);

@@ -46,6 +46,15 @@ export class ConfigurationService {
         lastUpdated: new Date()
       });
 
+      this.configurations.set('chat-general', {
+        serviceId: 'chat-general',
+        serviceName: 'Chat General',
+        assistantId: process.env.OPENAI_ASSISTANT_ID || '',
+        assistantName: 'AI Assistant Chat',
+        isActive: true,
+        lastUpdated: new Date()
+      });
+
       this.configurations.set('general-chat', {
         serviceId: 'general-chat',
         serviceName: 'Chat General',
