@@ -222,7 +222,7 @@ export class ChatbotController {
         const response = await this.openaiService.processChatForService(
           payload.comment.body, 
           'chat-general', 
-          `jira_chat_${issueKey}`, // Usar el mismo thread que el widget
+          `widget_${issueKey}`, // Usar el mismo thread que el widget
           enrichedContext
         );
         

@@ -228,7 +228,10 @@
             
             if (currentIssueKey) {
                 document.getElementById('currentIssue').textContent = currentIssueKey;
+                // Establecer el threadId consistente con el webhook
+                currentThreadId = `widget_${currentIssueKey}`;
                 console.log(`🎯 Ticket detectado: ${currentIssueKey}`);
+                console.log(`🧵 Thread ID establecido: ${currentThreadId}`);
             } else {
                 document.getElementById('currentIssue').textContent = 'No detectado';
                 console.log('⚠️ No se detectó ningún ticket de Jira');
@@ -299,8 +302,10 @@
                 const result = await response.json();
 
                 if (result.success) {
+                    // Solo actualizar threadId si no está establecido
                     if (result.threadId && !currentThreadId) {
                         currentThreadId = result.threadId;
+                        console.log(`🧵 Thread ID actualizado desde servidor: ${currentThreadId}`);
                     }
                     addMessage(result.response);
                 } else {
