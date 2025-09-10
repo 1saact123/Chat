@@ -172,6 +172,9 @@ router.get('/api/chatbot/threads', chatbotController.listActiveThreads.bind(chat
 router.get('/api/chatbot/webhook/stats', chatbotController.getWebhookStats.bind(chatbotController));
 router.post('/api/chatbot/webhook/reset', chatbotController.resetWebhookStats.bind(chatbotController));
 
+// Conversation report
+router.get('/api/chatbot/conversation/:issueKey/report', chatbotController.getConversationReport.bind(chatbotController));
+
 // === WIDGET INTEGRATION ROUTES ===
 // Connect widget to existing Jira ticket
 router.post('/api/widget/connect', widgetIntegrationController.connectToTicket.bind(widgetIntegrationController));

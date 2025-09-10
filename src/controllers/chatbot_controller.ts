@@ -213,7 +213,13 @@ export class ChatbotController {
             .map(msg => msg.content)
         };
         
-        const response = await this.openaiService.processJiraComment(payload, enrichedContext);
+        // Usar el asistente específico del servicio chat-general para mantener consistencia
+        const response = await this.openaiService.processChatForService(
+          payload.comment.body, 
+          'chat-general', 
+          `jira_chat_${issueKey}`, // Usar el mismo thread que el widget
+          enrichedContext
+        );
         
         // Actualizar tiempo de última respuesta
         this.lastResponseTime.set(issueKey, nowTimestamp);
@@ -481,6 +487,94 @@ export class ChatbotController {
       res.status(500).json({
         success: false,
         error: 'Failed to reset webhook stats'
+      });
+    }
+  }
+
+  // Endpoint para obtener reporte de conversación
+  async getConversationReport(req: Request, res: Response): Promise<void> {
+    try {
+      const { issueKey } = req.params;
+      
+      if (!issueKey) {
+        res.status(400).json({
+          success: false,
+          error: 'Issue key is required'
+        });
+        return;
+      }
+
+      console.log(`📊 Generating conversation report for issue: ${issueKey}`);
+      
+      // Obtener historial de conversación
+      const conversationHistory = this.conversationHistory.get(issueKey) || [];
+      
+      if (conversationHistory.length === 0) {
+        res.json({
+          success: true,
+          data: {
+            issueKey,
+            report: 'No conversation history found for this issue.',
+            messageCount: 0,
+            participants: [],
+            summary: 'No conversation to summarize.'
+          }
+        });
+        return;
+      }
+
+      // Generar reporte usando el asistente
+      const reportPrompt = `Analiza la siguiente conversación y genera un reporte detallado:
+
+CONVERSACIÓN:
+${conversationHistory.map(msg => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n')}
+
+Por favor, genera un reporte que incluya:
+1. Resumen de la conversación
+2. Temas principales discutidos
+3. Problemas identificados
+4. Soluciones propuestas
+5. Estado actual de la conversación
+6. Recomendaciones para el agente de soporte
+
+Formato el reporte de manera clara y profesional.`;
+
+      // Usar el asistente para generar el reporte
+      const reportResponse = await this.openaiService.processChatForService(
+        reportPrompt,
+        'chat-general',
+        `report_${issueKey}_${Date.now()}`,
+        { isReportGeneration: true, originalIssueKey: issueKey }
+      );
+
+      if (reportResponse.success) {
+        // Extraer participantes únicos
+        const participants = [...new Set(conversationHistory.map(msg => msg.role))];
+        
+        res.json({
+          success: true,
+          data: {
+            issueKey,
+            report: reportResponse.response,
+            messageCount: conversationHistory.length,
+            participants,
+            conversationHistory: conversationHistory.map(msg => ({
+              role: msg.role,
+              content: msg.content,
+              timestamp: msg.timestamp
+            })),
+            generatedAt: new Date().toISOString()
+          }
+        });
+      } else {
+        throw new Error('Failed to generate report with AI');
+      }
+
+    } catch (error) {
+      console.error('Error generating conversation report:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error interno del servidor'
       });
     }
   }
