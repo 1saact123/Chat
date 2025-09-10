@@ -34,7 +34,8 @@ export interface JiraWebhookPayload {
   
   export interface ChatThread {
     threadId: string;
-    jiraIssueKey: string;
+    jiraIssueKey?: string;
+    openaiThreadId?: string;
     lastActivity: Date;
     messages: Array<{
       role: 'user' | 'assistant';

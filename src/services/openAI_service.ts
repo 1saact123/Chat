@@ -452,13 +452,30 @@ export class OpenAIService {
         // Use existing thread or create a new one
         let thread;
         if (threadId) {
-          try {
-            // Try to retrieve existing thread
-            thread = await this.openai.beta.threads.retrieve(threadId);
-            console.log(`✅ Using existing thread: ${threadId}`);
-          } catch (error) {
-            console.log(`⚠️ Thread ${threadId} not found, creating new one`);
+          // Check if we have this thread in our internal system
+          const existingThread = this.threads.get(threadId);
+          if (existingThread && existingThread.openaiThreadId) {
+            try {
+              // Try to retrieve existing OpenAI thread
+              thread = await this.openai.beta.threads.retrieve(existingThread.openaiThreadId);
+              console.log(`✅ Using existing OpenAI thread: ${existingThread.openaiThreadId} for internal thread: ${threadId}`);
+            } catch (error) {
+              console.log(`⚠️ OpenAI thread ${existingThread.openaiThreadId} not found, creating new one`);
+              thread = await this.openai.beta.threads.create();
+              // Update our internal thread with the new OpenAI thread ID
+              existingThread.openaiThreadId = thread.id;
+            }
+          } else {
+            // Create new thread and store in our internal system
             thread = await this.openai.beta.threads.create();
+            console.log(`✅ Created new thread: ${thread.id} for internal thread: ${threadId}`);
+            // Store in our internal system
+            this.threads.set(threadId, {
+              threadId: threadId,
+              openaiThreadId: thread.id,
+              messages: [],
+              lastActivity: new Date()
+            });
           }
         } else {
           // Create a new thread
@@ -490,9 +507,21 @@ export class OpenAIService {
           const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
           
           if (assistantMessage && assistantMessage.content[0].type === 'text') {
+            // Update our internal thread with the new message
+            if (threadId) {
+              const internalThread = this.threads.get(threadId);
+              if (internalThread) {
+                internalThread.messages.push(
+                  { role: 'user', content: message, timestamp: new Date() },
+                  { role: 'assistant', content: assistantMessage.content[0].text.value, timestamp: new Date() }
+                );
+                internalThread.lastActivity = new Date();
+              }
+            }
+            
             return {
               success: true,
-              threadId: thread.id,
+              threadId: threadId || thread.id, // Return our internal threadId if available
               response: assistantMessage.content[0].text.value,
               assistantId: serviceAssistantId,
               assistantName: assistant.name || 'Unknown Assistant'
