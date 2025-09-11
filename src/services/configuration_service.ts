@@ -18,6 +18,7 @@ export class ConfigurationService {
   private constructor() {
     this.dbService = DatabaseService.getInstance();
     this.loadConfigurations();
+    this.loadConfigurationsFromDatabase();
   }
 
   public static getInstance(): ConfigurationService {
@@ -71,6 +72,38 @@ export class ConfigurationService {
       console.log('✅ Configuraciones de servicio cargadas');
     } catch (error) {
       console.error('❌ Error cargando configuraciones:', error);
+    }
+  }
+
+  // Cargar configuraciones desde base de datos
+  private async loadConfigurationsFromDatabase(): Promise<void> {
+    try {
+      console.log('🔄 Cargando configuraciones desde base de datos...');
+      const dbConfigs = await this.dbService.getAllServiceConfigs();
+      
+      if (dbConfigs.length > 0) {
+        console.log(`📋 Encontradas ${dbConfigs.length} configuraciones en BD`);
+        
+        // Actualizar configuraciones con datos de BD
+        for (const dbConfig of dbConfigs) {
+          this.configurations.set(dbConfig.serviceId, {
+            serviceId: dbConfig.serviceId,
+            serviceName: dbConfig.serviceName,
+            assistantId: dbConfig.assistantId,
+            assistantName: dbConfig.assistantName,
+            isActive: dbConfig.isActive,
+            lastUpdated: dbConfig.lastUpdated || new Date()
+          });
+          console.log(`✅ Cargada configuración: ${dbConfig.serviceName} -> ${dbConfig.assistantName}`);
+        }
+        
+        // Guardar configuraciones actualizadas en archivo
+        // this.saveConfigurations(); // TODO: Implementar si es necesario
+      } else {
+        console.log('⚠️ No se encontraron configuraciones en BD, usando configuraciones por defecto');
+      }
+    } catch (error) {
+      console.error('❌ Error cargando configuraciones desde BD:', error);
     }
   }
 

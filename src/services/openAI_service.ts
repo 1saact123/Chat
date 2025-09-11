@@ -134,44 +134,35 @@ export class OpenAIService {
   // Generate conversation report using the assistant
   private async generateConversationReport(issueKey: string, threadId: string): Promise<ChatbotResponse> {
     try {
-      console.log(`📊 Generating report for issue: ${issueKey}, thread: ${threadId}`);
+      console.log(`📊 Generating report for threadId: ${threadId}, issueKey: ${issueKey}`);
       
       // Get conversation history from database
       const { thread, messages } = await this.dbService.getThreadWithMessages(threadId);
       
       console.log(`📊 Thread found: ${!!thread}, Messages count: ${messages.length}`);
-      
-      if (!thread) {
-        console.log(`⚠️ Thread ${threadId} not found in database`);
-        return {
-          success: true,
-          threadId,
-          response: `No se encontró el hilo de conversación ${threadId} en la base de datos.`
-        };
+      if (thread) {
+        console.log(`📊 Thread details:`, {
+          threadId: thread.threadId,
+          openaiThreadId: thread.openaiThreadId,
+          jiraIssueKey: thread.jiraIssueKey,
+          serviceId: thread.serviceId,
+          lastActivity: thread.lastActivity
+        });
       }
       
-      if (messages.length === 0) {
-        console.log(`⚠️ No messages found for thread ${threadId}`);
+      if (!thread || messages.length === 0) {
+        console.log(`⚠️ No thread or messages found for ${threadId}`);
         return {
           success: true,
           threadId,
-          response: `No hay mensajes en el historial de conversación para el ticket ${issueKey}.`
+          response: `No hay historial de conversación disponible para el ticket ${issueKey}.`
         };
       }
 
       // Build conversation history with timestamps
-      console.log(`📊 Messages retrieved:`, messages.map(msg => ({
-        id: msg.id,
-        role: msg.role,
-        content: msg.content.substring(0, 50) + '...',
-        timestamp: msg.timestamp
-      })));
-      
       const conversationHistory = messages.map(msg => 
         `[${msg.timestamp.toISOString()}] ${msg.role.toUpperCase()}: ${msg.content}`
       ).join('\n');
-      
-      console.log(`📊 Conversation history length: ${conversationHistory.length} characters`);
 
       const reportPrompt = `Como asistente de Atlassian, analiza la siguiente conversación del ticket ${issueKey} y genera un reporte profesional:
 
@@ -193,7 +184,7 @@ Formato el reporte de manera clara, profesional y estructurada. Complete.`;
       const reportResponse = await this.processChatForService(
         reportPrompt,
         'chat-general',
-        threadId, // Use the original threadId instead of creating a new one
+        `report_${issueKey}_${Date.now()}`,
         { isReportGeneration: true, originalIssueKey: issueKey }
       );
 
