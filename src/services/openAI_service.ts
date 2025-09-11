@@ -482,9 +482,45 @@ Formato el reporte de manera clara, profesional y estructurada. Complete.`;
     return this.configService.getActiveAssistantForService(serviceId);
   }
 
+  // Check if the message is a report request
+  private isReportRequest(message: string): boolean {
+    const reportKeywords = ['report', 'reporte', 'resumen', 'summary', 'informe'];
+    const messageLower = message.toLowerCase().trim();
+    
+    // Check for exact matches or if message contains report keywords
+    return reportKeywords.some(keyword => 
+      messageLower === keyword || 
+      messageLower.includes(keyword)
+    );
+  }
+
+  // Extract issue key from thread ID
+  private extractIssueKeyFromThreadId(threadId?: string): string | null {
+    if (!threadId) return null;
+    
+    // Extract from patterns like "widget_TI-123" or "jira_chat_TI-123"
+    const match = threadId.match(/(TI-\d+)/);
+    return match ? match[1] : null;
+  }
+
   // Method to process chat with a specific service assistant
   async processChatForService(message: string, serviceId: string, threadId?: string, context?: any): Promise<ChatbotResponse> {
     try {
+      // Check if this is a report request
+      if (this.isReportRequest(message)) {
+        console.log('📊 Report request detected, generating conversation report...');
+        const issueKey = context?.jiraIssueKey || this.extractIssueKeyFromThreadId(threadId);
+        if (issueKey) {
+          return await this.generateConversationReport(issueKey, threadId || '');
+        } else {
+          return {
+            success: false,
+            threadId: threadId || '',
+            error: 'No se pudo identificar el ticket para generar el reporte'
+          };
+        }
+      }
+
       // Get the assistant configured for this service
       const serviceAssistantId = this.configService.getActiveAssistantForService(serviceId);
       
