@@ -488,10 +488,16 @@ Formato el reporte de manera clara, profesional y estructurada. Complete.`;
     const messageLower = message.toLowerCase().trim();
     
     // Check for exact matches or if message contains report keywords
-    return reportKeywords.some(keyword => 
+    const isReport = reportKeywords.some(keyword => 
       messageLower === keyword || 
       messageLower.includes(keyword)
     );
+    
+    if (isReport) {
+      console.log(`📊 Report request detected: "${message}"`);
+    }
+    
+    return isReport;
   }
 
   // Extract issue key from thread ID
@@ -510,15 +516,13 @@ Formato el reporte de manera clara, profesional y estructurada. Complete.`;
       if (this.isReportRequest(message)) {
         console.log('📊 Report request detected, generating conversation report...');
         const issueKey = context?.jiraIssueKey || this.extractIssueKeyFromThreadId(threadId);
-        if (issueKey) {
-          return await this.generateConversationReport(issueKey, threadId || '');
-        } else {
-          return {
-            success: false,
-            threadId: threadId || '',
-            error: 'No se pudo identificar el ticket para generar el reporte'
-          };
-        }
+        
+        // If no issue key found, use the threadId as is for general conversation reports
+        const reportThreadId = threadId || 'general';
+        const reportIssueKey = issueKey || reportThreadId;
+        
+        console.log(`📊 Generating report for thread: ${reportThreadId}, issue: ${reportIssueKey}`);
+        return await this.generateConversationReport(reportIssueKey, reportThreadId);
       }
 
       // Get the assistant configured for this service
