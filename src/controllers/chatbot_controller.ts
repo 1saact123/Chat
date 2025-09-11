@@ -1,12 +1,14 @@
 import { Request, Response } from 'express';
 import { OpenAIService } from '../services/openAI_service';
 import { EmailService } from '../services/email_service';
+import { DatabaseService } from '../services/database_service';
 import { JiraWebhookPayload } from '../types';
 
 export class ChatbotController {
   private processedComments = new Set<string>();
   private lastResponseTime = new Map<string, number>(); // Para throttling por issue
   private conversationHistory = new Map<string, Array<{role: string, content: string, timestamp: Date}>>(); // Historial por issue
+  private dbService: DatabaseService;
   private webhookStats = {
     totalReceived: 0,
     duplicatesSkipped: 0,
@@ -20,7 +22,9 @@ export class ChatbotController {
   constructor(
     private openaiService: OpenAIService,
     private emailService: EmailService | null
-  ) {}
+  ) {
+    this.dbService = DatabaseService.getInstance();
+  }
 
   // Método privado para obtener estadísticas de webhooks
   private getWebhookStatsData() {
@@ -29,6 +33,28 @@ export class ChatbotController {
       processedCommentsCount: this.processedComments.size,
       uptime: Date.now() - this.webhookStats.lastReset.getTime()
     };
+  }
+
+  // Actualizar estadísticas de webhook en base de datos
+  private async updateWebhookStats(success: boolean): Promise<void> {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Obtener estadísticas actuales del día
+      const existingStats = await this.dbService.getWebhookStats(today);
+      
+      const totalWebhooks = (existingStats?.totalWebhooks || 0) + 1;
+      const successfulResponses = (existingStats?.successfulResponses || 0) + (success ? 1 : 0);
+      const failedResponses = (existingStats?.failedResponses || 0) + (success ? 0 : 1);
+      
+      // Actualizar en base de datos
+      await this.dbService.updateWebhookStats(today, totalWebhooks, successfulResponses, failedResponses);
+      
+      console.log(`📊 Webhook stats actualizadas: ${totalWebhooks} total, ${successfulResponses} exitosos, ${failedResponses} fallidos`);
+    } catch (error) {
+      console.error('❌ Error actualizando webhook stats:', error);
+    }
   }
 
   // Método privado para limpiar estadísticas
@@ -234,6 +260,9 @@ export class ChatbotController {
         
         // Actualizar tiempo de última respuesta
         this.lastResponseTime.set(issueKey, nowTimestamp);
+        
+        // Actualizar estadísticas en base de datos
+        await this.updateWebhookStats(true);
         
         // Si la IA respondió exitosamente, agregar el comentario a Jira
         if (response.success && response.response) {

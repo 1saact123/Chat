@@ -125,7 +125,7 @@ export class AdminController {
       }
 
       // Actualizar configuración
-      const success = this.configService.updateServiceConfiguration(serviceId, assistantId, assistantName);
+      const success = await this.configService.updateServiceConfiguration(serviceId, assistantId, assistantName);
       
       if (success) {
         res.json({

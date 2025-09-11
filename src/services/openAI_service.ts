@@ -131,6 +131,61 @@ export class OpenAIService {
     }
   }
 
+  // Generate conversation report using the assistant
+  private async generateConversationReport(issueKey: string, threadId: string): Promise<ChatbotResponse> {
+    try {
+      // Get conversation history from database
+      const { thread, messages } = await this.dbService.getThreadWithMessages(threadId);
+      
+      if (!thread || messages.length === 0) {
+        return {
+          success: true,
+          threadId,
+          response: `No hay historial de conversación disponible para el ticket ${issueKey}.`
+        };
+      }
+
+      // Build conversation history with timestamps
+      const conversationHistory = messages.map(msg => 
+        `[${msg.timestamp.toISOString()}] ${msg.role.toUpperCase()}: ${msg.content}`
+      ).join('\n');
+
+      const reportPrompt = `Como asistente de Atlassian, analiza la siguiente conversación del ticket ${issueKey} y genera un reporte profesional:
+
+CONVERSACIÓN:
+${conversationHistory}
+
+Genera un reporte estructurado que incluya:
+1. **RESUMEN EJECUTIVO**: Breve resumen de la conversación
+2. **TEMAS PRINCIPALES**: Lista de temas discutidos
+3. **PROBLEMAS IDENTIFICADOS**: Problemas específicos mencionados
+4. **SOLUCIONES PROPUESTAS**: Soluciones o recomendaciones dadas
+5. **ESTADO ACTUAL**: Estado actual del ticket según la conversación
+6. **PRÓXIMOS PASOS**: Recomendaciones para el agente de soporte
+7. **NOTAS TÉCNICAS**: Cualquier detalle técnico relevante
+
+Formato el reporte de manera clara, profesional y estructurada. Complete.`;
+
+      // Use the assistant to generate the report
+      const reportResponse = await this.processChatForService(
+        reportPrompt,
+        'chat-general',
+        `report_${issueKey}_${Date.now()}`,
+        { isReportGeneration: true, originalIssueKey: issueKey }
+      );
+
+      return reportResponse;
+
+    } catch (error) {
+      console.error('Error generating conversation report:', error);
+      return {
+        success: false,
+        threadId,
+        error: 'Error generando el reporte de conversación'
+      };
+    }
+  }
+
   private async processWithChatCompletions(message: string, threadId?: string, context?: any): Promise<ChatbotResponse> {
     console.log('🔗 Using Chat Completions API with conversation history...');
     console.log(`📝 Message: ${message}`);

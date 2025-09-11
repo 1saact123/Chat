@@ -85,7 +85,7 @@ export class ConfigurationService {
   }
 
   // Actualizar configuración de un servicio
-  updateServiceConfiguration(serviceId: string, assistantId: string, assistantName: string): boolean {
+  async updateServiceConfiguration(serviceId: string, assistantId: string, assistantName: string): Promise<boolean> {
     try {
       const config = this.configurations.get(serviceId);
       if (config) {
@@ -94,7 +94,17 @@ export class ConfigurationService {
         config.lastUpdated = new Date();
         this.configurations.set(serviceId, config);
         
-        console.log(`✅ Configuración actualizada para ${serviceId}: ${assistantName}`);
+        // Guardar en base de datos
+        await this.dbService.createOrUpdateServiceConfig({
+          serviceId: config.serviceId,
+          serviceName: config.serviceName,
+          assistantId: assistantId,
+          assistantName: assistantName,
+          isActive: config.isActive,
+          lastUpdated: config.lastUpdated
+        });
+        
+        console.log(`✅ Configuración actualizada para ${serviceId}: ${assistantName} - Guardado en BD`);
         return true;
       }
       return false;
