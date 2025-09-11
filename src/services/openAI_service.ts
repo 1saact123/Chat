@@ -180,12 +180,12 @@ Genera un reporte estructurado que incluya:
 
 Formato el reporte de manera clara, profesional y estructurada. Complete.`;
 
-      // Use the assistant to generate the report
+      // Use the assistant to generate the report with a temporary thread ID
       const reportResponse = await this.processChatForService(
         reportPrompt,
         'chat-general',
-        `report_${issueKey}_${Date.now()}`,
-        { isReportGeneration: true, originalIssueKey: issueKey }
+        `temp_report_${Date.now()}`,
+        { isReportGeneration: true, originalIssueKey: issueKey, originalThreadId: threadId }
       );
 
       return reportResponse;
@@ -531,11 +531,11 @@ Formato el reporte de manera clara, profesional y estructurada. Complete.`;
         console.log('📊 Report request detected, generating conversation report...');
         const issueKey = context?.jiraIssueKey || this.extractIssueKeyFromThreadId(threadId);
         
-        // Use the threadId as is for conversation reports
+        // Use the original threadId for conversation reports (don't create a new one)
         const reportThreadId = threadId || 'general';
         const reportIssueKey = issueKey || reportThreadId;
         
-        console.log(`📊 Generating report for thread: ${reportThreadId}, issue: ${reportIssueKey}`);
+        console.log(`📊 Generating report for ORIGINAL thread: ${reportThreadId}, issue: ${reportIssueKey}`);
         return await this.generateConversationReport(reportIssueKey, reportThreadId);
       }
 
