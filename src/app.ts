@@ -6,6 +6,7 @@ import 'dotenv/config';
 
 import routes from './routes';
 import { validateEnvironmentVariables } from './utils/validations';
+import { testConnection, syncDatabase } from './config/database';
 
 class MovonteAPI {
   private app: express.Application;
@@ -196,14 +197,29 @@ class MovonteAPI {
     });
   }
 
-  public start(): void {
-    // Solo servidor HTTP - nginx maneja HTTPS
-    this.app.listen(this.port, '0.0.0.0', () => {
-      console.log('\nMovonte API iniciada exitosamente!');
-      console.log('📦 Running behind nginx reverse proxy');
-      console.log(`🚀 Servidor ejecutándose en puerto ${this.port}`);
-      console.log(`📡 URL: http://localhost:${this.port}`);
-      console.log('\nEndpoints disponibles:');
+  public async start(): Promise<void> {
+    try {
+      // Inicializar base de datos
+      console.log('🔌 Conectando a la base de datos...');
+      const dbConnected = await testConnection();
+      
+      if (!dbConnected) {
+        console.error('❌ No se pudo conectar a la base de datos. Verifica la configuración.');
+        process.exit(1);
+      }
+      
+      // Sincronizar modelos
+      console.log('🔄 Sincronizando modelos de base de datos...');
+      await syncDatabase();
+      
+      // Solo servidor HTTP - nginx maneja HTTPS
+      this.app.listen(this.port, '0.0.0.0', () => {
+        console.log('\nMovonte API iniciada exitosamente!');
+        console.log('📦 Running behind nginx reverse proxy');
+        console.log('🗄️ Base de datos MySQL conectada');
+        console.log(`🚀 Servidor ejecutándose en puerto ${this.port}`);
+        console.log(`📡 URL: http://localhost:${this.port}`);
+        console.log('\nEndpoints disponibles:');
       console.log(`   Health Check: http://localhost:${this.port}/health`);
       console.log(`   Contact Form: POST http://localhost:${this.port}/api/contact`);
       console.log(`   Jira Test: http://localhost:${this.port}/api/contact/test-jira`);
@@ -212,6 +228,10 @@ class MovonteAPI {
       console.log('\n✅ API lista para recibir solicitudes (incluye webhooks de Jira)');
       console.log('🔗 Public URL: https://chat.movonte.com\n');
     });
+    } catch (error) {
+      console.error('❌ Error iniciando la aplicación:', error);
+      process.exit(1);
+    }
   }
 }
 
@@ -222,7 +242,10 @@ if (require.main === module) {
   
   console.log('🚀 Iniciando Movonte API...');
   const api = new MovonteAPI();
-  api.start();
+  api.start().catch(error => {
+    console.error('❌ Error fatal:', error);
+    process.exit(1);
+  });
 }
 
 export default MovonteAPI;

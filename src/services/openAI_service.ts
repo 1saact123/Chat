@@ -1,12 +1,14 @@
 import OpenAI from 'openai';
 import { ChatThread, ChatbotResponse, JiraWebhookPayload } from '../types';
 import { ConfigurationService } from './configuration_service';
+import { DatabaseService } from './database_service';
 
 export class OpenAIService {
   private openai: OpenAI;
   private assistantId: string;
   private threads: Map<string, ChatThread> = new Map();
   private configService: ConfigurationService;
+  private dbService: DatabaseService;
 
   constructor() {
     this.openai = new OpenAI({
@@ -14,6 +16,7 @@ export class OpenAIService {
     });
     this.assistantId = process.env.OPENAI_ASSISTANT_ID || '';
     this.configService = ConfigurationService.getInstance();
+    this.dbService = DatabaseService.getInstance();
   }
 
   async processJiraComment(payload: JiraWebhookPayload, enrichedContext?: any): Promise<ChatbotResponse> {
