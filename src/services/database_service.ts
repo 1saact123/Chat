@@ -116,8 +116,28 @@ export class DatabaseService {
   // ===== UTILITY METHODS =====
   
   async getThreadWithMessages(threadId: string): Promise<{ thread: ChatThread | null; messages: ChatMessage[] }> {
+    console.log(`🔍 DatabaseService.getThreadWithMessages called for threadId: ${threadId}`);
+    
     const thread = await this.getThread(threadId);
+    console.log(`🔍 Thread found:`, thread ? {
+      id: thread.id,
+      threadId: thread.threadId,
+      openaiThreadId: thread.openaiThreadId,
+      jiraIssueKey: thread.jiraIssueKey,
+      serviceId: thread.serviceId
+    } : null);
+    
     const messages = thread ? await this.getThreadMessages(threadId) : [];
+    console.log(`🔍 Messages found: ${messages.length} messages`);
+    
+    if (messages.length > 0) {
+      console.log(`🔍 First message:`, {
+        id: messages[0].id,
+        role: messages[0].role,
+        content: messages[0].content.substring(0, 100) + '...',
+        timestamp: messages[0].timestamp
+      });
+    }
     
     return { thread, messages };
   }

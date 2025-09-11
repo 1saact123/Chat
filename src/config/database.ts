@@ -1,3 +1,4 @@
+
 import { Sequelize } from 'sequelize';
 
 // Configuración de la base de datos
