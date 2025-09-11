@@ -164,26 +164,33 @@ export class OpenAIService {
         `[${msg.timestamp.toISOString()}] ${msg.role.toUpperCase()}: ${msg.content}`
       ).join('\n');
 
-      const reportPrompt = `Como asistente de Atlassian, analiza la siguiente conversación del ticket ${issueKey} y genera un reporte profesional:
+      // Get the assistant that handled this conversation
+      const threadConfig = await this.dbService.getThread(threadId);
+      const serviceId = threadConfig?.serviceId || 'chat-general';
+      const assistantId = this.configService.getActiveAssistantForService(serviceId);
+      
+      console.log(`📊 Using assistant ${assistantId} for service ${serviceId} to generate report`);
 
-CONVERSACIÓN:
+      const reportPrompt = `Analiza la siguiente conversación del ticket ${issueKey} y genera un reporte profesional basado en las preguntas y respuestas reales:
+
+CONVERSACIÓN COMPLETA:
 ${conversationHistory}
 
 Genera un reporte estructurado que incluya:
-1. **RESUMEN EJECUTIVO**: Breve resumen de la conversación
-2. **TEMAS PRINCIPALES**: Lista de temas discutidos
-3. **PROBLEMAS IDENTIFICADOS**: Problemas específicos mencionados
-4. **SOLUCIONES PROPUESTAS**: Soluciones o recomendaciones dadas
-5. **ESTADO ACTUAL**: Estado actual del ticket según la conversación
-6. **PRÓXIMOS PASOS**: Recomendaciones para el agente de soporte
-7. **NOTAS TÉCNICAS**: Cualquier detalle técnico relevante
+1. **RESUMEN EJECUTIVO**: Breve resumen basado en las preguntas reales del usuario
+2. **TEMAS PRINCIPALES**: Lista específica de los temas que preguntó el usuario
+3. **PROBLEMAS IDENTIFICADOS**: Problemas específicos que mencionó el usuario
+4. **SOLUCIONES PROPUESTAS**: Soluciones específicas que se dieron al usuario
+5. **ESTADO ACTUAL**: Estado actual basado en la última respuesta
+6. **PRÓXIMOS PASOS**: Recomendaciones específicas para el agente de soporte
+7. **NOTAS TÉCNICAS**: Detalles técnicos relevantes de la conversación
 
-Formato el reporte de manera clara, profesional y estructurada. Complete.`;
+IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inventes información. Complete.`;
 
-      // Use the assistant to generate the report with the original thread ID
+      // Use the assistant to generate the report with the original thread ID and service
       const reportResponse = await this.processChatForService(
         reportPrompt,
-        'chat-general',
+        serviceId, // Use the same service that handled the conversation
         threadId, // Use the original thread ID
         { isReportGeneration: true, originalIssueKey: issueKey, originalThreadId: threadId }
       );
