@@ -531,7 +531,7 @@ Formato el reporte de manera clara, profesional y estructurada. Complete.`;
         console.log('📊 Report request detected, generating conversation report...');
         const issueKey = context?.jiraIssueKey || this.extractIssueKeyFromThreadId(threadId);
         
-        // If no issue key found, use the threadId as is for general conversation reports
+        // Use the threadId as is for conversation reports
         const reportThreadId = threadId || 'general';
         const reportIssueKey = issueKey || reportThreadId;
         
