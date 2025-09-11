@@ -193,7 +193,7 @@ Formato el reporte de manera clara, profesional y estructurada. Complete.`;
       const reportResponse = await this.processChatForService(
         reportPrompt,
         'chat-general',
-        `report_${issueKey}_${Date.now()}`,
+        threadId, // Use the original threadId instead of creating a new one
         { isReportGeneration: true, originalIssueKey: issueKey }
       );
 
