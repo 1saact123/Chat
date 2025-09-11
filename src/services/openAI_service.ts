@@ -180,11 +180,11 @@ Genera un reporte estructurado que incluya:
 
 Formato el reporte de manera clara, profesional y estructurada. Complete.`;
 
-      // Use the assistant to generate the report with a temporary thread ID
+      // Use the assistant to generate the report with the original thread ID
       const reportResponse = await this.processChatForService(
         reportPrompt,
         'chat-general',
-        `temp_report_${Date.now()}`,
+        threadId, // Use the original thread ID
         { isReportGeneration: true, originalIssueKey: issueKey, originalThreadId: threadId }
       );
 
@@ -526,8 +526,8 @@ Formato el reporte de manera clara, profesional y estructurada. Complete.`;
   // Method to process chat with a specific service assistant
   async processChatForService(message: string, serviceId: string, threadId?: string, context?: any): Promise<ChatbotResponse> {
     try {
-      // Check if this is a report request
-      if (this.isReportRequest(message)) {
+      // Check if this is a report request (but not if we're already generating a report)
+      if (this.isReportRequest(message) && !context?.isReportGeneration) {
         console.log('📊 Report request detected, generating conversation report...');
         const issueKey = context?.jiraIssueKey || this.extractIssueKeyFromThreadId(threadId);
         
