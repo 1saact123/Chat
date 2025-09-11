@@ -455,8 +455,8 @@ export class OpenAIService {
         // Use existing thread or create a new one
         let thread;
         if (threadId) {
-          // Check if we have this thread in our internal system
-          const existingThread = this.threads.get(threadId);
+          // Check if we have this thread in the database
+          const existingThread = await this.dbService.getThread(threadId);
           if (existingThread && existingThread.openaiThreadId) {
             try {
               // Try to retrieve existing OpenAI thread
@@ -465,18 +465,25 @@ export class OpenAIService {
             } catch (error) {
               console.log(`⚠️ OpenAI thread ${existingThread.openaiThreadId} not found, creating new one`);
               thread = await this.openai.beta.threads.create();
-              // Update our internal thread with the new OpenAI thread ID
-              existingThread.openaiThreadId = thread.id;
+              // Update our database thread with the new OpenAI thread ID
+              await this.dbService.createOrUpdateThread({
+                threadId: threadId,
+                openaiThreadId: thread.id,
+                jiraIssueKey: context?.jiraIssueKey,
+                serviceId: serviceId,
+                lastActivity: new Date()
+              });
             }
           } else {
-            // Create new thread and store in our internal system
+            // Create new thread and store in database
             thread = await this.openai.beta.threads.create();
             console.log(`✅ Created new thread: ${thread.id} for internal thread: ${threadId}`);
-            // Store in our internal system
-            this.threads.set(threadId, {
+            // Store in database
+            await this.dbService.createOrUpdateThread({
               threadId: threadId,
               openaiThreadId: thread.id,
-              messages: [],
+              jiraIssueKey: context?.jiraIssueKey,
+              serviceId: serviceId,
               lastActivity: new Date()
             });
           }
@@ -510,16 +517,26 @@ export class OpenAIService {
           const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
           
           if (assistantMessage && assistantMessage.content[0].type === 'text') {
-            // Update our internal thread with the new message
+            // Save messages to database
             if (threadId) {
-              const internalThread = this.threads.get(threadId);
-              if (internalThread) {
-                internalThread.messages.push(
-                  { role: 'user', content: message, timestamp: new Date() },
-                  { role: 'assistant', content: assistantMessage.content[0].text.value, timestamp: new Date() }
-                );
-                internalThread.lastActivity = new Date();
-              }
+              // Save user message
+              await this.dbService.addMessage({
+                threadId: threadId,
+                role: 'user',
+                content: message,
+                timestamp: new Date()
+              });
+              
+              // Save assistant message
+              await this.dbService.addMessage({
+                threadId: threadId,
+                role: 'assistant',
+                content: assistantMessage.content[0].text.value,
+                timestamp: new Date()
+              });
+              
+              // Update thread activity
+              await this.dbService.updateThreadActivity(threadId);
             }
             
             return {

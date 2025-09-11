@@ -1,3 +1,5 @@
+import { DatabaseService } from './database_service';
+
 interface ServiceConfiguration {
   serviceId: string;
   serviceName: string;
@@ -11,8 +13,10 @@ export class ConfigurationService {
   private static instance: ConfigurationService;
   private configurations: Map<string, ServiceConfiguration> = new Map();
   private readonly CONFIG_FILE = 'service-config.json';
+  private dbService: DatabaseService;
 
   private constructor() {
+    this.dbService = DatabaseService.getInstance();
     this.loadConfigurations();
   }
 
