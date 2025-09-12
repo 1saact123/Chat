@@ -9,6 +9,8 @@ export function isValidEmail(email: string): boolean {
       'OPENAI_ASSISTANT_ID',
       'JIRA_EMAIL',
       'JIRA_API_TOKEN',
+      'JIRA_WIDGET',
+      'JIRA_WIDGET_TOKEN',
       'JIRA_BASE_URL',
       'JIRA_PROJECT_KEY'
       // Email variables commented out for testing
@@ -28,6 +30,8 @@ export function isValidEmail(email: string): boolean {
       console.log('# Jira');
       console.log('JIRA_EMAIL=your-email@movonte.com');
       console.log('JIRA_API_TOKEN=your_jira_token');
+      console.log('JIRA_WIDGET=chat@movonte.com');
+      console.log('JIRA_WIDGET_TOKEN=your_widget_token');
       console.log('JIRA_BASE_URL=https://movonte.atlassian.net');
       console.log('JIRA_PROJECT_KEY=CONTACT');
       console.log('');

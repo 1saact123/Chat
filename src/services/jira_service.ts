@@ -133,13 +133,8 @@ export class JiraService {
     try {
       console.log(`Adding comment to issue ${issueKey}: ${commentText}`);
       
-      // Format comment with author information
+      // Use comment text directly without prefixes or timestamps
       let formattedComment = commentText;
-      if (authorInfo) {
-        const sourceLabel = authorInfo.source === 'widget' ? 'Widget Chat' : 'Jira';
-        const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' });
-        formattedComment = `[${sourceLabel}] ${authorInfo.name}: ${commentText}\n\n---\nSent via ${sourceLabel} on ${timestamp}`;
-      }
       
       const commentData = {
         body: {
@@ -303,23 +298,22 @@ export class JiraService {
         })
         .map((comment: any) => {
           const content = comment.body?.content?.[0]?.content?.[0]?.text || '';
-          const isFromWidget = content.includes('[Widget Chat]');
-          const isFromJira = content.includes('[Jira]');
           
-          // Extract the actual message content
-          let messageContent = content;
-          if (isFromWidget || isFromJira) {
-            const colonIndex = content.indexOf(':');
-            if (colonIndex !== -1) {
-              messageContent = content.substring(colonIndex + 1).trim();
-            }
-          }
+          // Determine role based on author email
+          // Messages from widget users use JIRA_WIDGET email
+          // AI assistant responses use JIRA_EMAIL
+          const authorEmail = comment.author?.emailAddress?.toLowerCase() || '';
+          const widgetEmail = process.env.JIRA_WIDGET?.toLowerCase() || '';
+          const aiEmail = process.env.JIRA_EMAIL?.toLowerCase() || '';
+          
+          const isUserMessage = authorEmail === widgetEmail;
+          const isAIMessage = authorEmail === aiEmail;
           
           return {
-            role: isFromWidget ? 'user' : 'assistant',
-            content: messageContent,
+            role: isUserMessage ? 'user' : 'assistant',
+            content: content,
             timestamp: comment.created,
-            source: isFromWidget ? 'widget' : 'jira'
+            source: isUserMessage ? 'widget' : 'jira'
           };
         });
 
