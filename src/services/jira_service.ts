@@ -136,6 +136,18 @@ export class JiraService {
       // Use comment text directly without prefixes or timestamps
       let formattedComment = commentText;
       
+      // Determine which credentials to use based on the source
+      let authToken: string;
+      if (authorInfo?.source === 'widget') {
+        // Use JIRA_WIDGET credentials for widget messages
+        authToken = Buffer.from(`${process.env.JIRA_WIDGET}:${process.env.JIRA_WIDGET_TOKEN}`).toString('base64');
+        console.log(`Using JIRA_WIDGET credentials for widget message`);
+      } else {
+        // Use JIRA_EMAIL credentials for AI responses
+        authToken = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
+        console.log(`Using JIRA_EMAIL credentials for AI response`);
+      }
+      
       const commentData = {
         body: {
           version: 1,
@@ -159,7 +171,7 @@ export class JiraService {
         commentData,
         {
           headers: {
-            'Authorization': `Basic ${this.auth}`,
+            'Authorization': `Basic ${authToken}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           }
@@ -299,13 +311,15 @@ export class JiraService {
         .map((comment: any) => {
           const content = comment.body?.content?.[0]?.content?.[0]?.text || '';
           
-          // Determine role based on author (simplified logic)
-          // Messages from users (widget) vs AI assistant responses
-          const authorName = comment.author?.displayName?.toLowerCase() || '';
-          const isUserMessage = !authorName.includes('ai') && 
-                               !authorName.includes('assistant') && 
-                               !authorName.includes('bot') &&
-                               !authorName.includes('automation');
+          // Determine role based on author email
+          // Messages from widget users use JIRA_WIDGET email
+          // AI assistant responses use JIRA_EMAIL
+          const authorEmail = comment.author?.emailAddress?.toLowerCase() || '';
+          const widgetEmail = process.env.JIRA_WIDGET?.toLowerCase() || '';
+          const aiEmail = process.env.JIRA_EMAIL?.toLowerCase() || '';
+          
+          const isUserMessage = authorEmail === widgetEmail;
+          const isAIMessage = authorEmail === aiEmail;
           
           return {
             role: isUserMessage ? 'user' : 'assistant',

@@ -76,15 +76,12 @@ export class ChatbotController {
 
   // Método simplificado para detectar comentarios de IA
   private isAIComment(comment: any): boolean {
-    const authorName = comment.author.displayName.toLowerCase();
     const authorEmail = comment.author.emailAddress?.toLowerCase() || '';
     const commentBody = comment.body.toLowerCase();
 
-    // Patrones de autor que indican comentarios de IA
-    const aiAuthorPatterns = [
-      'ai', 'assistant', 'bot', 'automation', 'noreply',
-      'system', 'automated', 'chatbot', 'contact service account'
-    ];
+    // Check if comment is from AI account (JIRA_EMAIL)
+    const aiEmail = process.env.JIRA_EMAIL?.toLowerCase() || '';
+    const isFromAIAccount = authorEmail === aiEmail;
     
     // Patrones en el contenido que indican comentarios de IA
     const aiContentPatterns = [
@@ -93,17 +90,12 @@ export class ChatbotController {
       'as an atlassian solution partner', 'offers integration services'
     ];
     
-    // Detectar por autor
-    const isAIAuthor = aiAuthorPatterns.some(pattern => 
-      authorName.includes(pattern) || authorEmail.includes(pattern)
-    );
-    
     // Detectar por contenido
     const isAIContent = aiContentPatterns.some(pattern => 
       commentBody.includes(pattern)
     );
     
-    return isAIAuthor || isAIContent;
+    return isFromAIAccount || isAIContent;
   }
 
   // Method to calculate similarity between texts
