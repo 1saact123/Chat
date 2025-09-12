@@ -25,10 +25,8 @@ export class HealthController {
           assistantId: !!process.env.OPENAI_ASSISTANT_ID
         },
         jira: {
-          configured: !!(process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN && process.env.JIRA_WIDGET && process.env.JIRA_WIDGET_TOKEN),
-          baseUrl: process.env.JIRA_BASE_URL || 'Not configured',
-          widgetAccount: process.env.JIRA_WIDGET || 'Not configured',
-          aiAccount: process.env.JIRA_EMAIL || 'Not configured'
+          configured: !!(process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN),
+          baseUrl: process.env.JIRA_BASE_URL || 'Not configured'
         },
         email: {
           configured: !!(process.env.SMTP_USER && process.env.SMTP_PASS),

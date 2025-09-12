@@ -299,15 +299,13 @@ export class JiraService {
         .map((comment: any) => {
           const content = comment.body?.content?.[0]?.content?.[0]?.text || '';
           
-          // Determine role based on author email
-          // Messages from widget users use JIRA_WIDGET email
-          // AI assistant responses use JIRA_EMAIL
-          const authorEmail = comment.author?.emailAddress?.toLowerCase() || '';
-          const widgetEmail = process.env.JIRA_WIDGET?.toLowerCase() || '';
-          const aiEmail = process.env.JIRA_EMAIL?.toLowerCase() || '';
-          
-          const isUserMessage = authorEmail === widgetEmail;
-          const isAIMessage = authorEmail === aiEmail;
+          // Determine role based on author (simplified logic)
+          // Messages from users (widget) vs AI assistant responses
+          const authorName = comment.author?.displayName?.toLowerCase() || '';
+          const isUserMessage = !authorName.includes('ai') && 
+                               !authorName.includes('assistant') && 
+                               !authorName.includes('bot') &&
+                               !authorName.includes('automation');
           
           return {
             role: isUserMessage ? 'user' : 'assistant',
