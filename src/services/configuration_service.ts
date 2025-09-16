@@ -9,9 +9,17 @@ interface ServiceConfiguration {
   lastUpdated: Date;
 }
 
+interface DisabledTicket {
+  issueKey: string;
+  reason: string;
+  disabledAt: Date;
+  disabledBy: string;
+}
+
 export class ConfigurationService {
   private static instance: ConfigurationService;
   private configurations: Map<string, ServiceConfiguration> = new Map();
+  private disabledTickets: Map<string, DisabledTicket> = new Map();
   private readonly CONFIG_FILE = 'service-config.json';
   private dbService: DatabaseService;
 
@@ -198,5 +206,53 @@ export class ConfigurationService {
       console.error('❌ Error eliminando servicio:', error);
       return false;
     }
+  }
+
+  // === TICKET CONTROL METHODS ===
+
+  // Desactivar asistente para un ticket específico
+  disableAssistantForTicket(issueKey: string, reason: string = 'No reason provided'): void {
+    const disabledTicket: DisabledTicket = {
+      issueKey,
+      reason,
+      disabledAt: new Date(),
+      disabledBy: 'CEO Dashboard'
+    };
+    
+    this.disabledTickets.set(issueKey, disabledTicket);
+    console.log(`🚫 AI Assistant disabled for ticket: ${issueKey} - Reason: ${reason}`);
+  }
+
+  // Reactivar asistente para un ticket específico
+  enableAssistantForTicket(issueKey: string): void {
+    const removed = this.disabledTickets.delete(issueKey);
+    if (removed) {
+      console.log(`✅ AI Assistant re-enabled for ticket: ${issueKey}`);
+    }
+  }
+
+  // Verificar si un ticket tiene el asistente desactivado
+  isTicketDisabled(issueKey: string): boolean {
+    return this.disabledTickets.has(issueKey);
+  }
+
+  // Obtener información de un ticket desactivado
+  getDisabledTicketInfo(issueKey: string): DisabledTicket | null {
+    return this.disabledTickets.get(issueKey) || null;
+  }
+
+  // Obtener lista de todos los tickets desactivados
+  getDisabledTickets(): DisabledTicket[] {
+    return Array.from(this.disabledTickets.values());
+  }
+
+  // Obtener estadísticas de tickets desactivados
+  getDisabledTicketsStats(): { total: number; recent: number } {
+    const total = this.disabledTickets.size;
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recent = Array.from(this.disabledTickets.values())
+      .filter(ticket => ticket.disabledAt > oneDayAgo).length;
+    
+    return { total, recent };
   }
 }

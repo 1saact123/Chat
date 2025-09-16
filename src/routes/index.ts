@@ -153,6 +153,19 @@ router.get('/api/admin/jira/test-connection', adminController.testJiraConnection
 // Endpoint público para obtener asistente activo de un servicio
 router.get('/api/services/:serviceId/assistant', adminController.getActiveAssistantForService.bind(adminController));
 
+// === TICKET CONTROL ROUTES ===
+// Desactivar asistente en un ticket específico
+router.post('/api/admin/tickets/:issueKey/disable', adminController.disableAssistantForTicket.bind(adminController));
+
+// Reactivar asistente en un ticket específico
+router.post('/api/admin/tickets/:issueKey/enable', adminController.enableAssistantForTicket.bind(adminController));
+
+// Obtener lista de tickets con asistente desactivado
+router.get('/api/admin/tickets/disabled', adminController.getDisabledTickets.bind(adminController));
+
+// Verificar estado del asistente en un ticket
+router.get('/api/admin/tickets/:issueKey/status', adminController.checkTicketAssistantStatus.bind(adminController));
+
 // Chat específico por servicio
 router.post('/api/services/:serviceId/chat', chatbotController.handleServiceChat.bind(chatbotController));
 

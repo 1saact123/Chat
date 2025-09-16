@@ -453,4 +453,185 @@ export class AdminController {
       });
     }
   }
+
+  // === TICKET CONTROL METHODS ===
+
+  // Desactivar asistente en un ticket específico
+  async disableAssistantForTicket(req: Request, res: Response): Promise<void> {
+    try {
+      const { issueKey } = req.params;
+      const { reason } = req.body;
+
+      if (!issueKey) {
+        res.status(400).json({
+          success: false,
+          error: 'Se requiere el issueKey del ticket'
+        });
+        return;
+      }
+
+      console.log(`🚫 Desactivando asistente para ticket: ${issueKey}`);
+
+      // Verificar que el ticket existe
+      const jiraService = JiraService.getInstance();
+      const issue = await jiraService.getIssueByKey(issueKey);
+      
+      if (!issue) {
+        res.status(404).json({
+          success: false,
+          error: 'Ticket no encontrado'
+        });
+        return;
+      }
+
+      // Agregar comentario explicativo en Jira
+      const commentText = `🤖 **AI Assistant Disabled**\n\n` +
+        `The AI assistant has been disabled for this ticket by the CEO.\n` +
+        `Reason: ${reason || 'No reason provided'}\n` +
+        `Disabled at: ${new Date().toISOString()}\n\n` +
+        `To re-enable the assistant, use the CEO Dashboard.`;
+
+      await jiraService.addCommentToIssue(issueKey, commentText, {
+        name: 'CEO Dashboard',
+        source: 'jira'
+      });
+
+      // Agregar el ticket a la lista de tickets desactivados
+      this.configService.disableAssistantForTicket(issueKey, reason);
+
+      res.json({
+        success: true,
+        message: `AI Assistant disabled for ticket ${issueKey}`,
+        data: {
+          issueKey,
+          issueSummary: issue.fields.summary,
+          reason: reason || 'No reason provided',
+          disabledAt: new Date().toISOString()
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error desactivando asistente para ticket:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Reactivar asistente en un ticket específico
+  async enableAssistantForTicket(req: Request, res: Response): Promise<void> {
+    try {
+      const { issueKey } = req.params;
+
+      if (!issueKey) {
+        res.status(400).json({
+          success: false,
+          error: 'Se requiere el issueKey del ticket'
+        });
+        return;
+      }
+
+      console.log(`✅ Reactivando asistente para ticket: ${issueKey}`);
+
+      // Verificar que el ticket existe
+      const jiraService = JiraService.getInstance();
+      const issue = await jiraService.getIssueByKey(issueKey);
+      
+      if (!issue) {
+        res.status(404).json({
+          success: false,
+          error: 'Ticket no encontrado'
+        });
+        return;
+      }
+
+      // Agregar comentario explicativo en Jira
+      const commentText = `🤖 **AI Assistant Re-enabled**\n\n` +
+        `The AI assistant has been re-enabled for this ticket by the CEO.\n` +
+        `Re-enabled at: ${new Date().toISOString()}\n\n` +
+        `The assistant will now respond to new comments.`;
+
+      await jiraService.addCommentToIssue(issueKey, commentText, {
+        name: 'CEO Dashboard',
+        source: 'jira'
+      });
+
+      // Remover el ticket de la lista de tickets desactivados
+      this.configService.enableAssistantForTicket(issueKey);
+
+      res.json({
+        success: true,
+        message: `AI Assistant re-enabled for ticket ${issueKey}`,
+        data: {
+          issueKey,
+          issueSummary: issue.fields.summary,
+          enabledAt: new Date().toISOString()
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error reactivando asistente para ticket:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Obtener lista de tickets con asistente desactivado
+  async getDisabledTickets(req: Request, res: Response): Promise<void> {
+    try {
+      const disabledTickets = this.configService.getDisabledTickets();
+
+      res.json({
+        success: true,
+        data: {
+          disabledTickets,
+          count: disabledTickets.length
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo tickets desactivados:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Verificar si un ticket tiene el asistente desactivado
+  async checkTicketAssistantStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const { issueKey } = req.params;
+
+      if (!issueKey) {
+        res.status(400).json({
+          success: false,
+          error: 'Se requiere el issueKey del ticket'
+        });
+        return;
+      }
+
+      const isDisabled = this.configService.isTicketDisabled(issueKey);
+      const ticketInfo = isDisabled ? this.configService.getDisabledTicketInfo(issueKey) : null;
+
+      res.json({
+        success: true,
+        data: {
+          issueKey,
+          isDisabled,
+          ticketInfo
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error verificando estado del ticket:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
 }

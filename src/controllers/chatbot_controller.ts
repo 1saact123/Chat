@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { OpenAIService } from '../services/openAI_service';
 import { EmailService } from '../services/email_service';
 import { DatabaseService } from '../services/database_service';
+import { ConfigurationService } from '../services/configuration_service';
 import { JiraWebhookPayload } from '../types';
 
 export class ChatbotController {
@@ -209,6 +210,22 @@ export class ChatbotController {
         }
         
         console.log(`✅ PROCESANDO COMENTARIO: ${commentId}`);
+        
+        // Verificar si el asistente está desactivado para este ticket
+        const configService = ConfigurationService.getInstance();
+        if (configService.isTicketDisabled(issueKey)) {
+          const ticketInfo = configService.getDisabledTicketInfo(issueKey);
+          console.log(`🚫 ASISTENTE DESACTIVADO PARA TICKET ${issueKey}:`);
+          console.log(`   Razón: ${ticketInfo?.reason || 'No reason provided'}`);
+          console.log(`   Desactivado: ${ticketInfo?.disabledAt || 'Unknown'}`);
+          res.json({ 
+            success: true, 
+            message: 'AI Assistant disabled for this ticket', 
+            disabled: true,
+            reason: ticketInfo?.reason
+          });
+          return;
+        }
         
         // Agregar el comentario del usuario al historial
         this.addToConversationHistory(issueKey, 'user', payload.comment.body);

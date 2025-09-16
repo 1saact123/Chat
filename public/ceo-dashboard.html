@@ -270,6 +270,56 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Ticket Control Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Ticket Control</h2>
+                        <p>Disable AI assistant for specific Jira tickets</p>
+                    </div>
+                    <div class="section-content">
+                        <!-- Disable Assistant Form -->
+                        <div class="ticket-control-form">
+                            <div class="form-group">
+                                <label for="ticketIssueKey" class="form-label">Jira Ticket Key</label>
+                                <input type="text" id="ticketIssueKey" class="form-input" 
+                                       placeholder="e.g., TI-123" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="disableReason" class="form-label">Reason (Optional)</label>
+                                <textarea id="disableReason" class="form-textarea" 
+                                          placeholder="Reason for disabling the AI assistant..."></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn btn-danger" id="disableTicketBtn">
+                                    <i class="fas fa-ban"></i> Disable Assistant
+                                </button>
+                                <button class="btn btn-success" id="enableTicketBtn">
+                                    <i class="fas fa-check"></i> Enable Assistant
+                                </button>
+                                <button class="btn btn-secondary" id="checkTicketBtn">
+                                    <i class="fas fa-search"></i> Check Status
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Disabled Tickets List -->
+                        <div class="disabled-tickets-section">
+                            <div class="section-subheader">
+                                <h3>Currently Disabled Tickets</h3>
+                                <button class="btn btn-sm btn-secondary" id="refreshDisabledBtn">
+                                    <i class="fas fa-refresh"></i> Refresh
+                                </button>
+                            </div>
+                            <div id="disabledTicketsList" class="disabled-tickets-list">
+                                <div class="loading-state">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <span>Loading disabled tickets...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -353,6 +403,7 @@
                 await this.loadDashboard();
                 await this.loadProjects();
                 await this.loadRemoteProjects();
+                await this.loadDisabledTickets();
                 this.setupEventListeners();
             }
 
@@ -699,6 +750,23 @@
                 document.getElementById('remoteActiveProject')?.addEventListener('change', (e) => {
                     this.changeRemoteProject(e.target.value);
                 });
+
+                // Ticket control event listeners
+                document.getElementById('disableTicketBtn')?.addEventListener('click', () => {
+                    this.disableTicketAssistant();
+                });
+
+                document.getElementById('enableTicketBtn')?.addEventListener('click', () => {
+                    this.enableTicketAssistant();
+                });
+
+                document.getElementById('checkTicketBtn')?.addEventListener('click', () => {
+                    this.checkTicketStatus();
+                });
+
+                document.getElementById('refreshDisabledBtn')?.addEventListener('click', () => {
+                    this.loadDisabledTickets();
+                });
                  
                  // Event listeners para botones dinámicos (se configuran después de renderizar)
                  this.setupDynamicEventListeners();
@@ -824,6 +892,167 @@
                 } catch (error) {
                     console.error('Error changing remote project:', error);
                     this.showStatus(`Error changing remote project: ${error.message}`, 'error');
+                }
+            }
+
+            // === TICKET CONTROL METHODS ===
+
+            async loadDisabledTickets() {
+                try {
+                    const response = await fetch('/api/admin/tickets/disabled');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.renderDisabledTickets(data.data.disabledTickets);
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error loading disabled tickets:', error);
+                    this.showStatus(`Error loading disabled tickets: ${error.message}`, 'error');
+                }
+            }
+
+            renderDisabledTickets(disabledTickets) {
+                const container = document.getElementById('disabledTicketsList');
+                
+                if (disabledTickets.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><span>No tickets with disabled assistants</span></div>';
+                    return;
+                }
+
+                container.innerHTML = disabledTickets.map(ticket => `
+                    <div class="disabled-ticket-item">
+                        <div class="ticket-info">
+                            <div class="ticket-key">${ticket.issueKey}</div>
+                            <div class="ticket-details">
+                                <span class="ticket-reason">${ticket.reason}</span>
+                                <span class="ticket-date">${new Date(ticket.disabledAt).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="ticket-actions">
+                            <button class="btn btn-sm btn-success enable-ticket-btn" data-issue-key="${ticket.issueKey}">
+                                <i class="fas fa-check"></i> Enable
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Add event listeners for enable buttons
+                document.querySelectorAll('.enable-ticket-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const issueKey = e.target.dataset.issueKey;
+                        this.enableTicketAssistant(issueKey);
+                    });
+                });
+            }
+
+            async disableTicketAssistant() {
+                const issueKey = document.getElementById('ticketIssueKey').value.trim();
+                const reason = document.getElementById('disableReason').value.trim();
+
+                if (!issueKey) {
+                    this.showStatus('Please enter a ticket key', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/admin/tickets/${issueKey}/disable`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reason })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showStatus(`AI Assistant disabled for ticket ${issueKey}`, 'success');
+                        this.addActivity(`AI Assistant disabled for ticket ${issueKey}`, 'success');
+                        
+                        // Clear form
+                        document.getElementById('ticketIssueKey').value = '';
+                        document.getElementById('disableReason').value = '';
+                        
+                        // Reload disabled tickets
+                        await this.loadDisabledTickets();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error disabling ticket assistant:', error);
+                    this.showStatus(`Error disabling assistant: ${error.message}`, 'error');
+                }
+            }
+
+            async enableTicketAssistant(issueKey) {
+                if (!issueKey) {
+                    issueKey = document.getElementById('ticketIssueKey').value.trim();
+                }
+
+                if (!issueKey) {
+                    this.showStatus('Please enter a ticket key', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/admin/tickets/${issueKey}/enable`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showStatus(`AI Assistant enabled for ticket ${issueKey}`, 'success');
+                        this.addActivity(`AI Assistant enabled for ticket ${issueKey}`, 'success');
+                        
+                        // Clear form if it was used
+                        if (document.getElementById('ticketIssueKey').value === issueKey) {
+                            document.getElementById('ticketIssueKey').value = '';
+                            document.getElementById('disableReason').value = '';
+                        }
+                        
+                        // Reload disabled tickets
+                        await this.loadDisabledTickets();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error enabling ticket assistant:', error);
+                    this.showStatus(`Error enabling assistant: ${error.message}`, 'error');
+                }
+            }
+
+            async checkTicketStatus() {
+                const issueKey = document.getElementById('ticketIssueKey').value.trim();
+
+                if (!issueKey) {
+                    this.showStatus('Please enter a ticket key', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/admin/tickets/${issueKey}/status`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const status = data.data.isDisabled ? 'DISABLED' : 'ENABLED';
+                        const reason = data.data.ticketInfo?.reason || 'No reason provided';
+                        const disabledAt = data.data.ticketInfo?.disabledAt ? 
+                            new Date(data.data.ticketInfo.disabledAt).toLocaleString() : 'Unknown';
+                        
+                        let message = `Ticket ${issueKey} status: ${status}`;
+                        if (data.data.isDisabled) {
+                            message += `\nReason: ${reason}\nDisabled at: ${disabledAt}`;
+                        }
+                        
+                        this.showStatus(message, data.data.isDisabled ? 'warning' : 'success');
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error checking ticket status:', error);
+                    this.showStatus(`Error checking status: ${error.message}`, 'error');
                 }
             }
         }
