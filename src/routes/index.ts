@@ -197,6 +197,9 @@ router.get('/api/widget/ticket/:issueKey', widgetIntegrationController.getTicket
 // Health check for widget integration
 router.get('/api/widget/health', widgetIntegrationController.healthCheck.bind(widgetIntegrationController));
 
+// Check for new messages in Jira (for polling)
+router.get('/api/widget/check-messages', widgetIntegrationController.checkNewMessages.bind(widgetIntegrationController));
+
 // Send email with chat context - COMMENTED OUT FOR TESTING
 // router.post('/api/chatbot/email/send-with-context', chatbotController.sendEmailWithChatContext.bind(chatbotController));
 

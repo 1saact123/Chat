@@ -288,6 +288,10 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
       if (assistantResponse) {
         console.log('Chat Completions response:', assistantResponse);
         
+        // Clean citation references from the response
+        assistantResponse = this.cleanCitationReferences(assistantResponse);
+        console.log('Cleaned response (citations removed):', assistantResponse);
+        
         // Check if the response is very similar to previous responses
         const isRepetitive = this.checkForRepetitiveResponse(assistantResponse, context?.previousResponses || []);
         if (isRepetitive) {
@@ -296,7 +300,7 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
           const alternativeResponse = await this.generateAlternativeResponse(messages, context);
           if (alternativeResponse) {
             console.log('✅ Generated alternative response');
-            assistantResponse = alternativeResponse;
+            assistantResponse = this.cleanCitationReferences(alternativeResponse);
           }
         }
         
@@ -440,6 +444,23 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
     return intersection.size / union.size;
   }
 
+  // Method to clean citation references from AI responses
+  private cleanCitationReferences(text: string): string {
+    if (!text) return text;
+    
+    // Remove citation patterns like 【26:0†Solutions-Movonte Services one-page】
+    // This regex matches 【 followed by any characters until the closing 】
+    let cleanedText = text.replace(/【[^】]*】/g, '');
+    
+    // Also remove any remaining citation patterns with different brackets
+    cleanedText = cleanedText.replace(/\[[^\]]*:\d+[^\]]*\]/g, '');
+    
+    // Clean up any extra whitespace that might be left
+    cleanedText = cleanedText.replace(/\s+/g, ' ').trim();
+    
+    return cleanedText;
+  }
+
   // Method to generate an alternative response
   private async generateAlternativeResponse(messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>, context?: any): Promise<string | null> {
     try {
@@ -458,7 +479,8 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
         frequency_penalty: 0.8 // Higher penalty for frequency
       });
 
-      return response.choices[0]?.message?.content || null;
+      const responseContent = response.choices[0]?.message?.content || null;
+      return responseContent ? this.cleanCitationReferences(responseContent) : null;
     } catch (error) {
       console.error('Error generating alternative response:', error);
       return null;
@@ -633,6 +655,10 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
           const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
           
           if (assistantMessage && assistantMessage.content[0].type === 'text') {
+            // Clean citation references from the assistant response
+            const cleanedResponse = this.cleanCitationReferences(assistantMessage.content[0].text.value);
+            console.log('Cleaned assistant response (citations removed):', cleanedResponse);
+            
             // Save messages to database
             if (threadId) {
               // Save user message
@@ -643,11 +669,11 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
                 timestamp: new Date()
               });
               
-              // Save assistant message
+              // Save assistant message (with cleaned content)
               await this.dbService.addMessage({
                 threadId: threadId,
                 role: 'assistant',
-                content: assistantMessage.content[0].text.value,
+                content: cleanedResponse,
                 timestamp: new Date()
               });
               
@@ -658,7 +684,7 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
             return {
               success: true,
               threadId: threadId || thread.id, // Return our internal threadId if available
-              response: assistantMessage.content[0].text.value,
+              response: cleanedResponse,
               assistantId: serviceAssistantId,
               assistantName: assistant.name || 'Unknown Assistant'
             };

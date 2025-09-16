@@ -278,6 +278,106 @@ export class WidgetIntegrationController {
   }
 
   /**
+   * Check for new messages in Jira (for polling)
+   */
+  async checkNewMessages(req: Request, res: Response): Promise<void> {
+    try {
+      const { issueKey, lastMessageId } = req.query;
+
+      if (!issueKey || typeof issueKey !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'Missing or invalid issueKey parameter'
+        });
+        return;
+      }
+
+      console.log(`🔍 Checking for new messages in ticket ${issueKey} since message ${lastMessageId}`);
+
+      // Get all comments for the issue
+      const comments = await this.jiraService.getIssueComments(issueKey as string);
+      
+      if (!comments || comments.length === 0) {
+        res.json({
+          success: true,
+          issueKey,
+          newMessages: [],
+          hasNewMessages: false,
+          lastMessageId: null
+        });
+        return;
+      }
+
+      // Filter new messages (after the last known message ID)
+      let newMessages = comments;
+      if (lastMessageId && lastMessageId !== 'null') {
+        const lastMessageIndex = comments.findIndex((comment: any) => comment.id === lastMessageId);
+        if (lastMessageIndex !== -1) {
+          newMessages = comments.slice(lastMessageIndex + 1);
+        }
+      }
+
+      // Format messages for the widget
+      const formattedMessages = newMessages.map((comment: any) => ({
+        id: comment.id,
+        body: comment.body,
+        author: {
+          displayName: comment.author.displayName,
+          emailAddress: comment.author.emailAddress
+        },
+        created: comment.created,
+        isFromAI: this.isAIComment(comment),
+        source: this.isAIComment(comment) ? 'assistant' : 'user'
+      }));
+
+      // Get the latest message ID
+      const latestMessageId = comments.length > 0 ? comments[comments.length - 1].id : null;
+
+      res.json({
+        success: true,
+        issueKey,
+        newMessages: formattedMessages,
+        hasNewMessages: formattedMessages.length > 0,
+        lastMessageId: latestMessageId,
+        totalMessages: comments.length
+      });
+
+    } catch (error) {
+      console.error('Error checking for new messages:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  /**
+   * Helper method to detect AI comments
+   */
+  private isAIComment(comment: any): boolean {
+    const authorEmail = comment.author.emailAddress?.toLowerCase() || '';
+    const commentBody = comment.body.toLowerCase();
+
+    // Check if comment is from AI account (JIRA_EMAIL)
+    const aiEmail = process.env.JIRA_EMAIL?.toLowerCase() || '';
+    const isFromAIAccount = authorEmail === aiEmail;
+    
+    // Patrones en el contenido que indican comentarios de IA
+    const aiContentPatterns = [
+      'complete.', 'how can i assist you',
+      '🎯 **chat session started**', 'chat widget connected',
+      'as an atlassian solution partner', 'offers integration services'
+    ];
+    
+    // Detectar por contenido
+    const isAIContent = aiContentPatterns.some(pattern => 
+      commentBody.includes(pattern)
+    );
+    
+    return isFromAIAccount || isAIContent;
+  }
+
+  /**
    * Health check for widget integration
    */
   async healthCheck(req: Request, res: Response): Promise<void> {

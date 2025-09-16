@@ -332,6 +332,29 @@
             100% { transform: rotate(360deg); }
         }
 
+        .polling-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--success-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .chat-header {
+            position: relative;
+        }
+
         @media (max-width: 768px) {
             .widget-container {
                 grid-template-columns: 1fr;
@@ -396,6 +419,7 @@
                 <div id="chatWidget" class="chat-widget hidden">
                     <div class="chat-header">
                         <span id="chatTitle">Chat with Support</span>
+                        <div id="pollingIndicator" class="polling-indicator hidden">🔄 Live</div>
                     </div>
                     
                     <div id="chatMessages" class="chat-messages">
@@ -446,6 +470,8 @@
         let currentTicket = null;
         let currentCustomer = null;
         let isConnected = false;
+        let lastMessageId = null;
+        let pollingInterval = null;
 
         // API Base URL
         const API_BASE = window.location.origin;
@@ -543,6 +569,16 @@
 
                 if (data.success) {
                     displayConversationHistory(data.conversationHistory);
+                    
+                    // Set the last message ID for polling
+                    if (data.conversationHistory && data.conversationHistory.length > 0) {
+                        const lastMessage = data.conversationHistory[data.conversationHistory.length - 1];
+                        lastMessageId = lastMessage.id;
+                        console.log('📝 Last message ID set:', lastMessageId);
+                    }
+                    
+                    // Start polling for new messages
+                    startPolling();
                 }
             } catch (error) {
                 console.error('Error loading conversation history:', error);
@@ -658,6 +694,11 @@
             const messageDiv = createMessageElement(msg);
             chatMessages.appendChild(messageDiv);
             
+            // Update last message ID if provided
+            if (msg.id) {
+                lastMessageId = msg.id;
+            }
+            
             // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -667,6 +708,10 @@
             currentTicket = null;
             currentCustomer = null;
             isConnected = false;
+            lastMessageId = null;
+
+            // Stop polling
+            stopPolling();
 
             // Reset UI
             document.getElementById('connectionForm').classList.remove('hidden');
@@ -686,6 +731,79 @@
             connectBtn.classList.add('btn-success');
 
             showAlert('Disconnected from ticket', 'info');
+        }
+
+        // Start polling for new messages
+        function startPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+
+            console.log('🔄 Starting polling for new messages...');
+            
+            // Show polling indicator
+            document.getElementById('pollingIndicator').classList.remove('hidden');
+            
+            // Poll every 3 seconds
+            pollingInterval = setInterval(async () => {
+                if (isConnected && currentTicket) {
+                    await checkForNewMessages();
+                }
+            }, 3000);
+        }
+
+        // Stop polling
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                console.log('⏹️ Polling stopped');
+            }
+            
+            // Hide polling indicator
+            document.getElementById('pollingIndicator').classList.add('hidden');
+        }
+
+        // Check for new messages from Jira
+        async function checkForNewMessages() {
+            try {
+                const url = `${API_BASE}/api/widget/check-messages?issueKey=${currentTicket.key}&lastMessageId=${lastMessageId || 'null'}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.hasNewMessages) {
+                    console.log('📨 New messages found:', data.newMessages.length);
+                    
+                    // Add new messages to chat
+                    data.newMessages.forEach(msg => {
+                        // Only show messages that are not from the current user (to avoid duplicates)
+                        if (msg.source === 'user' && msg.author.emailAddress !== currentCustomer.email) {
+                            addMessageToChat({
+                                role: 'user',
+                                content: msg.body,
+                                timestamp: msg.created,
+                                source: 'jira',
+                                id: msg.id
+                            });
+                        } else if (msg.source === 'assistant') {
+                            addMessageToChat({
+                                role: 'assistant',
+                                content: msg.body,
+                                timestamp: msg.created,
+                                source: 'jira',
+                                id: msg.id
+                            });
+                        }
+                    });
+
+                    // Update last message ID
+                    if (data.lastMessageId) {
+                        lastMessageId = data.lastMessageId;
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking for new messages:', error);
+            }
         }
 
         // Test integration
