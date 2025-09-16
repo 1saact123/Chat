@@ -297,7 +297,10 @@ export class WidgetIntegrationController {
       // Get all comments for the issue
       const comments = await this.jiraService.getIssueComments(issueKey as string);
       
-      if (!comments || comments.length === 0) {
+      // Ensure comments is an array
+      const commentsArray = Array.isArray(comments) ? comments : [];
+      
+      if (commentsArray.length === 0) {
         res.json({
           success: true,
           issueKey,
@@ -309,11 +312,11 @@ export class WidgetIntegrationController {
       }
 
       // Filter new messages (after the last known message ID)
-      let newMessages = comments;
-      if (lastMessageId && lastMessageId !== 'null') {
-        const lastMessageIndex = comments.findIndex((comment: any) => comment.id === lastMessageId);
+      let newMessages = commentsArray;
+      if (lastMessageId && lastMessageId !== 'null' && lastMessageId !== 'undefined') {
+        const lastMessageIndex = commentsArray.findIndex((comment: any) => comment.id === lastMessageId);
         if (lastMessageIndex !== -1) {
-          newMessages = comments.slice(lastMessageIndex + 1);
+          newMessages = commentsArray.slice(lastMessageIndex + 1);
         }
       }
 
@@ -331,7 +334,7 @@ export class WidgetIntegrationController {
       }));
 
       // Get the latest message ID
-      const latestMessageId = comments.length > 0 ? comments[comments.length - 1].id : null;
+      const latestMessageId = commentsArray.length > 0 ? commentsArray[commentsArray.length - 1].id : null;
 
       res.json({
         success: true,
@@ -339,7 +342,7 @@ export class WidgetIntegrationController {
         newMessages: formattedMessages,
         hasNewMessages: formattedMessages.length > 0,
         lastMessageId: latestMessageId,
-        totalMessages: comments.length
+        totalMessages: commentsArray.length
       });
 
     } catch (error) {
