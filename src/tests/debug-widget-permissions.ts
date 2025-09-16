@@ -20,7 +20,7 @@ async function debugWidgetPermissions() {
         project: issue.fields.project.name
       });
     } catch (error) {
-      console.log(`❌ Issue ${issueKey} not found or no access with main account:`, error.message);
+      console.log(`❌ Issue ${issueKey} not found or no access with main account:`, (error as Error).message);
       return;
     }
     
@@ -53,7 +53,8 @@ async function debugWidgetPermissions() {
       );
       console.log(`✅ Widget account can access issue ${issueKey}`);
     } catch (error) {
-      console.log(`❌ Widget account cannot access issue ${issueKey}:`, error.response?.status, error.response?.data);
+      const axiosError = error as any;
+      console.log(`❌ Widget account cannot access issue ${issueKey}:`, axiosError.response?.status, axiosError.response?.data);
     }
     
     // 4. Test adding comment with widget account
@@ -93,7 +94,8 @@ async function debugWidgetPermissions() {
       console.log('Comment ID:', response.data.id);
       
     } catch (error) {
-      console.log('❌ Widget account cannot add comments:', error.response?.status, error.response?.data);
+      const axiosError = error as any;
+      console.log('❌ Widget account cannot add comments:', axiosError.response?.status, axiosError.response?.data);
     }
     
     // 5. Check user permissions
@@ -117,7 +119,8 @@ async function debugWidgetPermissions() {
       });
       
     } catch (error) {
-      console.log('❌ Cannot get widget user info:', error.response?.status, error.response?.data);
+      const axiosError = error as any;
+      console.log('❌ Cannot get widget user info:', axiosError.response?.status, axiosError.response?.data);
     }
     
   } catch (error) {
