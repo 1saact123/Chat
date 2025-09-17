@@ -295,12 +295,10 @@ export class WidgetIntegrationController {
       console.log(`🔍 Checking for new messages in ticket ${issueKey} since message ${lastMessageId}`);
 
       // Get all comments for the issue
-      const comments = await this.jiraService.getIssueComments(issueKey as string);
+      const commentsResponse = await this.jiraService.getIssueComments(issueKey as string);
       
-      // Ensure comments is an array
-      const commentsArray = Array.isArray(comments) ? comments : [];
-      
-      console.log(`📋 Retrieved ${commentsArray.length} comments for ${issueKey}`);
+      // Jira API v3 returns { comments: [...] }, extract the array
+      const commentsArray = commentsResponse?.comments || [];
       
       if (commentsArray.length === 0) {
         res.json({

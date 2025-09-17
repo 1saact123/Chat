@@ -119,6 +119,9 @@ export class JiraService {
         }
       );
 
+      console.log(`📋 Retrieved ${response.data.comments?.length || 0} comments for ${issueKey}`);
+      console.log(`📊 Comments structure:`, JSON.stringify(response.data, null, 2));
+
       return response.data;
     } catch (error) {
       console.error(`Error getting comments for ${issueKey}:`, error);
@@ -299,7 +302,7 @@ export class JiraService {
       console.log(`Getting conversation history for issue ${issueKey}`);
       
       const commentsResponse = await this.getIssueComments(issueKey);
-      const comments = commentsResponse.comments || [];
+      const comments = commentsResponse?.comments || [];
       
       // Filter and format comments for chat widget
       const conversationHistory = comments
