@@ -116,10 +116,10 @@ export class ChatbotController {
     const widgetEmail = process.env.JIRA_WIDGET?.toLowerCase() || '';
     const isFromWidgetAccount = authorEmail === widgetEmail;
     
-    // Check if display name indicates widget
+    // Check if display name indicates widget (be more specific)
     const isWidgetDisplayName = authorDisplayName.includes('widget') || 
-                               authorDisplayName.includes('ai assistant') ||
-                               authorDisplayName.includes('contact service');
+                               authorDisplayName.includes('chat widget') ||
+                               authorDisplayName.includes('system');
     
     return isFromWidgetAccount || isWidgetDisplayName;
   }
