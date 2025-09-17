@@ -781,38 +781,42 @@
                 const response = await fetch(url);
                 const data = await response.json();
 
-                if (data.success && data.hasNewMessages) {
-                    console.log('📨 New messages found:', data.newMessages.length);
-                    
-                    // Add new messages to chat
-                    data.newMessages.forEach(msg => {
-                        // Only show messages that are not from the current user (to avoid duplicates)
-                        if (msg.source === 'user' && msg.author.emailAddress !== currentCustomer.email) {
-                            addMessageToChat({
-                                role: 'user',
-                                content: msg.body,
-                                timestamp: msg.created,
-                                source: 'jira',
-                                id: msg.id
-                            });
-                        } else if (msg.source === 'assistant') {
-                            addMessageToChat({
-                                role: 'assistant',
-                                content: msg.body,
-                                timestamp: msg.created,
-                                source: 'jira',
-                                id: msg.id
-                            });
-                        }
-                    });
-
-                    // Update last message ID
-                    if (data.lastMessageId) {
+                if (data.success) {
+                    // Always update lastMessageId if provided (even if no new messages)
+                    if (data.lastMessageId && data.lastMessageId !== lastMessageId) {
                         lastMessageId = data.lastMessageId;
                         console.log('📝 Updated lastMessageId to:', lastMessageId);
                     }
+
+                    if (data.hasNewMessages) {
+                        console.log('📨 New messages found:', data.newMessages.length);
+                        
+                        // Add new messages to chat
+                        data.newMessages.forEach(msg => {
+                            // Only show messages that are not from the current user (to avoid duplicates)
+                            if (msg.source === 'user' && msg.author.emailAddress !== currentCustomer.email) {
+                                addMessageToChat({
+                                    role: 'user',
+                                    content: msg.body,
+                                    timestamp: msg.created,
+                                    source: 'jira',
+                                    id: msg.id
+                                });
+                            } else if (msg.source === 'assistant') {
+                                addMessageToChat({
+                                    role: 'assistant',
+                                    content: msg.body,
+                                    timestamp: msg.created,
+                                    source: 'jira',
+                                    id: msg.id
+                                });
+                            }
+                        });
+                    } else {
+                        console.log('📭 No new messages found');
+                    }
                 } else {
-                    console.log('📭 No new messages found');
+                    console.log('❌ Polling failed:', data.error);
                 }
             } catch (error) {
                 console.error('Error checking for new messages:', error);

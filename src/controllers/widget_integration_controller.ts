@@ -300,6 +300,8 @@ export class WidgetIntegrationController {
       // Ensure comments is an array
       const commentsArray = Array.isArray(comments) ? comments : [];
       
+      console.log(`📋 Retrieved ${commentsArray.length} comments for ${issueKey}`);
+      
       if (commentsArray.length === 0) {
         res.json({
           success: true,
@@ -339,8 +341,15 @@ export class WidgetIntegrationController {
         source: this.isAIComment(comment) ? 'assistant' : 'user'
       }));
 
-      // Get the latest message ID
+      // Get the latest message ID (always return the latest, even if no new messages)
       const latestMessageId = commentsArray.length > 0 ? commentsArray[commentsArray.length - 1].id : null;
+
+      console.log(`📊 Polling response for ${issueKey}:`, {
+        totalComments: commentsArray.length,
+        newMessages: formattedMessages.length,
+        latestMessageId: latestMessageId,
+        lastKnownId: lastMessageId
+      });
 
       res.json({
         success: true,
