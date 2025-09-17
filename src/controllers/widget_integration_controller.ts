@@ -327,17 +327,23 @@ export class WidgetIntegrationController {
       }
 
       // Format messages for the widget
-      const formattedMessages = newMessages.map((comment: any) => ({
-        id: comment.id,
-        body: this.extractTextFromADF(comment.body),
-        author: {
-          displayName: comment.author.displayName,
-          emailAddress: comment.author.emailAddress
-        },
-        created: comment.created,
-        isFromAI: this.isAIComment(comment),
-        source: this.isAIComment(comment) ? 'assistant' : 'user'
-      }));
+      const formattedMessages = newMessages.map((comment: any) => {
+        const isFromAI = this.isAIComment(comment);
+        const isFromAgent = this.isAgentComment(comment);
+        
+        return {
+          id: comment.id,
+          body: this.extractTextFromADF(comment.body),
+          author: {
+            displayName: comment.author.displayName,
+            emailAddress: comment.author.emailAddress
+          },
+          created: comment.created,
+          isFromAI: isFromAI,
+          isFromAgent: isFromAgent,
+          source: isFromAI ? 'assistant' : (isFromAgent ? 'agent' : 'user')
+        };
+      });
 
       // Get the latest message ID (always return the latest, even if no new messages)
       const latestMessageId = commentsArray.length > 0 ? commentsArray[commentsArray.length - 1].id : null;
@@ -397,6 +403,37 @@ export class WidgetIntegrationController {
     }
     
     return text;
+  }
+
+  /**
+   * Helper method to detect agent comments (not AI, but human agents)
+   */
+  private isAgentComment(comment: any): boolean {
+    const authorEmail = comment.author.emailAddress?.toLowerCase() || '';
+    const authorDisplayName = comment.author.displayName?.toLowerCase() || '';
+    
+    // Check if it's an internal note (agents typically use internal notes)
+    const isInternalNote = comment.jsdPublic === false;
+    
+    // Check if it's from a known agent email (you can add more agent emails here)
+    const agentEmails = [
+      'isaac.toledo@movonte.com',
+      'isaac@movonte.com',
+      'admin@movonte.com'
+      // Add more agent emails as needed
+    ];
+    
+    const isFromAgentEmail = agentEmails.some(email => 
+      authorEmail.includes(email.toLowerCase())
+    );
+    
+    // Check if display name suggests it's an agent
+    const isAgentName = authorDisplayName.includes('isaac') || 
+                       authorDisplayName.includes('toledo') ||
+                       authorDisplayName.includes('agent') ||
+                       authorDisplayName.includes('admin');
+    
+    return isInternalNote || isFromAgentEmail || isAgentName;
   }
 
   /**

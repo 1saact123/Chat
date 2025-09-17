@@ -205,6 +205,23 @@
             border: 1px solid var(--border-color);
         }
 
+        .message.agent {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: 1px solid #5a67d8;
+        }
+
+        .message.agent .author {
+            font-size: 0.8em;
+            opacity: 0.9;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .message.agent .content {
+            font-weight: 500;
+        }
+
         .message.system {
             background: var(--warning-color);
             color: white;
@@ -623,8 +640,14 @@
                 minute: '2-digit' 
             });
             
+            let authorInfo = '';
+            if (msg.role === 'agent' && msg.author) {
+                authorInfo = `<div class="author">👤 ${msg.author}</div>`;
+            }
+            
             messageDiv.innerHTML = `
-                ${msg.content}
+                ${authorInfo}
+                <div class="content">${msg.content}</div>
                 <div class="timestamp">${timestamp} (${msg.source})</div>
             `;
             
@@ -809,6 +832,15 @@
                                     timestamp: msg.created,
                                     source: 'jira',
                                     id: msg.id
+                                });
+                            } else if (msg.source === 'agent') {
+                                addMessageToChat({
+                                    role: 'agent',
+                                    content: msg.body,
+                                    timestamp: msg.created,
+                                    source: 'jira',
+                                    id: msg.id,
+                                    author: msg.author.displayName
                                 });
                             }
                         });
