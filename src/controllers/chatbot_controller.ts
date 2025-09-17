@@ -177,17 +177,21 @@ export class ChatbotController {
       console.log(`   Evento: ${payload.webhookEvent}`);
       console.log(`   Issue: ${payload.issue.key}`);
       console.log(`   Usuario: ${payload.comment?.author?.displayName || 'N/A'}`);
+      console.log(`   Comment ID: ${payload.comment?.id || 'N/A'}`);
       console.log(`   Timestamp: ${new Date().toISOString()}`);
+      console.log(`   Comentarios procesados en memoria: ${this.processedComments.size}`);
       
       // Solo procesar eventos de comentarios y creación de tickets
       if (payload.webhookEvent === 'comment_created' && payload.comment) {
-        // Crear un ID único para este comentario
-        const commentId = `${payload.issue.key}_${payload.comment.id}_${payload.comment.created}`;
+        // Crear un ID único para este comentario (usar solo el ID de Jira)
+        const commentId = `${payload.issue.key}_${payload.comment.id}`;
         
         // Verificar si ya procesamos este comentario
         if (this.processedComments.has(commentId)) {
           this.webhookStats.duplicatesSkipped++;
           console.log(`⚠️  DUPLICADO DETECTADO: ${commentId}`);
+          console.log(`   Autor: ${payload.comment.author.displayName}`);
+          console.log(`   Contenido: ${this.extractTextFromADF(payload.comment.body).substring(0, 100)}...`);
           console.log(`   Estadísticas: ${this.webhookStats.duplicatesSkipped} duplicados de ${this.webhookStats.totalReceived} total`);
           res.json({ success: true, message: 'Comment already processed', duplicate: true });
           return;
@@ -195,6 +199,7 @@ export class ChatbotController {
         
         // Marcar como procesado
         this.processedComments.add(commentId);
+        console.log(`✅ Comentario marcado como procesado: ${commentId}`);
         
         // Limpiar comentarios antiguos (mantener solo los últimos 100)
         if (this.processedComments.size > 100) {
@@ -211,7 +216,7 @@ export class ChatbotController {
           console.log(`   Autor: ${payload.comment.author.displayName}`);
           console.log(`   Email: ${payload.comment.author.emailAddress || 'N/A'}`);
           console.log(`   Account ID: ${payload.comment.author.accountId}`);
-          console.log(`   Contenido: ${payload.comment.body.substring(0, 150)}...`);
+          console.log(`   Contenido: ${this.extractTextFromADF(payload.comment.body).substring(0, 150)}...`);
           console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios de IA saltados`);
           res.json({ success: true, message: 'Skipped AI comment', aiComment: true });
           return;
@@ -258,8 +263,24 @@ export class ChatbotController {
           return;
         }
         
+        // Verificar si el contenido ya existe en el historial reciente
+        const recentHistory = this.conversationHistory.get(issueKey) || [];
+        const commentText = this.extractTextFromADF(payload.comment.body);
+        const isDuplicateContent = recentHistory.some(msg => 
+          msg.role === 'user' && 
+          this.calculateSimilarity(msg.content, commentText) > 0.8
+        );
+        
+        if (isDuplicateContent) {
+          console.log(`⚠️  CONTENIDO DUPLICADO DETECTADO:`);
+          console.log(`   Contenido: ${commentText.substring(0, 100)}...`);
+          console.log(`   Estadísticas: Contenido similar encontrado en historial reciente`);
+          res.json({ success: true, message: 'Duplicate content detected', duplicate: true });
+          return;
+        }
+
         // Agregar el comentario del usuario al historial
-        this.addToConversationHistory(issueKey, 'user', payload.comment.body);
+        this.addToConversationHistory(issueKey, 'user', commentText);
         console.log(`📝 Comentario agregado al historial para ${issueKey}`);
         
         // Obtener historial de conversación para contexto
