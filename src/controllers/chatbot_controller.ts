@@ -150,8 +150,8 @@ export class ChatbotController {
       
       // Solo procesar eventos de comentarios y creación de tickets
       if (payload.webhookEvent === 'comment_created' && payload.comment) {
-        // Crear un ID único para este comentario
-        const commentId = `${payload.issue.key}_${payload.comment.id}_${payload.comment.created}`;
+        // Crear un ID único para este comentario (más robusto)
+        const commentId = `${payload.issue.key}_${payload.comment.id}_${payload.comment.created}_${payload.comment.author.accountId}`;
         
         // Verificar si ya procesamos este comentario
         if (this.processedComments.has(commentId)) {

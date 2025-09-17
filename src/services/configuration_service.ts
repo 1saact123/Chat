@@ -110,8 +110,32 @@ export class ConfigurationService {
       } else {
         console.log('⚠️ No se encontraron configuraciones en BD, usando configuraciones por defecto');
       }
+      
+      // Cargar tickets deshabilitados
+      await this.loadDisabledTicketsFromDatabase();
     } catch (error) {
       console.error('❌ Error cargando configuraciones desde BD:', error);
+    }
+  }
+
+  // Cargar tickets deshabilitados desde base de datos
+  private async loadDisabledTicketsFromDatabase(): Promise<void> {
+    try {
+      console.log('🔄 Cargando tickets deshabilitados desde base de datos...');
+      const disabledTickets = await this.dbService.getAllDisabledTickets();
+      
+      if (disabledTickets.length > 0) {
+        console.log(`📋 Encontrados ${disabledTickets.length} tickets deshabilitados en BD`);
+        
+        for (const ticket of disabledTickets) {
+          this.disabledTickets.set(ticket.issueKey, ticket);
+          console.log(`🚫 Ticket deshabilitado: ${ticket.issueKey} - ${ticket.reason}`);
+        }
+      } else {
+        console.log('✅ No hay tickets deshabilitados en BD');
+      }
+    } catch (error) {
+      console.error('❌ Error cargando tickets deshabilitados desde BD:', error);
     }
   }
 
@@ -211,7 +235,7 @@ export class ConfigurationService {
   // === TICKET CONTROL METHODS ===
 
   // Desactivar asistente para un ticket específico
-  disableAssistantForTicket(issueKey: string, reason: string = 'No reason provided'): void {
+  async disableAssistantForTicket(issueKey: string, reason: string = 'No reason provided'): Promise<void> {
     const disabledTicket: DisabledTicket = {
       issueKey,
       reason,
@@ -220,14 +244,27 @@ export class ConfigurationService {
     };
     
     this.disabledTickets.set(issueKey, disabledTicket);
-    console.log(`🚫 AI Assistant disabled for ticket: ${issueKey} - Reason: ${reason}`);
+    
+    // Persistir en base de datos
+    try {
+      await this.dbService.createOrUpdateDisabledTicket(disabledTicket);
+      console.log(`🚫 AI Assistant disabled for ticket: ${issueKey} - Reason: ${reason} - Saved to DB`);
+    } catch (error) {
+      console.error('❌ Error saving disabled ticket to DB:', error);
+    }
   }
 
   // Reactivar asistente para un ticket específico
-  enableAssistantForTicket(issueKey: string): void {
+  async enableAssistantForTicket(issueKey: string): Promise<void> {
     const removed = this.disabledTickets.delete(issueKey);
     if (removed) {
-      console.log(`✅ AI Assistant re-enabled for ticket: ${issueKey}`);
+      // Remover de base de datos
+      try {
+        await this.dbService.removeDisabledTicket(issueKey);
+        console.log(`✅ AI Assistant re-enabled for ticket: ${issueKey} - Removed from DB`);
+      } catch (error) {
+        console.error('❌ Error removing disabled ticket from DB:', error);
+      }
     }
   }
 

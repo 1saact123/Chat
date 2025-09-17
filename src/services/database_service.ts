@@ -163,4 +163,45 @@ export class DatabaseService {
       activeThreads
     };
   }
+
+  // ===== DISABLED TICKETS =====
+  
+  async createOrUpdateDisabledTicket(disabledTicket: { issueKey: string; reason: string; disabledAt: Date; disabledBy: string }): Promise<void> {
+    // Por ahora usamos una tabla simple, en producción podrías crear una tabla específica
+    // Por simplicidad, usamos la tabla de configuraciones con un prefijo especial
+    const configId = `disabled_ticket_${disabledTicket.issueKey}`;
+    
+    await ServiceConfiguration.upsert({
+      serviceId: configId,
+      serviceName: `Disabled Ticket: ${disabledTicket.issueKey}`,
+      assistantId: 'DISABLED',
+      assistantName: `Disabled - ${disabledTicket.reason}`,
+      isActive: false,
+      lastUpdated: disabledTicket.disabledAt
+    });
+  }
+
+  async removeDisabledTicket(issueKey: string): Promise<void> {
+    const configId = `disabled_ticket_${issueKey}`;
+    await ServiceConfiguration.destroy({
+      where: { serviceId: configId }
+    });
+  }
+
+  async getAllDisabledTickets(): Promise<Array<{ issueKey: string; reason: string; disabledAt: Date; disabledBy: string }>> {
+    const disabledConfigs = await ServiceConfiguration.findAll({
+      where: {
+        serviceId: {
+          [require('sequelize').Op.like]: 'disabled_ticket_%'
+        }
+      }
+    });
+
+    return disabledConfigs.map(config => ({
+      issueKey: config.serviceId.replace('disabled_ticket_', ''),
+      reason: config.assistantName.replace('Disabled - ', ''),
+      disabledAt: config.lastUpdated || new Date(),
+      disabledBy: 'CEO Dashboard'
+    }));
+  }
 }
