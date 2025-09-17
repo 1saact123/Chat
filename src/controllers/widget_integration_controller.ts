@@ -313,11 +313,17 @@ export class WidgetIntegrationController {
 
       // Filter new messages (after the last known message ID)
       let newMessages = commentsArray;
-      if (lastMessageId && lastMessageId !== 'null' && lastMessageId !== 'undefined') {
+      if (lastMessageId && lastMessageId !== 'null' && lastMessageId !== 'undefined' && lastMessageId !== '') {
         const lastMessageIndex = commentsArray.findIndex((comment: any) => comment.id === lastMessageId);
         if (lastMessageIndex !== -1) {
           newMessages = commentsArray.slice(lastMessageIndex + 1);
+        } else {
+          // If lastMessageId not found, return all messages (first time polling)
+          console.log(`⚠️ Last message ID ${lastMessageId} not found, returning all messages`);
         }
+      } else {
+        // First time polling or invalid lastMessageId, return all messages
+        console.log(`📋 First time polling or invalid lastMessageId (${lastMessageId}), returning all messages`);
       }
 
       // Format messages for the widget

@@ -574,7 +574,11 @@
                     if (data.conversationHistory && data.conversationHistory.length > 0) {
                         const lastMessage = data.conversationHistory[data.conversationHistory.length - 1];
                         lastMessageId = lastMessage.id;
-                        console.log('📝 Last message ID set:', lastMessageId);
+                        console.log('📝 Last message ID set from conversation history:', lastMessageId);
+                    } else {
+                        // If no conversation history, set to null to get all messages on first poll
+                        lastMessageId = null;
+                        console.log('📝 No conversation history, lastMessageId set to null');
                     }
                     
                     // Start polling for new messages
@@ -767,7 +771,13 @@
         // Check for new messages from Jira
         async function checkForNewMessages() {
             try {
-                const url = `${API_BASE}/api/widget/check-messages?issueKey=${currentTicket.key}&lastMessageId=${lastMessageId || 'null'}`;
+                // Build URL with proper lastMessageId handling
+                let url = `${API_BASE}/api/widget/check-messages?issueKey=${currentTicket.key}`;
+                if (lastMessageId && lastMessageId !== null && lastMessageId !== 'null' && lastMessageId !== 'undefined') {
+                    url += `&lastMessageId=${lastMessageId}`;
+                }
+                
+                console.log('🔍 Polling URL:', url);
                 const response = await fetch(url);
                 const data = await response.json();
 
@@ -799,7 +809,10 @@
                     // Update last message ID
                     if (data.lastMessageId) {
                         lastMessageId = data.lastMessageId;
+                        console.log('📝 Updated lastMessageId to:', lastMessageId);
                     }
+                } else {
+                    console.log('📭 No new messages found');
                 }
             } catch (error) {
                 console.error('Error checking for new messages:', error);
