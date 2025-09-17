@@ -99,6 +99,23 @@ export class ChatbotController {
     return isFromAIAccount || isAIContent;
   }
 
+  // Método para detectar comentarios del widget
+  private isWidgetComment(comment: any): boolean {
+    const authorEmail = comment.author.emailAddress?.toLowerCase() || '';
+    const authorDisplayName = comment.author.displayName?.toLowerCase() || '';
+    
+    // Check if comment is from widget account (JIRA_WIDGET)
+    const widgetEmail = process.env.JIRA_WIDGET?.toLowerCase() || '';
+    const isFromWidgetAccount = authorEmail === widgetEmail;
+    
+    // Check if display name indicates widget
+    const isWidgetDisplayName = authorDisplayName.includes('widget') || 
+                               authorDisplayName.includes('ai assistant') ||
+                               authorDisplayName.includes('contact service');
+    
+    return isFromWidgetAccount || isWidgetDisplayName;
+  }
+
   // Method to calculate similarity between texts
   private calculateSimilarity(text1: string, text2: string): number {
     const words1 = new Set(text1.split(/\s+/));
@@ -183,6 +200,19 @@ export class ChatbotController {
           console.log(`   Contenido: ${payload.comment.body.substring(0, 150)}...`);
           console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios de IA saltados`);
           res.json({ success: true, message: 'Skipped AI comment', aiComment: true });
+          return;
+        }
+        
+        // Verificar que no sea un comentario del widget (para evitar duplicación)
+        if (this.isWidgetComment(payload.comment)) {
+          this.webhookStats.aiCommentsSkipped++;
+          console.log(`📱 COMENTARIO DEL WIDGET DETECTADO:`);
+          console.log(`   Autor: ${payload.comment.author.displayName}`);
+          console.log(`   Email: ${payload.comment.author.emailAddress || 'N/A'}`);
+          console.log(`   Account ID: ${payload.comment.author.accountId}`);
+          console.log(`   Contenido: ${payload.comment.body.substring(0, 150)}...`);
+          console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios del widget saltados`);
+          res.json({ success: true, message: 'Skipped widget comment', widgetComment: true });
           return;
         }
         

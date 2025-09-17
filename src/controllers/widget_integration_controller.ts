@@ -131,10 +131,11 @@ export class WidgetIntegrationController {
       );
 
       if (aiResponse.success && aiResponse.response) {
-        // Add AI response to Jira
+        // Add AI response to Jira with special marker to prevent webhook processing
         await this.jiraService.addCommentToIssue(issueKey, aiResponse.response, {
           name: 'AI Assistant',
-          source: 'jira'
+          source: 'widget', // Marcar como widget para que el webhook lo ignore
+          isWidgetResponse: true // Flag especial
         });
 
         res.json({
