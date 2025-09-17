@@ -1,14 +1,17 @@
 import { Request, Response } from 'express';
 import { JiraService } from '../services/jira_service';
 import { OpenAIService } from '../services/openAI_service';
+import { ConfigurationService } from '../services/configuration_service';
 
 export class WidgetIntegrationController {
   private jiraService: JiraService;
   private openaiService: OpenAIService;
+  private configService: ConfigurationService;
 
   constructor() {
     this.jiraService = JiraService.getInstance();
     this.openaiService = new OpenAIService();
+    this.configService = ConfigurationService.getInstance();
   }
 
   /**
@@ -82,6 +85,31 @@ export class WidgetIntegrationController {
       }
 
       console.log(`📤 Sending message to Jira ticket ${issueKey}: ${message}`);
+
+      // Check if assistant is disabled for this ticket
+      if (this.configService.isTicketDisabled(issueKey)) {
+        const disabledInfo = this.configService.getDisabledTicketInfo(issueKey);
+        console.log(`🚫 AI Assistant disabled for ticket ${issueKey}: ${disabledInfo?.reason || 'No reason provided'}`);
+        
+        // Add message to Jira but don't process with AI
+        await this.jiraService.addCommentToIssue(issueKey, message, {
+          name: customerInfo.name,
+          email: customerInfo.email,
+          source: 'widget'
+        });
+
+        res.json({
+          success: true,
+          message: 'Message sent to Jira, but AI assistant is disabled for this ticket',
+          aiDisabled: true,
+          disabledInfo: {
+            reason: disabledInfo?.reason || 'No reason provided',
+            disabledAt: disabledInfo?.disabledAt,
+            disabledBy: disabledInfo?.disabledBy
+          }
+        });
+        return;
+      }
 
       // Add message to Jira
       await this.jiraService.addCommentToIssue(issueKey, message, {
@@ -487,6 +515,44 @@ export class WidgetIntegrationController {
         message: 'Widget integration health check failed',
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  /**
+   * Check if assistant is disabled for a ticket
+   */
+  async checkAssistantStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const { issueKey } = req.query;
+
+      if (!issueKey || typeof issueKey !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'Missing or invalid issueKey parameter'
+        });
+        return;
+      }
+
+      const isDisabled = this.configService.isTicketDisabled(issueKey);
+      const disabledInfo = isDisabled ? this.configService.getDisabledTicketInfo(issueKey) : null;
+
+      res.json({
+        success: true,
+        issueKey,
+        isDisabled,
+        disabledInfo: disabledInfo ? {
+          reason: disabledInfo.reason,
+          disabledAt: disabledInfo.disabledAt,
+          disabledBy: disabledInfo.disabledBy
+        } : null
+      });
+
+    } catch (error) {
+      console.error('Error checking assistant status:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
