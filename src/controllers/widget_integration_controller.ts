@@ -329,7 +329,7 @@ export class WidgetIntegrationController {
       // Format messages for the widget
       const formattedMessages = newMessages.map((comment: any) => ({
         id: comment.id,
-        body: comment.body,
+        body: this.extractTextFromADF(comment.body),
         author: {
           displayName: comment.author.displayName,
           emailAddress: comment.author.emailAddress
@@ -368,11 +368,43 @@ export class WidgetIntegrationController {
   }
 
   /**
+   * Extract text from Jira ADF (Atlassian Document Format) body
+   */
+  private extractTextFromADF(body: any): string {
+    if (typeof body === 'string') {
+      return body;
+    }
+    
+    if (body && body.content && Array.isArray(body.content)) {
+      return this.extractTextFromADFContent(body.content);
+    }
+    
+    return '';
+  }
+
+  /**
+   * Recursively extract text from ADF content array
+   */
+  private extractTextFromADFContent(content: any[]): string {
+    let text = '';
+    
+    for (const item of content) {
+      if (item.type === 'text' && item.text) {
+        text += item.text;
+      } else if (item.content && Array.isArray(item.content)) {
+        text += this.extractTextFromADFContent(item.content);
+      }
+    }
+    
+    return text;
+  }
+
+  /**
    * Helper method to detect AI comments
    */
   private isAIComment(comment: any): boolean {
     const authorEmail = comment.author.emailAddress?.toLowerCase() || '';
-    const commentBody = comment.body.toLowerCase();
+    const commentBody = this.extractTextFromADF(comment.body).toLowerCase();
 
     // Check if comment is from AI account (JIRA_EMAIL)
     const aiEmail = process.env.JIRA_EMAIL?.toLowerCase() || '';
