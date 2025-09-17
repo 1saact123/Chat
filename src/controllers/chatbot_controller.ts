@@ -79,16 +79,24 @@ export class ChatbotController {
   private isAIComment(comment: any): boolean {
     const authorEmail = comment.author.emailAddress?.toLowerCase() || '';
     const commentBody = comment.body.toLowerCase();
+    const authorDisplayName = comment.author.displayName?.toLowerCase() || '';
 
     // Check if comment is from AI account (JIRA_EMAIL)
     const aiEmail = process.env.JIRA_EMAIL?.toLowerCase() || '';
     const isFromAIAccount = authorEmail === aiEmail;
     
+    // Check by display name for AI assistant (more reliable)
+    const isFromAIDisplayName = authorDisplayName.includes('ai assistant') ||
+                                authorDisplayName.includes('contact service account') ||
+                                authorDisplayName.includes('contact service');
+    
     // Patrones en el contenido que indican comentarios de IA
     const aiContentPatterns = [
       'complete.', 'how can i assist you',
       '🎯 **chat session started**', 'chat widget connected',
-      'as an atlassian solution partner', 'offers integration services'
+      'as an atlassian solution partner', 'offers integration services',
+      'estoy aquí para ayudarte', '¿sobre qué tema te gustaría saber',
+      'basada en los documentos disponibles'
     ];
     
     // Detectar por contenido
@@ -96,7 +104,7 @@ export class ChatbotController {
       commentBody.includes(pattern)
     );
     
-    return isFromAIAccount || isAIContent;
+    return isFromAIAccount || isFromAIDisplayName || isAIContent;
   }
 
   // Método para detectar comentarios del widget
