@@ -5,9 +5,11 @@ import { HealthController } from '../controllers/health_controller';
 import { LandingController } from '../controllers/landing_controller';
 import { AdminController } from '../controllers/admin_controller';
 import { WidgetIntegrationController } from '../controllers/widget_integration_controller';
+import { AuthController } from '../controllers/auth_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
+import { authenticateToken } from '../middleware/auth';
 
 // Initialize services
 // const emailService = new EmailService();
@@ -20,8 +22,15 @@ const healthController = new HealthController();
 const landingController = new LandingController();
 const adminController = new AdminController();
 const widgetIntegrationController = new WidgetIntegrationController();
+const authController = new AuthController();
 
 const router = Router();
+
+// === AUTHENTICATION ROUTES ===
+router.post('/api/auth/login', authController.login.bind(authController));
+router.post('/api/auth/register', authController.register.bind(authController));
+router.get('/api/auth/verify', authController.verifyToken.bind(authController));
+router.post('/api/auth/logout', authController.logout.bind(authController));
 
 // === HEALTH ROUTES ===
 router.get('/health', healthController.healthCheck.bind(healthController));
@@ -66,6 +75,10 @@ router.get('/assistant-selector', (req, res) => {
 
 router.get('/ceo-dashboard', (req, res) => {
   res.sendFile('ceo-dashboard.html', { root: 'public' });
+});
+
+router.get('/login', (req, res) => {
+  res.sendFile('login.html', { root: 'public' });
 });
 
 router.get('/jira-integrated-widget', (req, res) => {
@@ -123,48 +136,48 @@ router.post('/api/chatbot/assistants/set-active', chatbotController.setActiveAss
 // Obtener asistente activo actual
 router.get('/api/chatbot/assistants/active', chatbotController.getActiveAssistant.bind(chatbotController));
 
-// === ADMIN ROUTES (CEO Dashboard) ===
+// === ADMIN ROUTES (CEO Dashboard) - PROTECTED ===
 // Dashboard principal del CEO
-router.get('/api/admin/dashboard', adminController.getDashboard.bind(adminController));
+router.get('/api/admin/dashboard', authenticateToken, adminController.getDashboard.bind(adminController));
 
 // Gestión de configuraciones de servicios
-router.get('/api/admin/services/:serviceId', adminController.getServiceConfiguration.bind(adminController));
-router.put('/api/admin/services/:serviceId', adminController.updateServiceConfiguration.bind(adminController));
-router.patch('/api/admin/services/:serviceId/toggle', adminController.toggleService.bind(adminController));
-router.post('/api/admin/services', adminController.addService.bind(adminController));
-router.delete('/api/admin/services/:serviceId', adminController.removeService.bind(adminController));
+router.get('/api/admin/services/:serviceId', authenticateToken, adminController.getServiceConfiguration.bind(adminController));
+router.put('/api/admin/services/:serviceId', authenticateToken, adminController.updateServiceConfiguration.bind(adminController));
+router.patch('/api/admin/services/:serviceId/toggle', authenticateToken, adminController.toggleService.bind(adminController));
+router.post('/api/admin/services', authenticateToken, adminController.addService.bind(adminController));
+router.delete('/api/admin/services/:serviceId', authenticateToken, adminController.removeService.bind(adminController));
 
 // === PROJECT MANAGEMENT ROUTES ===
 // Listar proyectos disponibles
-router.get('/api/admin/projects', adminController.listProjects.bind(adminController));
+router.get('/api/admin/projects', authenticateToken, adminController.listProjects.bind(adminController));
 
 // Cambiar proyecto activo
-router.post('/api/admin/projects/set-active', adminController.setActiveProject.bind(adminController));
+router.post('/api/admin/projects/set-active', authenticateToken, adminController.setActiveProject.bind(adminController));
 
 // Obtener proyecto activo actual
-router.get('/api/admin/projects/active', adminController.getActiveProject.bind(adminController));
+router.get('/api/admin/projects/active', authenticateToken, adminController.getActiveProject.bind(adminController));
 
 // Obtener detalles de un proyecto específico
-router.get('/api/admin/projects/:projectKey', adminController.getProjectDetails.bind(adminController));
+router.get('/api/admin/projects/:projectKey', authenticateToken, adminController.getProjectDetails.bind(adminController));
 
 // Probar conexión con Jira
-router.get('/api/admin/jira/test-connection', adminController.testJiraConnection.bind(adminController));
+router.get('/api/admin/jira/test-connection', authenticateToken, adminController.testJiraConnection.bind(adminController));
 
 // Endpoint público para obtener asistente activo de un servicio
 router.get('/api/services/:serviceId/assistant', adminController.getActiveAssistantForService.bind(adminController));
 
 // === TICKET CONTROL ROUTES ===
 // Desactivar asistente en un ticket específico
-router.post('/api/admin/tickets/:issueKey/disable', adminController.disableAssistantForTicket.bind(adminController));
+router.post('/api/admin/tickets/:issueKey/disable', authenticateToken, adminController.disableAssistantForTicket.bind(adminController));
 
 // Reactivar asistente en un ticket específico
-router.post('/api/admin/tickets/:issueKey/enable', adminController.enableAssistantForTicket.bind(adminController));
+router.post('/api/admin/tickets/:issueKey/enable', authenticateToken, adminController.enableAssistantForTicket.bind(adminController));
 
 // Obtener lista de tickets con asistente desactivado
-router.get('/api/admin/tickets/disabled', adminController.getDisabledTickets.bind(adminController));
+router.get('/api/admin/tickets/disabled', authenticateToken, adminController.getDisabledTickets.bind(adminController));
 
 // Verificar estado del asistente en un ticket
-router.get('/api/admin/tickets/:issueKey/status', adminController.checkTicketAssistantStatus.bind(adminController));
+router.get('/api/admin/tickets/:issueKey/status', authenticateToken, adminController.checkTicketAssistantStatus.bind(adminController));
 
 // Chat específico por servicio
 router.post('/api/services/:serviceId/chat', chatbotController.handleServiceChat.bind(chatbotController));

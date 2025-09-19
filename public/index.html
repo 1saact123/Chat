@@ -29,9 +29,113 @@
             font-size: 16px;
             font-weight: 600;
         }
+
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .auth-modal {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .auth-modal h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .auth-modal p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #333;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
     </style>
 </head>
 <body>
+    <!-- Authentication Overlay -->
+    <div id="authOverlay" class="auth-overlay" style="display: none;">
+        <div class="auth-modal">
+            <h2><i class="fas fa-lock"></i> Authentication Required</h2>
+            <p>Please log in to access the AI Assistant Control Panel.</p>
+            <div class="auth-buttons">
+                <a href="/login.html" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- Top Navigation Bar -->
     <nav class="top-nav">
         <div class="nav-container">
@@ -43,6 +147,13 @@
                 <a href="#" class="nav-link">Assistants</a>
                 <a href="#" class="nav-link">Services</a>
                 <a href="#" class="nav-link active">Settings</a>
+            </div>
+            <div class="user-info" id="userInfo" style="display: none;">
+                <div class="user-avatar" id="userAvatar"></div>
+                <span id="userName"></span>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
             </div>
         </div>
     </nav>
@@ -363,6 +474,87 @@
         <div id="statusMessage" class="status-message" style="display: none;"></div>
 
     <script>
+        // Authentication Manager
+        class AuthManager {
+            constructor() {
+                this.token = localStorage.getItem('authToken');
+                this.userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+                this.init();
+            }
+
+            async init() {
+                if (!this.token) {
+                    this.showAuthOverlay();
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/auth/verify', {
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.userInfo = data.data.user;
+                        this.showUserInfo();
+                        this.hideAuthOverlay();
+                    } else {
+                        this.clearAuth();
+                        this.showAuthOverlay();
+                    }
+                } catch (error) {
+                    console.error('Auth verification failed:', error);
+                    this.clearAuth();
+                    this.showAuthOverlay();
+                }
+            }
+
+            showAuthOverlay() {
+                document.getElementById('authOverlay').style.display = 'flex';
+            }
+
+            hideAuthOverlay() {
+                document.getElementById('authOverlay').style.display = 'none';
+            }
+
+            showUserInfo() {
+                const userInfoDiv = document.getElementById('userInfo');
+                const userNameSpan = document.getElementById('userName');
+                const userAvatarDiv = document.getElementById('userAvatar');
+
+                if (this.userInfo.username) {
+                    userNameSpan.textContent = this.userInfo.username;
+                    userAvatarDiv.textContent = this.userInfo.username.charAt(0).toUpperCase();
+                    userInfoDiv.style.display = 'flex';
+                }
+            }
+
+            clearAuth() {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userInfo');
+                this.token = null;
+                this.userInfo = {};
+            }
+
+            getAuthHeaders() {
+                return {
+                    'Authorization': `Bearer ${this.token}`,
+                    'Content-Type': 'application/json'
+                };
+            }
+        }
+
+        // Global auth manager
+        const authManager = new AuthManager();
+
+        // Logout function
+        function logout() {
+            authManager.clearAuth();
+            window.location.href = '/login.html';
+        }
+
         class CEODashboard {
             constructor() {
                 this.assistants = [];
@@ -387,7 +579,9 @@
             async loadDashboard() {
                 try {
                     console.log('🔄 Loading dashboard data...');
-                    const response = await fetch('/api/admin/dashboard');
+                    const response = await fetch('/api/admin/dashboard', {
+                        headers: authManager.getAuthHeaders()
+                    });
                     const data = await response.json();
 
                     console.log('📊 Dashboard data received:', data);
