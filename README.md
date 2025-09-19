@@ -289,48 +289,126 @@ public/                  # Static web interfaces
 
 ## Deployment
 
-### Production Deployment
+### Production Infrastructure
 
-1. **Server Setup**
+The Movonte AI Assistant System is deployed using the following infrastructure:
+
+- **Backend**: AWS EC2 instance running Node.js application
+- **Database**: AWS RDS MySQL instance for data persistence
+- **Frontend**: GitHub Pages for static web interfaces
+- **DNS & Security**: Cloudflare for DNS management and security features
+- **Domain**: Custom domain with SSL certificate and Cloudflare proxy
+
+### AWS EC2 Backend Deployment
+
+1. **EC2 Instance Setup**
    ```bash
-   # Install Node.js and MySQL
-   sudo apt update
-   sudo apt install nodejs npm mysql-server
+   # Connect to EC2 instance
+   ssh -i your-key.pem ec2-user@your-ec2-instance
    
-   # Clone and setup application
+   # Install Node.js
+   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+   sudo apt-get install -y nodejs
+   
+   # Clone repository
    git clone <repository-url>
    cd newChat
    npm install --production
    ```
 
-2. **Database Configuration**
+2. **Environment Configuration**
    ```bash
-   # Create database
-   mysql -u root -p
-   CREATE DATABASE movonte_chat;
-   CREATE USER 'movonte_user'@'localhost' IDENTIFIED BY 'secure_password';
-   GRANT ALL PRIVILEGES ON movonte_chat.* TO 'movonte_user'@'localhost';
-   ```
-
-3. **Environment Configuration**
-   ```bash
-   # Copy and configure environment
+   # Configure production environment
    cp .env.example .env
-   # Edit .env with production values
+   # Edit .env with production values including RDS connection
    ```
 
-4. **Build and Start**
+3. **Database Connection (RDS)**
+   ```env
+   # RDS Configuration in .env
+   DB_HOST=your-rds-endpoint.region.rds.amazonaws.com
+   DB_PORT=3306
+   DB_NAME=movonte_chat
+   DB_USER=your_rds_username
+   DB_PASS=your_rds_password
+   ```
+
+4. **Application Startup**
    ```bash
+   # Build and start application
    npm run build
    npm start
+   
+   # Or use PM2 for process management
+   npm install -g pm2
+   pm2 start dist/app.js --name "movonte-api"
+   pm2 startup
+   pm2 save
    ```
 
-### Nginx Configuration
+### AWS RDS Database Setup
+
+1. **RDS Instance Configuration**
+   - Engine: MySQL 8.0
+   - Instance class: db.t3.micro (or appropriate size)
+   - Storage: 20GB minimum
+   - Security groups: Allow MySQL access from EC2
+
+2. **Database Initialization**
+   ```bash
+   # Connect to RDS from EC2
+   mysql -h your-rds-endpoint -u username -p
+   
+   # Create database and user
+   CREATE DATABASE movonte_chat;
+   CREATE USER 'movonte_user'@'%' IDENTIFIED BY 'secure_password';
+   GRANT ALL PRIVILEGES ON movonte_chat.* TO 'movonte_user'@'%';
+   FLUSH PRIVILEGES;
+   ```
+
+3. **Run Migrations**
+   ```bash
+   # From EC2 instance
+   npm run migrate
+   ```
+
+### GitHub Pages Frontend Deployment
+
+1. **Repository Setup**
+   ```bash
+   # Create gh-pages branch
+   git checkout -b gh-pages
+   
+   # Copy public files to root
+   cp -r public/* .
+   
+   # Commit and push
+   git add .
+   git commit -m "Deploy frontend to GitHub Pages"
+   git push origin gh-pages
+   ```
+
+2. **GitHub Pages Configuration**
+   - Go to repository Settings → Pages
+   - Source: Deploy from a branch
+   - Branch: gh-pages
+   - Custom domain: your-domain.com (optional)
+
+3. **Frontend Files Structure**
+   ```
+   /
+   ├── index.html              # Chat widget
+   ├── ceo-dashboard.html      # Administrative dashboard
+   ├── webhook-monitor.html    # Webhook monitoring
+   └── ceo-dashboard.css       # Dashboard styling
+   ```
+
+### Nginx Configuration (EC2)
 
 ```nginx
 server {
     listen 80;
-    server_name your-domain.com;
+    server_name chat.movonte.com;
     
     location / {
         proxy_pass http://localhost:3000;
@@ -348,13 +426,67 @@ server {
 
 ### SSL Configuration
 
+With Cloudflare handling SSL termination, the EC2 instance can use HTTP internally:
+
 ```bash
-# Install Certbot
+# Optional: Install Certbot for local SSL (if not using Cloudflare SSL)
 sudo apt install certbot python3-certbot-nginx
 
-# Obtain SSL certificate
-sudo certbot --nginx -d your-domain.com
+# If using Cloudflare SSL termination, configure Nginx for HTTP
+# Cloudflare will handle SSL/TLS encryption
 ```
+
+### Cloudflare Configuration
+
+1. **Add Domain to Cloudflare**
+   - Log in to Cloudflare dashboard
+   - Add domain: `movonte.com`
+   - Update nameservers at domain registrar
+
+2. **SSL/TLS Configuration**
+   - SSL/TLS encryption mode: **Full (strict)**
+   - Edge certificates: **Always Use HTTPS**
+   - Origin certificates: Optional for additional security
+
+3. **Security Settings**
+   - **Security Level**: Medium or High
+   - **Bot Fight Mode**: Enabled
+   - **DDoS Protection**: Automatic
+   - **WAF**: Configure custom rules for API protection
+
+4. **Performance Optimization**
+   - **Caching**: Configure appropriate cache rules
+   - **Compression**: Enable Brotli compression
+   - **Minification**: Enable for HTML, CSS, JS
+
+### Domain Configuration with Cloudflare
+
+The system uses Cloudflare for DNS management and additional security features:
+
+1. **Cloudflare DNS Setup**
+   - Add domain to Cloudflare account
+   - Configure DNS records to point to services
+   - Enable Cloudflare proxy for additional security
+
+2. **DNS Records Configuration**
+   ```
+   Type    Name    Content                    Proxy Status
+   A       chat    your-ec2-ip-address        Proxied
+   CNAME   www     chat.movonte.com           Proxied
+   CNAME   api     chat.movonte.com           Proxied
+   ```
+
+3. **Cloudflare Security Features**
+   - **SSL/TLS**: Full (strict) encryption mode
+   - **DDoS Protection**: Automatic attack mitigation
+   - **WAF**: Web Application Firewall rules
+   - **Rate Limiting**: API protection
+   - **Bot Management**: Automated bot detection
+
+4. **Service Endpoints**
+   - **Backend API**: `https://chat.movonte.com` (EC2 with Nginx, proxied through Cloudflare)
+   - **Frontend Interfaces**: `https://movonte-consulting.github.io` (GitHub Pages)
+   - **Custom Domain**: DNS managed through Cloudflare with SSL termination
 
 ## Monitoring and Maintenance
 
@@ -425,15 +557,19 @@ sudo certbot --nginx -d your-domain.com
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is proprietary software owned by Movonte. All rights reserved.
+
+## Authors
+
+- **Movonte** - *Proprietary software development and ownership*
 
 ## Support
 
 For technical support and questions:
-- Create an issue in the repository
-- Contact the development team
+- Contact the Movonte development team
 - Review the troubleshooting section
+- Internal documentation and support channels
 
 ---
 
-**Note**: This system is designed for production use with proper security measures and monitoring. Ensure all environment variables are properly configured and security best practices are followed.
+**Note**: This is proprietary software owned by Movonte. The system is designed for production use with proper security measures and monitoring. Ensure all environment variables are properly configured and security best practices are followed.
