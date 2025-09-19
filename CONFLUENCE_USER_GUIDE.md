@@ -132,27 +132,6 @@ The system displays the currently active global assistant, which is determined b
 - See disable reason and timestamp
 - Bulk enable/disable options
 
-## Service Configuration
-
-### Creating New Services
-
-#### 1. Service Setup
-1. Navigate to CEO Dashboard
-2. Access Service Configuration section
-3. Click "Add New Service"
-4. Configure service parameters
-
-#### 2. Assistant Assignment
-1. Select AI assistant from available options
-2. Configure service-specific settings
-3. Set Jira project association
-4. Activate service
-
-#### 3. Service Management
-- **Activate/Deactivate**: Toggle service status
-- **Assistant Changes**: Update AI assistant
-- **Configuration Updates**: Modify service settings
-- **Performance Monitoring**: Track service metrics
 
 ### Service Types
 
