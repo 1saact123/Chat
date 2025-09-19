@@ -6,10 +6,10 @@ import { LandingController } from '../controllers/landing_controller';
 import { AdminController } from '../controllers/admin_controller';
 import { WidgetIntegrationController } from '../controllers/widget_integration_controller';
 import { AuthController } from '../controllers/auth_controller';
+import { AuthMiddleware } from '../middleware/auth';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
-import { authenticateToken } from '../middleware/auth';
 
 // Initialize services
 // const emailService = new EmailService();
@@ -23,14 +23,16 @@ const landingController = new LandingController();
 const adminController = new AdminController();
 const widgetIntegrationController = new WidgetIntegrationController();
 const authController = new AuthController();
+const authMiddleware = new AuthMiddleware();
 
 const router = Router();
 
 // === AUTHENTICATION ROUTES ===
 router.post('/api/auth/login', authController.login.bind(authController));
-router.post('/api/auth/register', authController.register.bind(authController));
 router.get('/api/auth/verify', authController.verifyToken.bind(authController));
 router.post('/api/auth/logout', authController.logout.bind(authController));
+router.post('/api/auth/users', authMiddleware.authenticate.bind(authMiddleware), authMiddleware.requireAdmin.bind(authMiddleware), authController.createUser.bind(authController));
+router.get('/api/auth/users', authMiddleware.authenticate.bind(authMiddleware), authMiddleware.requireAdmin.bind(authMiddleware), authController.listUsers.bind(authController));
 
 // === HEALTH ROUTES ===
 router.get('/health', healthController.healthCheck.bind(healthController));
@@ -138,46 +140,46 @@ router.get('/api/chatbot/assistants/active', chatbotController.getActiveAssistan
 
 // === ADMIN ROUTES (CEO Dashboard) - PROTECTED ===
 // Dashboard principal del CEO
-router.get('/api/admin/dashboard', authenticateToken, adminController.getDashboard.bind(adminController));
+router.get('/api/admin/dashboard', authMiddleware.authenticate.bind(authMiddleware), adminController.getDashboard.bind(adminController));
 
 // Gestión de configuraciones de servicios
-router.get('/api/admin/services/:serviceId', authenticateToken, adminController.getServiceConfiguration.bind(adminController));
-router.put('/api/admin/services/:serviceId', authenticateToken, adminController.updateServiceConfiguration.bind(adminController));
-router.patch('/api/admin/services/:serviceId/toggle', authenticateToken, adminController.toggleService.bind(adminController));
-router.post('/api/admin/services', authenticateToken, adminController.addService.bind(adminController));
-router.delete('/api/admin/services/:serviceId', authenticateToken, adminController.removeService.bind(adminController));
+router.get('/api/admin/services/:serviceId', authMiddleware.authenticate.bind(authMiddleware), adminController.getServiceConfiguration.bind(adminController));
+router.put('/api/admin/services/:serviceId', authMiddleware.authenticate.bind(authMiddleware), adminController.updateServiceConfiguration.bind(adminController));
+router.patch('/api/admin/services/:serviceId/toggle', authMiddleware.authenticate.bind(authMiddleware), adminController.toggleService.bind(adminController));
+router.post('/api/admin/services', authMiddleware.authenticate.bind(authMiddleware), authMiddleware.requireAdmin.bind(authMiddleware), adminController.addService.bind(adminController));
+router.delete('/api/admin/services/:serviceId', authMiddleware.authenticate.bind(authMiddleware), authMiddleware.requireAdmin.bind(authMiddleware), adminController.removeService.bind(adminController));
 
-// === PROJECT MANAGEMENT ROUTES ===
+// === PROJECT MANAGEMENT ROUTES - PROTECTED ===
 // Listar proyectos disponibles
-router.get('/api/admin/projects', authenticateToken, adminController.listProjects.bind(adminController));
+router.get('/api/admin/projects', authMiddleware.authenticate.bind(authMiddleware), adminController.listProjects.bind(adminController));
 
 // Cambiar proyecto activo
-router.post('/api/admin/projects/set-active', authenticateToken, adminController.setActiveProject.bind(adminController));
+router.post('/api/admin/projects/set-active', authMiddleware.authenticate.bind(authMiddleware), adminController.setActiveProject.bind(adminController));
 
 // Obtener proyecto activo actual
-router.get('/api/admin/projects/active', authenticateToken, adminController.getActiveProject.bind(adminController));
+router.get('/api/admin/projects/active', authMiddleware.authenticate.bind(authMiddleware), adminController.getActiveProject.bind(adminController));
 
 // Obtener detalles de un proyecto específico
-router.get('/api/admin/projects/:projectKey', authenticateToken, adminController.getProjectDetails.bind(adminController));
+router.get('/api/admin/projects/:projectKey', authMiddleware.authenticate.bind(authMiddleware), adminController.getProjectDetails.bind(adminController));
 
 // Probar conexión con Jira
-router.get('/api/admin/jira/test-connection', authenticateToken, adminController.testJiraConnection.bind(adminController));
+router.get('/api/admin/jira/test-connection', authMiddleware.authenticate.bind(authMiddleware), adminController.testJiraConnection.bind(adminController));
 
 // Endpoint público para obtener asistente activo de un servicio
 router.get('/api/services/:serviceId/assistant', adminController.getActiveAssistantForService.bind(adminController));
 
-// === TICKET CONTROL ROUTES ===
+// === TICKET CONTROL ROUTES - PROTECTED ===
 // Desactivar asistente en un ticket específico
-router.post('/api/admin/tickets/:issueKey/disable', authenticateToken, adminController.disableAssistantForTicket.bind(adminController));
+router.post('/api/admin/tickets/:issueKey/disable', authMiddleware.authenticate.bind(authMiddleware), adminController.disableAssistantForTicket.bind(adminController));
 
 // Reactivar asistente en un ticket específico
-router.post('/api/admin/tickets/:issueKey/enable', authenticateToken, adminController.enableAssistantForTicket.bind(adminController));
+router.post('/api/admin/tickets/:issueKey/enable', authMiddleware.authenticate.bind(authMiddleware), adminController.enableAssistantForTicket.bind(adminController));
 
 // Obtener lista de tickets con asistente desactivado
-router.get('/api/admin/tickets/disabled', authenticateToken, adminController.getDisabledTickets.bind(adminController));
+router.get('/api/admin/tickets/disabled', authMiddleware.authenticate.bind(authMiddleware), adminController.getDisabledTickets.bind(adminController));
 
 // Verificar estado del asistente en un ticket
-router.get('/api/admin/tickets/:issueKey/status', authenticateToken, adminController.checkTicketAssistantStatus.bind(adminController));
+router.get('/api/admin/tickets/:issueKey/status', authMiddleware.authenticate.bind(authMiddleware), adminController.checkTicketAssistantStatus.bind(adminController));
 
 // Chat específico por servicio
 router.post('/api/services/:serviceId/chat', chatbotController.handleServiceChat.bind(chatbotController));

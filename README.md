@@ -302,7 +302,7 @@ The Movonte AI Assistant System is deployed using the following infrastructure:
 ### AWS EC2 Backend Deployment
 
 1. **EC2 Instance Setup**
-   ```bash
+```bash
    # Connect to EC2 instance
    ssh -i your-key.pem ec2-user@your-ec2-instance
    
@@ -317,7 +317,7 @@ The Movonte AI Assistant System is deployed using the following infrastructure:
    ```
 
 2. **Environment Configuration**
-   ```bash
+```bash
    # Configure production environment
    cp .env.example .env
    # Edit .env with production values including RDS connection
@@ -334,9 +334,9 @@ The Movonte AI Assistant System is deployed using the following infrastructure:
    ```
 
 4. **Application Startup**
-   ```bash
+```bash
    # Build and start application
-   npm run build
+npm run build
    npm start
    
    # Or use PM2 for process management
@@ -375,7 +375,7 @@ The Movonte AI Assistant System is deployed using the following infrastructure:
 ### GitHub Pages Frontend Deployment
 
 1. **Repository Setup**
-   ```bash
+```bash
    # Create gh-pages branch
    git checkout -b gh-pages
    

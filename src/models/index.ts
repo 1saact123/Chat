@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
+import bcrypt from 'bcrypt';
 
 // Interface para ChatThread
 export interface ChatThreadAttributes {
@@ -246,12 +247,12 @@ export interface UserAttributes {
   password: string;
   role: 'admin' | 'user';
   isActive: boolean;
+  lastLogin?: Date;
   createdAt?: Date;
   updatedAt?: Date;
-  lastLogin?: Date;
 }
 
-export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'lastLogin'> {}
 
 // Modelo User
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -261,9 +262,19 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public password!: string;
   public role!: 'admin' | 'user';
   public isActive!: boolean;
+  public lastLogin?: Date;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
-  public lastLogin?: Date;
+
+  // Método para verificar contraseña
+  public async validatePassword(password: string): Promise<boolean> {
+    return bcrypt.compare(password, this.password);
+  }
+
+  // Método estático para hashear contraseña
+  public static async hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 10);
+  }
 }
 
 User.init({
@@ -273,12 +284,12 @@ User.init({
     primaryKey: true
   },
   username: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.STRING(50),
     allowNull: false,
     unique: true
   },
   email: {
-    type: DataTypes.STRING(255),
+    type: DataTypes.STRING(100),
     allowNull: false,
     unique: true
   },
@@ -303,7 +314,19 @@ User.init({
 }, {
   sequelize,
   tableName: 'users',
-  timestamps: true
+  timestamps: true,
+  hooks: {
+    beforeCreate: async (user: User) => {
+      if (user.password) {
+        user.password = await User.hashPassword(user.password);
+      }
+    },
+    beforeUpdate: async (user: User) => {
+      if (user.changed('password')) {
+        user.password = await User.hashPassword(user.password);
+      }
+    }
+  }
 });
 
 // Los modelos ya están exportados arriba, no necesitamos re-exportarlos

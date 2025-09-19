@@ -1,59 +1,42 @@
-import bcrypt from 'bcrypt';
 import { User } from '../models';
 import { sequelize } from '../config/database';
 
 async function createAdminUser() {
   try {
-    // Connect to database
+    // Conectar a la base de datos
     await sequelize.authenticate();
     console.log('✅ Database connection established');
 
-    // Sync models to create tables
+    // Sincronizar modelos
     await sequelize.sync();
-    console.log('✅ Database tables synchronized');
+    console.log('✅ Database synchronized');
 
-    // Check if admin user already exists
+    // Verificar si ya existe un usuario admin
     const existingAdmin = await User.findOne({
-      where: { username: 'admin' }
+      where: { role: 'admin' }
     });
 
     if (existingAdmin) {
-      console.log('⚠️  Admin user already exists');
+      console.log('✅ Admin user already exists:', existingAdmin.username);
       return;
     }
 
-    // Create admin user
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash('admin123', saltRounds);
-
+    // Crear usuario administrador
     const adminUser = await User.create({
       username: 'admin',
       email: 'admin@movonte.com',
-      password: hashedPassword,
+      password: 'admin123', // Se hasheará automáticamente
       role: 'admin',
       isActive: true
     });
 
     console.log('✅ Admin user created successfully:');
-    console.log(`   Username: admin`);
-    console.log(`   Email: admin@movonte.com`);
-    console.log(`   Password: admin123`);
-    console.log(`   Role: admin`);
-
-    // Create a regular user for testing
-    const testUser = await User.create({
-      username: 'user',
-      email: 'user@movonte.com',
-      password: await bcrypt.hash('user123', saltRounds),
-      role: 'user',
-      isActive: true
-    });
-
-    console.log('✅ Test user created successfully:');
-    console.log(`   Username: user`);
-    console.log(`   Email: user@movonte.com`);
-    console.log(`   Password: user123`);
-    console.log(`   Role: user`);
+    console.log('   Username: admin');
+    console.log('   Email: admin@movonte.com');
+    console.log('   Password: admin123');
+    console.log('   Role: admin');
+    console.log('');
+    console.log('⚠️  IMPORTANT: Change the default password after first login!');
 
   } catch (error) {
     console.error('❌ Error creating admin user:', error);
@@ -62,5 +45,9 @@ async function createAdminUser() {
   }
 }
 
-// Run the script
-createAdminUser();
+// Ejecutar si se llama directamente
+if (require.main === module) {
+  createAdminUser();
+}
+
+export { createAdminUser };

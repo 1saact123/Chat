@@ -50,14 +50,14 @@
         }
 
         .login-header h1 {
-            color: #333;
+            color: #2d3748;
             font-size: 28px;
             font-weight: 700;
             margin-bottom: 8px;
         }
 
         .login-header p {
-            color: #666;
+            color: #718096;
             font-size: 14px;
         }
 
@@ -67,20 +67,20 @@
 
         .form-label {
             display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
+            color: #4a5568;
             font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
         }
 
         .form-input {
             width: 100%;
             padding: 12px 16px;
-            border: 2px solid #e1e5e9;
+            border: 2px solid #e2e8f0;
             border-radius: 10px;
             font-size: 14px;
             transition: all 0.3s ease;
-            background: #f8f9fa;
+            background: #f7fafc;
         }
 
         .form-input:focus {
@@ -90,40 +90,50 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .input-group {
-            position: relative;
+        .form-input.error {
+            border-color: #e53e3e;
+            background: #fed7d7;
         }
 
         .input-icon {
+            position: relative;
+        }
+
+        .input-icon i {
             position: absolute;
-            left: 12px;
+            left: 16px;
             top: 50%;
             transform: translateY(-50%);
-            color: #666;
+            color: #a0aec0;
             font-size: 16px;
         }
 
-        .input-group .form-input {
-            padding-left: 40px;
+        .input-icon .form-input {
+            padding-left: 48px;
         }
 
         .login-button {
             width: 100%;
-            padding: 14px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
+            padding: 14px;
             border-radius: 10px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
         }
 
         .login-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
         }
 
         .login-button:disabled {
@@ -132,44 +142,15 @@
             transform: none;
         }
 
-        .error-message {
-            background: #fee;
-            color: #c33;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            border: 1px solid #fcc;
-        }
-
-        .success-message {
-            background: #efe;
-            color: #363;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            border: 1px solid #cfc;
-        }
-
-        .loading {
+        .loading-spinner {
             display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .loading.show {
-            display: block;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            margin-right: 8px;
         }
 
         @keyframes spin {
@@ -177,12 +158,35 @@
             100% { transform: rotate(360deg); }
         }
 
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
         .footer {
             text-align: center;
             margin-top: 30px;
             padding-top: 20px;
-            border-top: 1px solid #e1e5e9;
-            color: #666;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .footer p {
+            color: #718096;
             font-size: 12px;
         }
 
@@ -200,6 +204,10 @@
                 padding: 30px 20px;
                 margin: 10px;
             }
+            
+            .login-header h1 {
+                font-size: 24px;
+            }
         }
     </style>
 </head>
@@ -207,42 +215,52 @@
     <div class="login-container">
         <div class="login-header">
             <h1><i class="fas fa-robot"></i> Movonte AI</h1>
-            <p>Administrative Access</p>
+            <p>Administrative Access Portal</p>
         </div>
 
-        <div id="errorMessage" class="error-message" style="display: none;"></div>
-        <div id="successMessage" class="success-message" style="display: none;"></div>
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
 
         <form id="loginForm">
             <div class="form-group">
-                <label class="form-label" for="username">Username or Email</label>
-                <div class="input-group">
-                    <i class="fas fa-user input-icon"></i>
-                    <input type="text" id="username" name="username" class="form-input" placeholder="Enter your username or email" required>
+                <label class="form-label" for="username">Username</label>
+                <div class="input-icon">
+                    <i class="fas fa-user"></i>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        class="form-input" 
+                        placeholder="Enter your username"
+                        required
+                    >
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="password">Password</label>
-                <div class="input-group">
-                    <i class="fas fa-lock input-icon"></i>
-                    <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" required>
+                <div class="input-icon">
+                    <i class="fas fa-lock"></i>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-input" 
+                        placeholder="Enter your password"
+                        required
+                    >
                 </div>
             </div>
 
             <button type="submit" class="login-button" id="loginButton">
-                <i class="fas fa-sign-in-alt"></i> Sign In
+                <div class="loading-spinner" id="loadingSpinner"></div>
+                <span id="buttonText">Sign In</span>
             </button>
         </form>
 
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>Authenticating...</p>
-        </div>
-
         <div class="footer">
             <p>&copy; 2025 Movonte. All rights reserved.</p>
-            <p><a href="#" onclick="showHelp()">Need help?</a></p>
+            <p>Powered by <a href="#" target="_blank">AI Assistant System</a></p>
         </div>
     </div>
 
@@ -250,10 +268,11 @@
         class LoginManager {
             constructor() {
                 this.form = document.getElementById('loginForm');
-                this.errorDiv = document.getElementById('errorMessage');
-                this.successDiv = document.getElementById('successMessage');
-                this.loadingDiv = document.getElementById('loading');
+                this.errorMessage = document.getElementById('errorMessage');
+                this.successMessage = document.getElementById('successMessage');
                 this.loginButton = document.getElementById('loginButton');
+                this.loadingSpinner = document.getElementById('loadingSpinner');
+                this.buttonText = document.getElementById('buttonText');
                 
                 this.setupEventListeners();
                 this.checkExistingAuth();
@@ -261,6 +280,10 @@
 
             setupEventListeners() {
                 this.form.addEventListener('submit', (e) => this.handleLogin(e));
+                
+                // Clear errors on input
+                document.getElementById('username').addEventListener('input', () => this.clearMessages());
+                document.getElementById('password').addEventListener('input', () => this.clearMessages());
             }
 
             async checkExistingAuth() {
@@ -274,10 +297,10 @@
                         });
                         
                         if (response.ok) {
-                            // Token is valid, redirect to dashboard
+                            // Token válido, redirigir al dashboard
                             window.location.href = '/index.html';
                         } else {
-                            // Token is invalid, remove it
+                            // Token inválido, limpiar
                             localStorage.removeItem('authToken');
                         }
                     } catch (error) {
@@ -290,16 +313,15 @@
             async handleLogin(e) {
                 e.preventDefault();
                 
-                const formData = new FormData(this.form);
-                const username = formData.get('username');
-                const password = formData.get('password');
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
 
                 if (!username || !password) {
-                    this.showError('Please fill in all fields');
+                    this.showError('Please enter both username and password');
                     return;
                 }
 
-                this.showLoading(true);
+                this.setLoading(true);
 
                 try {
                     const response = await fetch('/api/auth/login', {
@@ -313,16 +335,15 @@
                     const data = await response.json();
 
                     if (data.success) {
-                        // Store token and user info
+                        // Guardar token
                         localStorage.setItem('authToken', data.data.token);
-                        localStorage.setItem('userInfo', JSON.stringify(data.data.user));
                         
                         this.showSuccess('Login successful! Redirecting...');
                         
-                        // Redirect to dashboard after short delay
+                        // Redirigir al dashboard
                         setTimeout(() => {
                             window.location.href = '/index.html';
-                        }, 1500);
+                        }, 1000);
                     } else {
                         this.showError(data.error || 'Login failed');
                     }
@@ -330,38 +351,38 @@
                     console.error('Login error:', error);
                     this.showError('Network error. Please try again.');
                 } finally {
-                    this.showLoading(false);
+                    this.setLoading(false);
                 }
             }
 
+            setLoading(loading) {
+                this.loginButton.disabled = loading;
+                this.loadingSpinner.style.display = loading ? 'inline-block' : 'none';
+                this.buttonText.textContent = loading ? 'Signing In...' : 'Sign In';
+            }
+
             showError(message) {
-                this.errorDiv.textContent = message;
-                this.errorDiv.style.display = 'block';
-                this.successDiv.style.display = 'none';
+                this.errorMessage.textContent = message;
+                this.errorMessage.style.display = 'block';
+                this.successMessage.style.display = 'none';
             }
 
             showSuccess(message) {
-                this.successDiv.textContent = message;
-                this.successDiv.style.display = 'block';
-                this.errorDiv.style.display = 'none';
+                this.successMessage.textContent = message;
+                this.successMessage.style.display = 'block';
+                this.errorMessage.style.display = 'none';
             }
 
-            showLoading(show) {
-                this.loadingDiv.classList.toggle('show', show);
-                this.loginButton.disabled = show;
-                this.form.style.display = show ? 'none' : 'block';
+            clearMessages() {
+                this.errorMessage.style.display = 'none';
+                this.successMessage.style.display = 'none';
             }
         }
 
-        // Initialize login manager
+        // Inicializar cuando el DOM esté listo
         document.addEventListener('DOMContentLoaded', () => {
             new LoginManager();
         });
-
-        // Help function
-        function showHelp() {
-            alert('For technical support, please contact the system administrator.');
-        }
     </script>
 </body>
 </html>
