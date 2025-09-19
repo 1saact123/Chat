@@ -11,12 +11,6 @@ The CEO Dashboard is a comprehensive administrative control panel for managing t
 - **Browser Requirements**: Modern web browser with JavaScript enabled
 - **Network**: Requires access to the backend API at `https://chat.movonte.com`
 
-## Dashboard Interface
-
-### Navigation Bar
-- **Brand**: Movonte logo and branding
-- **Navigation Links**: Dashboard, Assistants, Services, Settings
-- **Breadcrumbs**: Home > AI Management > Control Panel
 
 ### Statistics Cards
 The dashboard displays four key metrics at the top:
