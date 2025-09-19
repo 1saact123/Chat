@@ -69,7 +69,8 @@ The Movonte AI Assistant System is a comprehensive customer service platform tha
 The CEO Dashboard is the central administrative interface for managing the AI Assistant System. Access it at: `https://chat.movonte.com/ceo-dashboard`
 
 ### Dashboard Overview
-[SCREENSHOT: CEO Dashboard main interface]
+<img width="1920" height="1020" alt="imagen" src="https://github.com/user-attachments/assets/3807f011-7a6c-4103-be10-fb04a60fd3c2" />
+
 
 The dashboard provides comprehensive control over:
 - AI Assistant management
@@ -79,7 +80,8 @@ The dashboard provides comprehensive control over:
 - Project management
 
 ### AI Assistants Section
-[SCREENSHOT: AI Assistants section]
+<img width="673" height="581" alt="imagen" src="https://github.com/user-attachments/assets/e6afd070-defa-45bf-8eb3-dabd971da4f8" />
+
 
 **Features:**
 - View all available AI assistants
@@ -91,7 +93,8 @@ The dashboard provides comprehensive control over:
 The system displays the currently active global assistant, which is determined by the Landing Page Service configuration.
 
 ### Service Configuration
-[SCREENSHOT: Service Configuration section]
+<img width="665" height="494" alt="imagen" src="https://github.com/user-attachments/assets/31a228fe-4f5a-4caf-a2b4-7d82aaf751d0" />
+
 
 **Landing Page Service:**
 - **Current Assistant**: Shows the AI assistant assigned to the landing page
@@ -105,7 +108,8 @@ The system displays the currently active global assistant, which is determined b
 3. Use "DEACTIVATE" to disable the service
 
 ### Project Management
-[SCREENSHOT: Project Management section]
+<img width="673" height="314" alt="imagen" src="https://github.com/user-attachments/assets/1457faaf-3088-4c7c-88b6-26614d2fd23f" />
+
 
 **Active Jira Project:**
 - Select the active Jira project for ticket creation
@@ -113,7 +117,8 @@ The system displays the currently active global assistant, which is determined b
 - Changes apply to new ticket creation
 
 ### Ticket Control
-[SCREENSHOT: Ticket Control section]
+<img width="585" height="787" alt="imagen" src="https://github.com/user-attachments/assets/89f09572-67d3-4ad4-87c0-613be70b1df4" />
+
 
 **Disable AI Assistant for Specific Tickets:**
 1. Enter Jira ticket key (e.g., TI-123)
@@ -127,130 +132,6 @@ The system displays the currently active global assistant, which is determined b
 - See disable reason and timestamp
 - Bulk enable/disable options
 
----
-
-## Chat Widget Integration
-
-### Widget Types
-
-#### 1. Standard Chat Widget
-**URL**: `https://chat.movonte.com/`
-[SCREENSHOT: Standard chat widget interface]
-
-**Features:**
-- Direct customer interaction
-- Automatic ticket creation
-- Message history
-- Responsive design
-
-#### 2. Jira Integrated Widget
-**URL**: `https://chat.movonte.com/jira-integrated-widget`
-[SCREENSHOT: Jira integrated widget]
-
-**Features:**
-- Connect to existing Jira tickets
-- Real-time message synchronization
-- Agent-to-customer communication
-- Ticket status updates
-
-#### 3. Service Desk Widget
-**URL**: `https://chat.movonte.com/service-desk`
-[SCREENSHOT: Service desk widget]
-
-**Features:**
-- Service desk specific interface
-- Customer portal integration
-- Request type selection
-- Priority management
-
-### Embedding the Widget
-
-#### Method 1: Direct Integration
-```html
-<iframe 
-    src="https://chat.movonte.com/" 
-    width="400" 
-    height="600"
-    frameborder="0">
-</iframe>
-```
-
-#### Method 2: JavaScript Integration
-```javascript
-// Load chat widget dynamically
-const chatWidget = document.createElement('iframe');
-chatWidget.src = 'https://chat.movonte.com/';
-chatWidget.width = '400';
-chatWidget.height = '600';
-chatWidget.frameBorder = '0';
-document.body.appendChild(chatWidget);
-```
-
-### Widget Configuration
-- **Responsive Design**: Automatically adapts to container size
-- **Custom Styling**: CSS variables for branding
-- **Message Persistence**: Conversations are maintained across sessions
-- **Error Handling**: Graceful fallback for connection issues
-
----
-
-## Webhook Monitoring
-
-### Webhook Monitor Interface
-**URL**: `https://chat.movonte.com/webhook-monitor`
-[SCREENSHOT: Webhook monitor dashboard]
-
-**Real-time Statistics:**
-- Total webhooks received
-- Successful responses
-- Failed responses
-- Response times
-- Error rates
-
-### Monitoring Features
-[SCREENSHOT: Webhook statistics]
-
-**Live Metrics:**
-- Webhook events per minute
-- Success/failure rates
-- Average response time
-- System uptime
-
-**Error Tracking:**
-- Failed webhook attempts
-- Error categorization
-- Retry mechanisms
-- Alert notifications
-
-**Debug Information:**
-- Webhook payload inspection
-- Request/response logging
-- Performance metrics
-- System health status
-
----
-
-## Service Configuration
-
-### Creating New Services
-
-#### 1. Service Setup
-1. Navigate to CEO Dashboard
-2. Access Service Configuration section
-3. Click "Add New Service"
-4. Configure service parameters
-
-#### 2. Assistant Assignment
-1. Select AI assistant from available options
-2. Configure service-specific settings
-3. Set Jira project association
-4. Activate service
-
-#### 3. Service Management
-- **Activate/Deactivate**: Toggle service status
-- **Assistant Changes**: Update AI assistant
-- **Configuration Updates**: Modify service settings
-- **Performance Monitoring**: Track service metrics
 
 ### Service Types
 
@@ -271,8 +152,6 @@ document.body.appendChild(chatWidget);
 ## Ticket Management
 
 ### Automatic Ticket Creation
-[SCREENSHOT: Ticket creation process]
-
 **Process:**
 1. Customer initiates chat
 2. System creates Jira ticket
@@ -287,8 +166,6 @@ document.body.appendChild(chatWidget);
 4. **Resolution**: Ticket closure and follow-up
 
 ### Agent Integration
-[SCREENSHOT: Agent handoff interface]
-
 **Features:**
 - Seamless AI-to-agent transition
 - Message history preservation
@@ -341,7 +218,7 @@ document.body.appendChild(chatWidget);
 
 #### 1. Health Check
 **Endpoint**: `https://chat.movonte.com/health`
-[SCREENSHOT: Health check response]
+
 
 **Information:**
 - System status
@@ -351,7 +228,6 @@ document.body.appendChild(chatWidget);
 
 #### 2. Detailed Health
 **Endpoint**: `https://chat.movonte.com/health/detailed`
-[SCREENSHOT: Detailed health information]
 
 **Components:**
 - OpenAI configuration
@@ -432,17 +308,6 @@ All API responses follow a consistent format:
 - **Performance Optimization**: System speed and efficiency improvements
 - **Security Updates**: Latest security measures and protections
 
----
 
-## Contact Information
-
-For technical support, system issues, or feature requests:
-
-- **System Administrator**: [Contact Information]
-- **Technical Support**: [Support Email]
-- **Documentation**: [Documentation URL]
-- **Status Page**: [Status Page URL]
-
----
 
 *This document is maintained by the Movonte Development Team. Last updated: [Current Date]*
