@@ -34,6 +34,12 @@ router.post('/api/auth/logout', authController.logout.bind(authController));
 router.post('/api/auth/users', authMiddleware.authenticate.bind(authMiddleware), authMiddleware.requireAdmin.bind(authMiddleware), authController.createUser.bind(authController));
 router.get('/api/auth/users', authMiddleware.authenticate.bind(authMiddleware), authMiddleware.requireAdmin.bind(authMiddleware), authController.listUsers.bind(authController));
 
+// === USER MANAGEMENT ROUTES (ADMIN ONLY) ===
+router.get('/api/auth/users/:id', authMiddleware.authenticate.bind(authMiddleware), authMiddleware.requireAdmin.bind(authMiddleware), authController.getUserById.bind(authController));
+router.put('/api/auth/users/:id', authMiddleware.authenticate.bind(authMiddleware), authMiddleware.requireAdmin.bind(authMiddleware), authController.updateUser.bind(authController));
+router.delete('/api/auth/users/:id', authMiddleware.authenticate.bind(authMiddleware), authMiddleware.requireAdmin.bind(authMiddleware), authController.deleteUser.bind(authController));
+router.post('/api/auth/users/:id/change-password', authMiddleware.authenticate.bind(authMiddleware), authController.changePassword.bind(authController));
+
 // === HEALTH ROUTES ===
 router.get('/health', healthController.healthCheck.bind(healthController));
 router.get('/health/detailed', healthController.detailedHealth.bind(healthController));
