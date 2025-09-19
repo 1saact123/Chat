@@ -218,7 +218,7 @@ The system displays the currently active global assistant, which is determined b
 
 #### 1. Health Check
 **Endpoint**: `https://chat.movonte.com/health`
-[SCREENSHOT: Health check response]
+
 
 **Information:**
 - System status
