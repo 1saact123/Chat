@@ -7,6 +7,29 @@
     <link rel="stylesheet" href="ceo-dashboard.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .global-assistant-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .global-assistant-info .info-label {
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        
+        .global-assistant-info .info-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
     <!-- Top Navigation Bar -->
@@ -95,13 +118,19 @@
                         <h2>AI Assistants</h2>
                     </div>
                     <div class="section-content">
-                <div id="assistantsList" class="assistant-list">
+                        <!-- Global Active Assistant Info -->
+                        <div class="global-assistant-info">
+                            <div class="info-label">Global Active Assistant:</div>
+                            <div class="info-value" id="globalAssistantName">-</div>
+                        </div>
+                        
+                        <div id="assistantsList" class="assistant-list">
                             <div class="loading-state">
                                 <i class="fas fa-spinner fa-spin"></i>
                                 <span>Loading assistants...</span>
                             </div>
-                </div>
-            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Project Management Section -->
@@ -357,8 +386,11 @@
 
             async loadDashboard() {
                 try {
+                    console.log('🔄 Loading dashboard data...');
                     const response = await fetch('/api/admin/dashboard');
                     const data = await response.json();
+
+                    console.log('📊 Dashboard data received:', data);
 
                     if (data.success) {
                         this.assistants = data.data.assistants;
@@ -366,6 +398,14 @@
                         this.serviceConfigs = data.data.serviceConfigurations;
                         this.activeProject = data.data.activeProject;
                         this.activeAssistant = data.data.activeAssistant;
+                        
+                        console.log('✅ Data loaded:', {
+                            assistants: this.assistants.length,
+                            projects: this.projects.length,
+                            serviceConfigs: this.serviceConfigs.length,
+                            activeProject: this.activeProject,
+                            activeAssistant: this.activeAssistant
+                        });
                         
                         this.updateStats(data.data);
                         this.renderAssistants();
@@ -375,7 +415,8 @@
                         throw new Error(data.error);
                     }
                 } catch (error) {
-                                         this.showStatus(`Error loading dashboard: ${error.message}`, 'error');
+                    console.error('❌ Error loading dashboard:', error);
+                    this.showStatus(`Error loading dashboard: ${error.message}`, 'error');
                 }
             }
 
@@ -483,35 +524,42 @@
             populateServiceAssistantDropdowns() {
                 // Landing Page dropdown
                 const landingSelect = document.getElementById('assistant-landing-page');
-                landingSelect.innerHTML = '<option value="">Select an assistant...</option>';
-                
-                 
-                 this.assistants.forEach(assistant => {
-                    const option1 = document.createElement('option');
-                    option1.value = assistant.id;
-                    option1.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
-                    landingSelect.appendChild(option1);
+                if (landingSelect) {
+                    landingSelect.innerHTML = '<option value="">Select an assistant...</option>';
                     
-                    const option2 = document.createElement('option');
-                    option2.value = assistant.id;
-                    option2.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
-                    chatSelect.appendChild(option2);
-                });
+                    console.log('Populating dropdown with assistants:', this.assistants);
+                    
+                    this.assistants.forEach(assistant => {
+                        const option = document.createElement('option');
+                        option.value = assistant.id;
+                        option.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
+                        landingSelect.appendChild(option);
+                    });
+                }
             }
 
             updateServiceInfo() {
+                console.log('🔄 Updating service info...');
+                console.log('Service configs:', this.serviceConfigs);
+                console.log('Active project:', this.activeProject);
+                
                 // Find service configurations
                 const landingService = this.serviceConfigs.find(s => s.serviceId === 'landing-page');
+                console.log('Landing service found:', landingService);
                 
                 // Update Landing Page service
                 if (landingService) {
+                    console.log('✅ Updating landing service info:', landingService);
                     document.getElementById('landing-assistant-name').textContent = landingService.assistantName || '-';
                     document.getElementById('landing-last-updated').textContent = new Date(landingService.lastUpdated).toLocaleString();
                     document.getElementById('landing-project').textContent = this.activeProject || '-';
                     
                     // Set selected assistant
                     const landingSelect = document.getElementById('assistant-landing-page');
-                    landingSelect.value = landingService.assistantId || '';
+                    if (landingSelect) {
+                        landingSelect.value = landingService.assistantId || '';
+                        console.log('Set dropdown value to:', landingService.assistantId);
+                    }
                     
                     // Update toggle button
                     const landingToggle = document.querySelector('[data-service-id="landing-page"].toggle-service-btn');
@@ -520,8 +568,34 @@
                         landingToggle.className = `btn ${landingService.isActive ? 'btn-secondary' : 'btn-success'} toggle-service-btn`;
                         landingToggle.dataset.isActive = !landingService.isActive;
                     }
+                } else {
+                    console.log('❌ No landing service configuration found');
+                    // Si no hay configuración, mostrar valores por defecto
+                    document.getElementById('landing-assistant-name').textContent = '-';
+                    document.getElementById('landing-last-updated').textContent = '-';
+                    document.getElementById('landing-project').textContent = this.activeProject || '-';
+                    
+                    const landingSelect = document.getElementById('assistant-landing-page');
+                    if (landingSelect) {
+                        landingSelect.value = '';
+                    }
                 }
                 
+                // Mostrar información del asistente activo global
+                this.updateGlobalAssistantInfo();
+            }
+
+            updateGlobalAssistantInfo() {
+                // Mostrar información del asistente activo global
+                const globalAssistant = this.assistants.find(a => a.id === this.activeAssistant);
+                const globalAssistantElement = document.getElementById('globalAssistantName');
+                
+                if (globalAssistant && globalAssistantElement) {
+                    globalAssistantElement.textContent = globalAssistant.name || 'Unnamed';
+                    console.log('Asistente activo global:', globalAssistant.name);
+                } else if (globalAssistantElement) {
+                    globalAssistantElement.textContent = '-';
+                }
             }
 
             async applyAssistantChange(serviceId) {
