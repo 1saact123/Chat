@@ -1,545 +1,1065 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Assistant Chat - Test Widget</title>
+    <title>AI Assistant Control Panel - Movonte</title>
+    <link rel="stylesheet" href="ceo-dashboard.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* CSS Variables */
-        :root {
-            --primary: #0f172a;
-            --primary-light: #1e293b;
-            --secondary: #64748b;
-            --accent: #3b82f6;
-            --accent-light: #60a5fa;
-            --success: #059669;
-            --warning: #d97706;
-            --danger: #dc2626;
-            --neutral: #f8fafc;
-            --neutral-light: #ffffff;
-            --border: #e2e8f0;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --text-muted: #94a3b8;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-            --radius: 8px;
-            --radius-lg: 12px;
-            --transition: all 0.2s ease;
-        }
-
-        /* Reset */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #fafafa;
-            color: var(--text-primary);
-            line-height: 1.6;
-            font-size: 14px;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        /* Chat Container */
-        .chat-container {
-            background: var(--neutral-light);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
-            width: 100%;
-            max-width: 500px;
-            height: 600px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-
-        /* Chat Header */
-        .chat-header {
-            background: var(--primary);
-            color: white;
-            padding: 24px 20px;
-            text-align: center;
-            position: relative;
-        }
-
-        .chat-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--accent), var(--success));
-        }
-
-        .chat-header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: -0.025em;
-        }
-
-        .chat-header p {
-            opacity: 0.9;
-            font-size: 0.875rem;
-            font-weight: 400;
-        }
-
-        /* Chat Messages */
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background: var(--neutral);
-        }
-
-        .chat-messages::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .chat-messages::-webkit-scrollbar-track {
-            background: var(--neutral);
-        }
-
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 2px;
-        }
-
-        /* Jira Info Section */
-        .jira-info {
-            background: var(--neutral-light);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 20px;
+        .global-assistant-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 16px;
             margin-bottom: 20px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .jira-info h3 {
-            color: var(--primary);
-            margin-bottom: 16px;
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .jira-info input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            margin-bottom: 12px;
-            font-size: 0.875rem;
-            transition: var(--transition);
-            background: var(--neutral-light);
-            color: var(--text-primary);
-        }
-
-        .jira-info input:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
-        }
-
-        .jira-info input:last-child {
-            margin-bottom: 0;
-        }
-
-        /* Status Messages */
-        .status {
-            padding: 16px 20px;
-            border-radius: var(--radius);
-            margin-bottom: 16px;
-            font-weight: 500;
-            font-size: 0.875rem;
-            border: 1px solid transparent;
-        }
-
-        .status.success {
-            background: #dcfce7;
-            color: var(--success);
-            border-color: #bbf7d0;
-        }
-
-        .status.error {
-            background: #fef2f2;
-            color: var(--danger);
-            border-color: #fecaca;
-        }
-
-        .status.info {
-            background: #dbeafe;
-            color: #1e40af;
-            border-color: #bfdbfe;
-        }
-
-        /* Chat Messages */
-        .message {
-            margin-bottom: 16px;
+            color: white;
             display: flex;
-            align-items: flex-start;
-            animation: fadeIn 0.3s ease-out;
+            justify-content: space-between;
+            align-items: center;
         }
-
-        .message.user {
-            justify-content: flex-end;
-        }
-
-        .message-content {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            word-wrap: break-word;
-            position: relative;
-        }
-
-        .message.user .message-content {
-            background: var(--accent);
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-
-        .message.assistant .message-content {
-            background: var(--neutral-light);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            border-bottom-left-radius: 4px;
-        }
-
-        .message-time {
-            font-size: 0.75rem;
-            opacity: 0.7;
-            margin-top: 8px;
-        }
-
-        /* Chat Input */
-        .chat-input {
-            padding: 20px;
-            background: var(--neutral-light);
-            border-top: 1px solid var(--border);
-        }
-
-        .input-group {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .chat-input input {
-            flex: 1;
-            padding: 12px 16px;
-            border: 1px solid var(--border);
-            border-radius: 25px;
-            outline: none;
-            font-size: 0.875rem;
-            transition: var(--transition);
-            background: var(--neutral-light);
-            color: var(--text-primary);
-        }
-
-        .chat-input input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
-        }
-
-        .chat-input button {
-            padding: 12px 20px;
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: var(--transition);
-            min-width: 80px;
-        }
-
-        .chat-input button:hover {
-            background: var(--accent-light);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .chat-input button:disabled {
-            background: var(--text-muted);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        /* Test Button */
-        .test-button {
-            background: var(--success);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: var(--radius);
-            cursor: pointer;
-            font-size: 0.875rem;
+        
+        .global-assistant-info .info-label {
+            font-size: 14px;
             font-weight: 500;
-            transition: var(--transition);
-            width: 100%;
+            opacity: 0.9;
         }
-
-        .test-button:hover {
-            background: #047857;
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
-        }
-
-        /* Loading Spinner */
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .chat-container {
-                height: 100vh;
-                max-width: 100%;
-                border-radius: 0;
-            }
-            
-            body {
-                padding: 0;
-            }
+        
+        .global-assistant-info .info-value {
+            font-size: 16px;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <h1>AI Assistant Chat</h1>
-            <p>Test Widget for OpenAI Integration</p>
-        </div>
-
-        <div class="chat-messages" id="chatMessages">
-            <div class="jira-info">
-                <h3>Jira Information (Optional)</h3>
-                <input type="text" id="jiraIssueKey" placeholder="Ticket key (e.g: DEV-123)" />
-                <input type="text" id="jiraContext" placeholder="Additional context" />
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="brand-text">Movonte</span>
             </div>
-            
-            <div class="status info">
-                💡 Write a message to test the OpenAI integration
+            <div class="nav-links">
+                <a href="#" class="nav-link">Dashboard</a>
+                <a href="#" class="nav-link">Assistants</a>
+                <a href="#" class="nav-link">Services</a>
+                <a href="#" class="nav-link active">Settings</a>
             </div>
         </div>
+    </nav>
 
-        <div class="chat-input">
-            <div class="input-group">
-                <input 
-                    type="text" 
-                    id="messageInput" 
-                    placeholder="Type your message here..."
-                />
-                <button id="sendButton">
-                    <span id="buttonText">Send</span>
-                    <span id="loadingSpinner" class="loading" style="display: none;"></span>
-                </button>
-            </div>
-            <button id="testButton" class="test-button">
-                🧪 Test JavaScript
-            </button>
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs">
+        <div class="breadcrumb-container">
+            <span class="breadcrumb-item">Home</span>
+            <i class="fas fa-chevron-right"></i>
+            <span class="breadcrumb-item">AI Management</span>
+            <i class="fas fa-chevron-right"></i>
+            <span class="breadcrumb-item active">Control Panel</span>
         </div>
     </div>
 
-    <script>
-        let currentThreadId = null;
-        const API_BASE = window.location.origin;
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1>AI Assistant Control Panel</h1>
+                <p>Manage your AI assistants, configure services, and monitor system activity</p>
+            </div>
+        </div>
 
-        function addMessage(content, isUser = false, timestamp = new Date()) {
-            const messagesContainer = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
-            
-            const timeString = timestamp.toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-
-            messageDiv.innerHTML = `
-                <div class="message-content">
-                    ${content}
-                    <div class="message-time">${timeString}</div>
+        <!-- Statistics Cards -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-robot"></i>
                 </div>
-            `;
-            
-            messagesContainer.appendChild(messageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
+                <div class="stat-content">
+                <div class="stat-number" id="totalAssistants">-</div>
+                    <div class="stat-label">AVAILABLE ASSISTANTS</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="totalServices">2</div>
+                    <div class="stat-label">CONFIGURED SERVICES</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="stat-content">
+                <div class="stat-number" id="activeServices">-</div>
+                    <div class="stat-label">ACTIVE SERVICES</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="systemUptime">98.5%</div>
+                    <div class="stat-label">SYSTEM UPTIME</div>
+                </div>
+            </div>
+        </div>
 
-        function showStatus(message, type = 'info') {
-            const messagesContainer = document.getElementById('chatMessages');
-            const statusDiv = document.createElement('div');
-            statusDiv.className = `status ${type}`;
-            statusDiv.textContent = message;
-            
-            messagesContainer.appendChild(statusDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
+        <!-- Main Content Grid -->
+        <div class="content-grid">
+            <!-- Left Column -->
+            <div class="left-column">
+                <!-- AI Assistants Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>AI Assistants</h2>
+                    </div>
+                    <div class="section-content">
+                        <!-- Global Active Assistant Info -->
+                        <div class="global-assistant-info">
+                            <div class="info-label">Global Active Assistant:</div>
+                            <div class="info-value" id="globalAssistantName">-</div>
+                        </div>
+                        
+                        <div id="assistantsList" class="assistant-list">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <span>Loading assistants...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Project Management Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Project Management</h2>
+                    </div>
+                    <div class="section-content">
+                                        <div class="form-group">
+                            <label for="activeProject" class="form-label">Active Jira Project</label>
+                            <select id="activeProject" class="form-select">
+                                <option value="">Loading projects...</option>
+                            </select>
+                        </div>
+                        <div class="project-info">
+                            <div class="info-row">
+                                <span class="info-label">Current Project:</span>
+                                <span class="info-value" id="currentProjectName">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Project Key:</span>
+                                <span class="info-value" id="currentProjectKey">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        async function sendMessage() {
-            console.log('sendMessage function called');
-            
-            const messageInput = document.getElementById('messageInput');
-            const sendButton = document.getElementById('sendButton');
-            const buttonText = document.getElementById('buttonText');
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            const jiraIssueKey = document.getElementById('jiraIssueKey').value;
-            const jiraContext = document.getElementById('jiraContext').value;
+                <!-- Remote Server Project Management Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Remote Server Project</h2>
+                    </div>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <label for="remoteServerUrl" class="form-label">Remote Server URL</label>
+                            <input type="text" id="remoteServerUrl" class="form-input" 
+                                   placeholder="https://form.movonte.com" 
+                                   value="https://form.movonte.com">
+                        </div>
+                        
+                    <div class="form-group">
+                            <label for="remoteActiveProject" class="form-label">Remote Active Project</label>
+                            <select id="remoteActiveProject" class="form-select">
+                                <option value="">Loading remote projects...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="remote-project-info">
+                            <div class="info-row">
+                                <span class="info-label">Remote Current Project:</span>
+                                <span class="info-value" id="remoteCurrentProjectName">-</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Remote Project Key:</span>
+                                <span class="info-value" id="remoteCurrentProjectKey">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-            const message = messageInput.value.trim();
-            if (!message) {
-                console.log('No message to send');
-                return;
+            <!-- Right Column -->
+            <div class="right-column">
+                <!-- Service Configuration Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Service Configuration</h2>
+                    </div>
+                    <div class="section-content">
+                        <!-- Landing Page Service -->
+                        <div class="service-config">
+                            <div class="service-header">
+                                <div class="service-info">
+                                    <div class="service-name">Landing Page</div>
+                                    <div class="service-details">
+                                        <div class="detail-row">
+                                            <span class="detail-label">Current Assistant:</span>
+                                            <span class="detail-value" id="landing-assistant-name">-</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Service ID:</span>
+                                            <span class="detail-value">landing-page</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Jira Project:</span>
+                                            <span class="detail-value" id="landing-project">-</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Last Updated:</span>
+                                            <span class="detail-value" id="landing-last-updated">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="service-controls">
+                                <div class="control-section">
+                                    <label class="control-label">CHANGE ASSISTANT</label>
+                                    <select class="control-select" id="assistant-landing-page">
+                                        <option value="">Select an assistant...</option>
+                                    </select>
+                                </div>
+                                <div class="control-buttons">
+                                    <button class="btn btn-primary apply-change-btn" data-service-id="landing-page">
+                                        APPLY
+                                    </button>
+                                    <button class="btn btn-secondary toggle-service-btn" 
+                                            data-service-id="landing-page" data-is-active="false">
+                                        DEACTIVATE
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Ticket Control Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Ticket Control</h2>
+                        <p>Disable AI assistant for specific Jira tickets</p>
+                    </div>
+                    <div class="section-content">
+                        <!-- Disable Assistant Form -->
+                        <div class="ticket-control-form">
+                            <div class="form-group">
+                                <label for="ticketIssueKey" class="form-label">Jira Ticket Key</label>
+                                <input type="text" id="ticketIssueKey" class="form-input" 
+                                       placeholder="e.g., TI-123" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="disableReason" class="form-label">Reason (Optional)</label>
+                                <textarea id="disableReason" class="form-textarea" 
+                                          placeholder="Reason for disabling the AI assistant..."></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn btn-danger" id="disableTicketBtn">
+                                    <i class="fas fa-ban"></i> Disable Assistant
+                                </button>
+                                <button class="btn btn-success" id="enableTicketBtn">
+                                    <i class="fas fa-check"></i> Enable Assistant
+                                </button>
+                                <button class="btn btn-secondary" id="checkTicketBtn">
+                                    <i class="fas fa-search"></i> Check Status
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Disabled Tickets List -->
+                        <div class="disabled-tickets-section">
+                            <div class="section-subheader">
+                                <h3>Currently Disabled Tickets</h3>
+                                <button class="btn btn-sm btn-secondary" id="refreshDisabledBtn">
+                                    <i class="fas fa-refresh"></i> Refresh
+                                </button>
+                            </div>
+                            <div id="disabledTicketsList" class="disabled-tickets-list">
+                                <div class="loading-state">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <span>Loading disabled tickets...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Section -->
+        <div class="activity-section">
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>
+                        <i class="fas fa-file-alt"></i>
+                        Recent Activity
+                    </h2>
+                </div>
+                <div class="section-content">
+                    <div id="recentActivity" class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-indicator success"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Landing Page service updated successfully with Chatbot Test V3</div>
+                                <div class="activity-time">Today at 11:08 AM</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator success"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Jira Integration service has been activated</div>
+                                <div class="activity-time">Today at 10:45 AM</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator warning"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Performance degradation detected for Chatbot Test V2</div>
+                                <div class="activity-time">Today at 09:30 AM</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator info"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">System backup completed successfully</div>
+                                <div class="activity-time">Today at 08:15 AM</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator error"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Connection timeout for assistant asst_8ttODMww5jd42lqe4nZ7JjG0</div>
+                                <div class="activity-time">Today at 07:22 AM</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-indicator success"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">New assistant "Chatbot Test V3" has been registered</div>
+                                <div class="activity-time">Yesterday at 16:45 PM</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" class="status-message" style="display: none;"></div>
+
+    <script>
+        class CEODashboard {
+            constructor() {
+                this.assistants = [];
+                this.projects = [];
+                this.serviceConfigs = [];
+                this.activeProject = '';
+                this.activeAssistant = '';
+                this.remoteProjects = [];
+                this.remoteActiveProject = '';
+                this.remoteServerUrl = 'https://form.movonte.com';
+                this.initialize();
             }
 
-            console.log('Sending message:', message);
-            console.log('API_BASE:', API_BASE);
+            async initialize() {
+                await this.loadDashboard();
+                await this.loadProjects();
+                await this.loadRemoteProjects();
+                await this.loadDisabledTickets();
+                this.setupEventListeners();
+            }
 
-            // Show user message
-            addMessage(message, true);
-            messageInput.value = '';
+            async loadDashboard() {
+                try {
+                    console.log('🔄 Loading dashboard data...');
+                    const response = await fetch('/api/admin/dashboard');
+                    const data = await response.json();
 
-            // Show loading
-            sendButton.disabled = true;
-            buttonText.style.display = 'none';
-            loadingSpinner.style.display = 'inline-block';
+                    console.log('📊 Dashboard data received:', data);
 
-            try {
-                // Prepare context
-                const context = {};
-                if (jiraIssueKey) context.jiraIssueKey = jiraIssueKey;
-                if (jiraContext) context.additionalContext = jiraContext;
+                    if (data.success) {
+                        this.assistants = data.data.assistants;
+                        this.projects = data.data.projects;
+                        this.serviceConfigs = data.data.serviceConfigurations;
+                        this.activeProject = data.data.activeProject;
+                        this.activeAssistant = data.data.activeAssistant;
+                        
+                        console.log('✅ Data loaded:', {
+                            assistants: this.assistants.length,
+                            projects: this.projects.length,
+                            serviceConfigs: this.serviceConfigs.length,
+                            activeProject: this.activeProject,
+                            activeAssistant: this.activeAssistant
+                        });
+                        
+                        this.updateStats(data.data);
+                        this.renderAssistants();
+                        this.renderServices();
+                        this.renderProjects();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('❌ Error loading dashboard:', error);
+                    this.showStatus(`Error loading dashboard: ${error.message}`, 'error');
+                }
+            }
 
-                const requestBody = {
-                    message: message,
-                    threadId: currentThreadId,
-                    context: context
-                };
+            async loadProjects() {
+                try {
+                    const response = await fetch('/api/admin/projects');
+                    const data = await response.json();
 
-                console.log('Request body:', requestBody);
+                    if (data.success) {
+                        this.projects = data.projects;
+                        this.renderProjects();
+                    }
+                } catch (error) {
+                    console.error('Error loading projects:', error);
+                }
+            }
 
-                // Send message to API
-                const response = await fetch(`${API_BASE}/api/chatbot/chat`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(requestBody)
+            updateStats(data) {
+                document.getElementById('totalAssistants').textContent = data.totalAssistants;
+                document.getElementById('activeServices').textContent = 
+                    this.serviceConfigs.filter(s => s.isActive && s.serviceId === 'landing-page').length;
+            }
+
+            renderAssistants() {
+                const container = document.getElementById('assistantsList');
+                
+                                 if (this.assistants.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-robot"></i><span>No assistants available</span></div>';
+                     return;
+                 }
+
+                container.innerHTML = this.assistants.map(assistant => {
+                    // Determinar el estado del asistente
+                    const isActive = assistant.isActive || false;
+                    const isGlobalActive = assistant.isGlobalActive || false;
+                    
+                    // Crear texto de estado simplificado
+                    let statusText = 'INACTIVE';
+                    if (isActive) {
+                        statusText = 'ACTIVE';
+                    }
+                    
+                    return `
+                        <div class="assistant-item ${isActive ? 'active' : ''}">
+                            <div class="assistant-info">
+                         <div class="assistant-name">${assistant.name || 'Unnamed'}</div>
+                         <div class="assistant-details">
+                                    <span class="assistant-id">ID: ${assistant.id}</span>
+                                    <span class="assistant-model">Model: ${assistant.model}</span>
+                                </div>
+                            </div>
+                            <div class="assistant-status">
+                                <span class="status-dot ${isActive ? 'active' : 'inactive'}"></span>
+                                <span class="status-text ${isActive ? 'active' : 'inactive'}">
+                                    ${statusText}
+                                </span>
+                         </div>
+                     </div>
+                    `;
+                }).join('');
+            }
+
+            renderProjects() {
+                const select = document.getElementById('activeProject');
+                const currentProjectName = document.getElementById('currentProjectName');
+                const currentProjectKey = document.getElementById('currentProjectKey');
+                
+                if (this.projects.length === 0) {
+                    select.innerHTML = '<option value="">No projects available</option>';
+                     return;
+                 }
+
+                select.innerHTML = this.projects.map(project => `
+                    <option value="${project.key}" ${project.key === this.activeProject ? 'selected' : ''}>
+                        ${project.name} (${project.key})
+                    </option>
+                `).join('');
+
+                // Update current project info
+                const currentProject = this.projects.find(p => p.key === this.activeProject);
+                if (currentProject) {
+                    currentProjectName.textContent = currentProject.name;
+                    currentProjectKey.textContent = currentProject.key;
+                } else {
+                    currentProjectName.textContent = '-';
+                    currentProjectKey.textContent = '-';
+                }
+            }
+
+            renderServices() {
+                // Populate assistant dropdowns
+                this.populateServiceAssistantDropdowns();
+                
+                // Update service information
+                this.updateServiceInfo();
+                
+                // Setup event listeners
+                 this.setupDynamicEventListeners();
+             }
+
+            populateServiceAssistantDropdowns() {
+                // Landing Page dropdown
+                const landingSelect = document.getElementById('assistant-landing-page');
+                if (landingSelect) {
+                    landingSelect.innerHTML = '<option value="">Select an assistant...</option>';
+                    
+                    console.log('Populating dropdown with assistants:', this.assistants);
+                    
+                    this.assistants.forEach(assistant => {
+                        const option = document.createElement('option');
+                        option.value = assistant.id;
+                        option.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
+                        landingSelect.appendChild(option);
+                    });
+                }
+            }
+
+            updateServiceInfo() {
+                console.log('🔄 Updating service info...');
+                console.log('Service configs:', this.serviceConfigs);
+                console.log('Active project:', this.activeProject);
+                
+                // Find service configurations
+                const landingService = this.serviceConfigs.find(s => s.serviceId === 'landing-page');
+                console.log('Landing service found:', landingService);
+                
+                // Update Landing Page service
+                if (landingService) {
+                    console.log('✅ Updating landing service info:', landingService);
+                    document.getElementById('landing-assistant-name').textContent = landingService.assistantName || '-';
+                    document.getElementById('landing-last-updated').textContent = new Date(landingService.lastUpdated).toLocaleString();
+                    document.getElementById('landing-project').textContent = this.activeProject || '-';
+                    
+                    // Set selected assistant
+                    const landingSelect = document.getElementById('assistant-landing-page');
+                    if (landingSelect) {
+                        landingSelect.value = landingService.assistantId || '';
+                        console.log('Set dropdown value to:', landingService.assistantId);
+                    }
+                    
+                    // Update toggle button
+                    const landingToggle = document.querySelector('[data-service-id="landing-page"].toggle-service-btn');
+                    if (landingToggle) {
+                        landingToggle.textContent = landingService.isActive ? 'DEACTIVATE' : 'ACTIVATE';
+                        landingToggle.className = `btn ${landingService.isActive ? 'btn-secondary' : 'btn-success'} toggle-service-btn`;
+                        landingToggle.dataset.isActive = !landingService.isActive;
+                    }
+                } else {
+                    console.log('❌ No landing service configuration found');
+                    // Si no hay configuración, mostrar valores por defecto
+                    document.getElementById('landing-assistant-name').textContent = '-';
+                    document.getElementById('landing-last-updated').textContent = '-';
+                    document.getElementById('landing-project').textContent = this.activeProject || '-';
+                    
+                    const landingSelect = document.getElementById('assistant-landing-page');
+                    if (landingSelect) {
+                        landingSelect.value = '';
+                    }
+                }
+                
+                // Mostrar información del asistente activo global
+                this.updateGlobalAssistantInfo();
+            }
+
+            updateGlobalAssistantInfo() {
+                // Mostrar información del asistente activo global
+                const globalAssistant = this.assistants.find(a => a.id === this.activeAssistant);
+                const globalAssistantElement = document.getElementById('globalAssistantName');
+                
+                if (globalAssistant && globalAssistantElement) {
+                    globalAssistantElement.textContent = globalAssistant.name || 'Unnamed';
+                    console.log('Asistente activo global:', globalAssistant.name);
+                } else if (globalAssistantElement) {
+                    globalAssistantElement.textContent = '-';
+                }
+            }
+
+            async applyAssistantChange(serviceId) {
+                const selectElement = document.getElementById(`assistant-${serviceId}`);
+                const selectedAssistantId = selectElement.value;
+                
+                                 if (!selectedAssistantId) {
+                     this.showStatus('Please select an assistant first', 'error');
+                     return;
+                 }
+
+                 const assistant = this.assistants.find(a => a.id === selectedAssistantId);
+                 if (!assistant) {
+                     this.showStatus('Assistant not found', 'error');
+                     return;
+                 }
+
+                try {
+                    console.log(`🔄 Aplicando cambio para servicio: ${serviceId}`);
+                    console.log(`📋 Asistente seleccionado:`, assistant);
+                    
+                    const response = await fetch(`/api/admin/services/${serviceId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            assistantId: selectedAssistantId,
+                            assistantName: assistant.name || 'Sin nombre'
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                                                              if (data.success) {
+                         console.log(`Change applied successfully:`, data);
+                         this.showStatus(`Assistant "${assistant.name}" applied to ${serviceId}`, 'success');
+                         
+                        // Add activity log
+                        this.addActivity(`Assistant "${assistant.name}" applied to ${serviceId}`, 'success');
+                        
+                        // Reload dashboard to update assistant statuses
+                         await this.loadDashboard();
+                     } else {
+                         throw new Error(data.error);
+                     }
+                 } catch (error) {
+                     console.error(`Error applying change:`, error);
+                     this.showStatus(`Error applying change: ${error.message}`, 'error');
+                 }
+            }
+
+            async toggleService(serviceId, isActive) {
+                try {
+                    const response = await fetch(`/api/admin/services/${serviceId}/toggle`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ isActive })
+                    });
+
+                    const data = await response.json();
+                    
+                                         if (data.success) {
+                         this.showStatus(`Service ${serviceId} ${isActive ? 'activated' : 'deactivated'}`, 'success');
+                        
+                        // Add activity log
+                        this.addActivity(`Service ${serviceId} ${isActive ? 'activated' : 'deactivated'}`, 'success');
+                        
+                        // Reload dashboard to update assistant statuses
+                        await this.loadDashboard();
+                     } else {
+                         throw new Error(data.error);
+                     }
+                 } catch (error) {
+                     this.showStatus(`Error changing status: ${error.message}`, 'error');
+                 }
+            }
+
+            async changeActiveProject(projectKey) {
+                if (!projectKey) return;
+
+                try {
+                    const response = await fetch('/api/admin/projects/set-active', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ projectKey })
+                    });
+
+                    const data = await response.json();
+                    
+                                         if (data.success) {
+                        this.activeProject = projectKey;
+                        this.showStatus(`Project changed to: ${projectKey}`, 'success');
+                        this.renderProjects();
+                        this.addActivity(`Project changed to ${projectKey}`, 'success');
+                     } else {
+                         throw new Error(data.error);
+                     }
+                 } catch (error) {
+                    this.showStatus(`Error changing project: ${error.message}`, 'error');
+                }
+            }
+
+            addActivity(text, type) {
+                const activityList = document.getElementById('recentActivity');
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
                 });
 
-                console.log('Response status:', response.status);
+                const activityItem = document.createElement('div');
+                activityItem.className = 'activity-item';
+                activityItem.innerHTML = `
+                    <div class="activity-indicator ${type}"></div>
+                    <div class="activity-content">
+                        <div class="activity-text">${text}</div>
+                        <div class="activity-time">Today at ${timeString}</div>
+                    </div>
+                `;
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                console.log('Response result:', result);
-
-                if (result.success) {
-                    // Update threadId if new
-                    if (result.threadId && !currentThreadId) {
-                        currentThreadId = result.threadId;
-                        showStatus(`✅ Conversation thread started: ${result.threadId}`, 'success');
-                    }
-
-                    // Show assistant response
-                    addMessage(result.response);
-                } else {
-                    showStatus(`❌ Error: ${result.error}`, 'error');
-                }
-
-            } catch (error) {
-                console.error('Error in sendMessage:', error);
-                showStatus(`❌ Connection error: ${error.message}`, 'error');
-            } finally {
-                // Hide loading
-                sendButton.disabled = false;
-                buttonText.style.display = 'inline';
-                loadingSpinner.style.display = 'none';
-            }
-        }
-
-        // Function to test connection
-        async function testConnection() {
-            try {
-                const response = await fetch(`${API_BASE}/health`);
-                const result = await response.json();
+                activityList.insertBefore(activityItem, activityList.firstChild);
                 
-                if (result.status === 'ok') {
-                    showStatus('✅ Successful connection to API', 'success');
-                } else {
-                    showStatus('❌ Error connecting to API', 'error');
+                // Keep only last 6 activities
+                while (activityList.children.length > 6) {
+                    activityList.removeChild(activityList.lastChild);
+                 }
+            }
+
+            showStatus(message, type) {
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.textContent = message;
+                statusDiv.className = `status-message status-${type}`;
+                statusDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+
+                         setupEventListeners() {
+                // Event listener para cambiar proyecto activo
+                document.getElementById('activeProject')?.addEventListener('change', (e) => {
+                    this.changeActiveProject(e.target.value);
+                });
+                
+                // Event listeners para servidor remoto
+                document.getElementById('remoteServerUrl')?.addEventListener('change', (e) => {
+                    this.remoteServerUrl = e.target.value;
+                    this.loadRemoteProjects();
+                });
+                
+                document.getElementById('remoteActiveProject')?.addEventListener('change', (e) => {
+                    this.changeRemoteProject(e.target.value);
+                });
+
+                // Ticket control event listeners
+                document.getElementById('disableTicketBtn')?.addEventListener('click', () => {
+                    this.disableTicketAssistant();
+                });
+
+                document.getElementById('enableTicketBtn')?.addEventListener('click', () => {
+                    this.enableTicketAssistant();
+                });
+
+                document.getElementById('checkTicketBtn')?.addEventListener('click', () => {
+                    this.checkTicketStatus();
+                });
+
+                document.getElementById('refreshDisabledBtn')?.addEventListener('click', () => {
+                    this.loadDisabledTickets();
+                });
+                 
+                 // Event listeners para botones dinámicos (se configuran después de renderizar)
+                 this.setupDynamicEventListeners();
+             }
+
+             setupDynamicEventListeners() {
+                 // Event listeners para botones de aplicar cambio
+                 document.querySelectorAll('.apply-change-btn').forEach(btn => {
+                     btn.addEventListener('click', (e) => {
+                         const serviceId = e.target.dataset.serviceId;
+                         this.applyAssistantChange(serviceId);
+                     });
+                 });
+
+                 // Event listeners para botones de toggle
+                 document.querySelectorAll('.toggle-service-btn').forEach(btn => {
+                     btn.addEventListener('click', (e) => {
+                         const serviceId = e.target.dataset.serviceId;
+                         const isActive = e.target.dataset.isActive === 'true';
+                         this.toggleService(serviceId, isActive);
+                     });
+                 });
+            }
+
+            // === REMOTE SERVER FUNCTIONS ===
+
+            async loadRemoteProjects() {
+                try {
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/available`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.remoteProjects = data.availableProjects || [];
+                        this.renderRemoteProjects();
+                        
+                        // Cargar el proyecto activo después de renderizar los proyectos
+                        await this.loadRemoteActiveProject();
+                    } else {
+                        throw new Error(data.error || 'Failed to load remote projects');
+                    }
+                } catch (error) {
+                    console.error('Error loading remote projects:', error);
+                    this.showStatus(`Error loading remote projects: ${error.message}`, 'error');
                 }
-            } catch (error) {
-                showStatus('❌ Cannot connect to API', 'error');
+            }
+
+            async loadRemoteActiveProject() {
+                try {
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/current`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.remoteActiveProject = data.currentProject?.key || '';
+                        this.updateRemoteProjectInfo();
+                        
+                        // Actualizar el dropdown para mostrar el proyecto seleccionado
+                        const select = document.getElementById('remoteActiveProject');
+                        if (select && this.remoteActiveProject) {
+                            select.value = this.remoteActiveProject;
+                        }
+                        
+                        console.log(`✅ Remote active project loaded: ${this.remoteActiveProject}`);
+                    }
+                } catch (error) {
+                    console.error('Error loading remote active project:', error);
+                }
+            }
+
+            renderRemoteProjects() {
+                const select = document.getElementById('remoteActiveProject');
+                
+                if (this.remoteProjects.length === 0) {
+                    select.innerHTML = '<option value="">No remote projects available</option>';
+                    return;
+                }
+
+                select.innerHTML = this.remoteProjects.map(project => `
+                    <option value="${project.key}" ${project.key === this.remoteActiveProject ? 'selected' : ''}>
+                        ${project.name} (${project.key})
+                    </option>
+                `).join('');
+                
+                console.log(`✅ Remote projects rendered: ${this.remoteProjects.length} projects, active: ${this.remoteActiveProject}`);
+            }
+
+            updateRemoteProjectInfo() {
+                const currentProjectName = document.getElementById('remoteCurrentProjectName');
+                const currentProjectKey = document.getElementById('remoteCurrentProjectKey');
+                
+                if (this.remoteActiveProject) {
+                    const project = this.remoteProjects.find(p => p.key === this.remoteActiveProject);
+                    currentProjectName.textContent = project ? project.name : '-';
+                    currentProjectKey.textContent = this.remoteActiveProject;
+                } else {
+                    currentProjectName.textContent = '-';
+                    currentProjectKey.textContent = '-';
+                }
+            }
+
+            async changeRemoteProject(projectKey) {
+                if (!projectKey) {
+                    this.showStatus('Please select a remote project first', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.remoteServerUrl}/api/projects/set-active`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ projectKey })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.remoteActiveProject = projectKey;
+                        this.updateRemoteProjectInfo();
+                        this.showStatus(`Remote project changed to: ${projectKey}`, 'success');
+                        this.addActivity(`Remote project changed to ${projectKey}`, 'success');
+                    } else {
+                        throw new Error(data.error || 'Failed to change remote project');
+                    }
+                } catch (error) {
+                    console.error('Error changing remote project:', error);
+                    this.showStatus(`Error changing remote project: ${error.message}`, 'error');
+                }
+            }
+
+            // === TICKET CONTROL METHODS ===
+
+            async loadDisabledTickets() {
+                try {
+                    const response = await fetch('/api/admin/tickets/disabled');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.renderDisabledTickets(data.data.disabledTickets);
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error loading disabled tickets:', error);
+                    this.showStatus(`Error loading disabled tickets: ${error.message}`, 'error');
+                }
+            }
+
+            renderDisabledTickets(disabledTickets) {
+                const container = document.getElementById('disabledTicketsList');
+                
+                if (disabledTickets.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i><span>No tickets with disabled assistants</span></div>';
+                    return;
+                }
+
+                container.innerHTML = disabledTickets.map(ticket => `
+                    <div class="disabled-ticket-item">
+                        <div class="ticket-info">
+                            <div class="ticket-key">${ticket.issueKey}</div>
+                            <div class="ticket-details">
+                                <span class="ticket-reason">${ticket.reason}</span>
+                                <span class="ticket-date">${new Date(ticket.disabledAt).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="ticket-actions">
+                            <button class="btn btn-sm btn-success enable-ticket-btn" data-issue-key="${ticket.issueKey}">
+                                <i class="fas fa-check"></i> Enable
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Add event listeners for enable buttons
+                document.querySelectorAll('.enable-ticket-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const issueKey = e.target.dataset.issueKey;
+                        this.enableTicketAssistant(issueKey);
+                    });
+                });
+            }
+
+            async disableTicketAssistant() {
+                const issueKey = document.getElementById('ticketIssueKey').value.trim();
+                const reason = document.getElementById('disableReason').value.trim();
+
+                if (!issueKey) {
+                    this.showStatus('Please enter a ticket key', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/admin/tickets/${issueKey}/disable`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reason })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showStatus(`AI Assistant disabled for ticket ${issueKey}`, 'success');
+                        this.addActivity(`AI Assistant disabled for ticket ${issueKey}`, 'success');
+                        
+                        // Clear form
+                        document.getElementById('ticketIssueKey').value = '';
+                        document.getElementById('disableReason').value = '';
+                        
+                        // Reload disabled tickets
+                        await this.loadDisabledTickets();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error disabling ticket assistant:', error);
+                    this.showStatus(`Error disabling assistant: ${error.message}`, 'error');
+                }
+            }
+
+            async enableTicketAssistant(issueKey) {
+                if (!issueKey) {
+                    issueKey = document.getElementById('ticketIssueKey').value.trim();
+                }
+
+                if (!issueKey) {
+                    this.showStatus('Please enter a ticket key', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/admin/tickets/${issueKey}/enable`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showStatus(`AI Assistant enabled for ticket ${issueKey}`, 'success');
+                        this.addActivity(`AI Assistant enabled for ticket ${issueKey}`, 'success');
+                        
+                        // Clear form if it was used
+                        if (document.getElementById('ticketIssueKey').value === issueKey) {
+                            document.getElementById('ticketIssueKey').value = '';
+                            document.getElementById('disableReason').value = '';
+                        }
+                        
+                        // Reload disabled tickets
+                        await this.loadDisabledTickets();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error enabling ticket assistant:', error);
+                    this.showStatus(`Error enabling assistant: ${error.message}`, 'error');
+                }
+            }
+
+            async checkTicketStatus() {
+                const issueKey = document.getElementById('ticketIssueKey').value.trim();
+
+                if (!issueKey) {
+                    this.showStatus('Please enter a ticket key', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/admin/tickets/${issueKey}/status`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const status = data.data.isDisabled ? 'DISABLED' : 'ENABLED';
+                        const reason = data.data.ticketInfo?.reason || 'No reason provided';
+                        const disabledAt = data.data.ticketInfo?.disabledAt ? 
+                            new Date(data.data.ticketInfo.disabledAt).toLocaleString() : 'Unknown';
+                        
+                        let message = `Ticket ${issueKey} status: ${status}`;
+                        if (data.data.isDisabled) {
+                            message += `\nReason: ${reason}\nDisabled at: ${disabledAt}`;
+                        }
+                        
+                        this.showStatus(message, data.data.isDisabled ? 'warning' : 'success');
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error checking ticket status:', error);
+                    this.showStatus(`Error checking status: ${error.message}`, 'error');
+                }
             }
         }
 
-        // Function to test JavaScript
-        function testJavaScript() {
-            console.log('JavaScript test function called');
-            showStatus('🧪 JavaScript is working correctly!', 'success');
-            addMessage('This is a test message to verify that JavaScript is working.', false);
-        }
-
-        // Setup event listeners
-        function setupEventListeners() {
-            // Send button
-            document.getElementById('sendButton').addEventListener('click', sendMessage);
-            
-            // Enter key in input
-            document.getElementById('messageInput').addEventListener('keypress', function(event) {
-                if (event.key === 'Enter') {
-                    sendMessage();
-                }
-            });
-            
-            // Test button
-            document.getElementById('testButton').addEventListener('click', testJavaScript);
-        }
-
-        // Test connection when page loads
-        window.addEventListener('load', function() {
-            setupEventListeners();
-            testConnection();
-        });
+                 // Variable global para el dashboard
+         let dashboard;
+ 
+         // Inicializar cuando el DOM esté listo
+         document.addEventListener('DOMContentLoaded', function() {
+             dashboard = new CEODashboard();
+         });
     </script>
 </body>
 </html>
