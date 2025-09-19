@@ -453,14 +453,10 @@
                     const isActive = assistant.isActive || false;
                     const isGlobalActive = assistant.isGlobalActive || false;
                     
-                    // Crear texto de estado más descriptivo
+                    // Crear texto de estado simplificado
                     let statusText = 'INACTIVE';
-                    if (isActive && isGlobalActive) {
-                        statusText = 'ACTIVE (Global + Service)';
-                    } else if (isActive) {
-                        statusText = 'ACTIVE (Service)';
-                    } else if (isGlobalActive) {
-                        statusText = 'ACTIVE (Global)';
+                    if (isActive) {
+                        statusText = 'ACTIVE';
                     }
                     
                     return `

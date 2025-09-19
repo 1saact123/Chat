@@ -28,8 +28,9 @@ export class AdminController {
       // Obtener proyecto activo actual
       const activeProject = jiraService.getActiveProject();
       
-      // Obtener asistente activo actual
-      const activeAssistant = this.openaiService.getActiveAssistant();
+      // El asistente global es el del Landing Page Service
+      const landingPageService = serviceConfigs.find(config => config.serviceId === 'landing-page');
+      const globalAssistantId = landingPageService?.assistantId || '';
       
       // Determinar qué asistentes están siendo utilizados por servicios activos
       const activeAssistantIds = new Set<string>();
@@ -43,7 +44,7 @@ export class AdminController {
       const assistantsWithStatus = assistants.map(assistant => ({
         ...assistant,
         isActive: activeAssistantIds.has(assistant.id),
-        isGlobalActive: assistant.id === activeAssistant
+        isGlobalActive: assistant.id === globalAssistantId
       }));
       
       res.json({
@@ -53,7 +54,7 @@ export class AdminController {
           projects: projects,
           serviceConfigurations: serviceConfigs,
           activeProject: activeProject,
-          activeAssistant: activeAssistant,
+          activeAssistant: globalAssistantId,
           totalAssistants: assistants.length,
           totalProjects: projects.length,
           totalServices: serviceConfigs.length

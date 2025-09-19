@@ -144,9 +144,21 @@ export class ConfigurationService {
     return this.configurations.get(serviceId) || null;
   }
 
-  // Obtener todas las configuraciones
+  // Obtener todas las configuraciones (excluyendo servicios de chat global)
   getAllConfigurations(): ServiceConfiguration[] {
-    return Array.from(this.configurations.values());
+    const allConfigs = Array.from(this.configurations.values());
+    
+    // Filtrar servicios de chat global
+    const filteredConfigs = allConfigs.filter(config => {
+      const isChatGlobal = config.serviceId === 'chat-general' || 
+                          config.serviceId === 'general-chat' ||
+                          config.serviceName.toLowerCase().includes('chat general');
+      
+      return !isChatGlobal;
+    });
+    
+    console.log('🔍 Filtered configurations (removed chat global):', filteredConfigs.length);
+    return filteredConfigs;
   }
 
   // Actualizar configuración de un servicio
