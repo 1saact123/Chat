@@ -1,211 +1,439 @@
-# Movonte API - Chatbot and Contact Form with Jira
+# Movonte AI Assistant System
 
-Unified API to integrate a chatbot with OpenAI and contact forms with Jira, developed in TypeScript.
+A comprehensive AI-powered customer service platform that integrates OpenAI Assistants API with Jira Service Management, featuring real-time chat widgets, webhook monitoring, and administrative controls.
+
+## System Overview
+
+The Movonte AI Assistant System provides a complete solution for automated customer support with the following components:
+
+- **AI Chatbot Integration**: OpenAI Assistants API for intelligent customer interactions
+- **Jira Service Management**: Automated ticket creation and management
+- **Real-time Chat Widget**: Embedded chat interface for websites
+- **Webhook Monitoring**: Real-time tracking of Jira webhook events
+- **Administrative Dashboard**: CEO-level control panel for system management
+- **Message Deduplication**: Advanced duplicate detection and prevention
+- **Multi-service Configuration**: Support for multiple AI assistants per service
+
+## Architecture
+
+### Backend Components
+
+- **Node.js + TypeScript**: Modern, type-safe server implementation
+- **Express.js**: RESTful API framework
+- **OpenAI Assistants API**: AI conversation management
+- **Jira API v3**: Service desk integration
+- **Sequelize ORM**: Database management with MySQL
+- **Webhook Processing**: Real-time event handling
+
+### Frontend Components
+
+- **Chat Widget**: Responsive, embeddable chat interface
+- **CEO Dashboard**: Administrative control panel
+- **Webhook Monitor**: Real-time system monitoring
+- **Test Interface**: Development and testing tools
 
 ## Features
 
-- **Chatbot with OpenAI Assistants API**
-- **Automated contact form**
-- **Jira integration for tickets**
-- **Email fallback system**
-- **Webhooks for Jira updates**
+### Core Functionality
 
-## Technologies
+- **Intelligent Chatbot**: Context-aware conversations using OpenAI GPT models
+- **Automatic Ticket Creation**: Seamless integration with Jira Service Management
+- **Real-time Communication**: WebSocket-like polling for instant message updates
+- **Message Deduplication**: Prevents duplicate responses and processing
+- **Service Configuration**: Multiple AI assistants for different business services
+- **Ticket Management**: Enable/disable AI assistance per ticket
+- **Agent Integration**: Support for human agent handoff
 
-- **Backend:** Node.js + TypeScript
-- **Framework:** Express.js
-- **AI:** OpenAI Assistants API
-- **Project Management:** Jira API
-- **Email:** Nodemailer
-- **Authentication:** Basic Auth (Jira)
+### Advanced Features
+
+- **ADF Text Extraction**: Proper parsing of Jira's Atlassian Document Format
+- **Throttling System**: Prevents API rate limiting and spam
+- **CORS Support**: Cross-origin resource sharing for web integration
+- **Error Handling**: Comprehensive error management and logging
+- **Database Persistence**: Configuration and state management
+- **Webhook Security**: Duplicate detection and validation
 
 ## Installation
 
-### 1. Clone the repository
+### Prerequisites
+
+- Node.js 18+ 
+- MySQL 8.0+
+- OpenAI API account
+- Jira Service Management instance
+
+### 1. Clone Repository
+
 ```bash
 git clone https://github.com/1saact123/Chat.git
 cd newChat
 ```
 
-### 2. Install dependencies
+### 2. Install Dependencies
+
 ```bash
 npm install
 ```
 
-### 3. Configure environment variables
+### 3. Environment Configuration
+
 Create a `.env` file in the project root:
 
 ```env
+# === Server Configuration ===
+PORT=3000
+NODE_ENV=production
+
+# === Database Configuration ===
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=movonte_chat
+DB_USER=your_db_user
+DB_PASS=your_db_password
+
 # === Jira Configuration ===
 JIRA_BASE_URL=https://movonte.atlassian.net
-JIRA_PROJECT_KEY=DEV
-JIRA_EMAIL=your-email@movonte.com
-JIRA_API_TOKEN=your-api-token
+JIRA_PROJECT_KEY=TI
+JIRA_EMAIL=your-jira-email@movonte.com
+JIRA_API_TOKEN=your-jira-api-token
+JIRA_WIDGET=your-widget-email@movonte.com
+JIRA_WIDGET_TOKEN=your-widget-token
 
 # === OpenAI Configuration ===
-OPENAI_API_KEY=sk-...  # IMPORTANT: Use personal API key, NOT service account
-OPENAI_ASSISTANT_ID=asst_...
-
-# === Jira Custom Fields (Optional) ===
-# Only add if they exist in your Jira project
-JIRA_FIELD_EMAIL=customfield_10000
-JIRA_FIELD_PHONE=customfield_10001
-JIRA_FIELD_COMPANY=customfield_10002
+OPENAI_API_KEY=sk-your-openai-api-key
+OPENAI_ASSISTANT_ID=asst-your-assistant-id
 
 # === Email Configuration (Optional) ===
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-app-password
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# === CORS Configuration ===
+ALLOWED_ORIGINS=https://movonte.com,https://chat.movonte.com,https://movonte-consulting.github.io
+```
+
+### 4. Database Setup
+
+```bash
+# Run database migrations
+npm run migrate
+
+# Test database connection
+npm run test:database
+```
+
+### 5. Build and Start
+
+```bash
+# Build TypeScript
+npm run build
+
+# Start production server
+npm start
 ```
 
 ## Configuration
 
-### Jira Setup
+### Jira Service Management Setup
 
-#### 1. Get API Token
-1. Go to [https://id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
-2. Create a new token
-3. Copy the token (only shown once)
+#### 1. API Token Creation
+1. Navigate to [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+2. Create a new token with appropriate permissions
+3. Configure both main account and widget account tokens
 
-#### 2. Get Project Key
-- Go to your Jira → Projects
-- The Project Key appears in the URL: `https://movonte.atlassian.net/browse/DEV-123` → Key is `DEV`
+#### 2. Webhook Configuration
+1. Go to Jira Administration → System → Webhooks
+2. Create webhook with URL: `https://your-domain.com/api/chatbot/webhook/jira`
+3. Select events: `Comment created`, `Issue created`
 
-#### 3. Custom Fields (Optional)
-If you want to use custom fields in Jira:
-1. Go to **Administration** → **Issues** → **Custom fields**
-2. Identify the field IDs (e.g., `customfield_10000`)
-3. Add the IDs to your `.env`
+#### 3. Service Desk Configuration
+1. Configure customer portal settings
+2. Set up request types and fields
+3. Configure notification schemes
 
-### OpenAI Setup
+### OpenAI Assistant Setup
 
-#### 1. Get API Key
-1. Go to [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-2. Create a new personal API key (NOT service account)
-3. The key must start with `sk-` (not `sk-svcacct-`)
+#### 1. API Key Configuration
+1. Obtain personal API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Ensure key has Assistants API permissions
+3. Avoid service account keys (sk-svcacct-)
 
-#### 2. Create Assistant
-1. Go to [https://platform.openai.com/assistants](https://platform.openai.com/assistants)
-2. Click **"Create"**
-3. Configure:
-   - **Name:** "Movonte Chatbot"
-   - **Instructions:** "You are a Movonte assistant that helps with customer inquiries..."
-   - **Model:** GPT-4 or GPT-3.5-turbo
-4. Save and copy the Assistant ID from the URL
+#### 2. Assistant Creation
+1. Create assistant at [OpenAI Assistants](https://platform.openai.com/assistants)
+2. Configure instructions for customer service context
+3. Select appropriate model (GPT-4 recommended)
+4. Upload knowledge base documents if needed
 
-## Testing
+## Web Interface Components
 
-### Test Jira
-```bash
-npm run test:jira
-```
+### 1. Chat Widget (`/public/index.html`)
 
-### Test OpenAI
-```bash
-npm run test-openai
-```
+A responsive, embeddable chat interface that provides:
 
-### List Assistants
-```bash
-npm run list-assistants
-```
+- **Real-time Messaging**: Instant communication with AI assistant
+- **Ticket Integration**: Automatic Jira ticket creation and management
+- **Message History**: Persistent conversation tracking
+- **Responsive Design**: Mobile and desktop optimized
+- **Custom Styling**: Branded appearance with CSS variables
+
+**Usage**: Embed in websites using iframe or direct integration
+
+### 2. CEO Dashboard (`/public/ceo-dashboard.html`)
+
+Administrative control panel featuring:
+
+- **Service Management**: Configure AI assistants per service
+- **Ticket Control**: Enable/disable AI assistance per ticket
+- **Assistant Selection**: Choose active AI assistant
+- **Real-time Monitoring**: Live system status and statistics
+- **Configuration Persistence**: Database-backed settings
+
+**Access**: Administrative interface for system management
+
+### 3. Webhook Monitor (`/public/webhook-monitor.html`)
+
+Real-time monitoring dashboard providing:
+
+- **Webhook Statistics**: Live event tracking and metrics
+- **Error Monitoring**: Failed webhook detection and logging
+- **Performance Metrics**: Response times and success rates
+- **Debug Information**: Detailed webhook payload inspection
+- **System Health**: Overall system status monitoring
+
+**Usage**: Development and production monitoring tool
+
+## API Endpoints
+
+### Chatbot Endpoints
+
+- `POST /api/chatbot/chat` - Direct chat interaction
+- `POST /api/chatbot/webhook/jira` - Jira webhook processing
+- `GET /api/chatbot/thread/:threadId` - Conversation history
+- `GET /api/chatbot/threads` - Active conversation threads
+
+### Widget Integration Endpoints
+
+- `POST /api/widget/connect` - Connect widget to Jira ticket
+- `POST /api/widget/send-message` - Send message from widget
+- `GET /api/widget/check-messages` - Poll for new messages
+- `GET /api/widget/assistant-status` - Check assistant status
+- `GET /api/widget/health` - Widget service health check
+
+### Administrative Endpoints
+
+- `GET /api/admin/services` - List configured services
+- `POST /api/admin/services` - Create/update service configuration
+- `POST /api/admin/disable-ticket` - Disable AI for specific ticket
+- `POST /api/admin/enable-ticket` - Enable AI for specific ticket
+
+### Health and Monitoring
+
+- `GET /health` - Basic health check
+- `GET /api/health/detailed` - Detailed system status
+- `GET /api/webhook/stats` - Webhook statistics
 
 ## Development
 
-### Build
+### Available Scripts
+
 ```bash
-npm run build
+# Development
+npm run dev          # Start development server
+npm run dev:watch    # Development with hot reload
+npm run build        # Build TypeScript
+
+# Testing
+npm run test:jira    # Test Jira integration
+npm run test:openai  # Test OpenAI connection
+npm run test:database # Test database connection
+npm run list-assistants # List available assistants
+
+# Database
+npm run migrate      # Run database migrations
+npm run seed         # Seed database with initial data
 ```
 
-### Development with hot reload
-```bash
-npm run dev:watch
-```
-
-### Run in production
-```bash
-npm run build
-npm start
-```
-
-## Known Issues and Solutions
-
-### Error: "ESM syntax is not allowed in a CommonJS module"
-**Cause:** Conflict between ESM and CommonJS modules
-**Solution:** 
-- Verify that `tsconfig.json` has `"module": "commonjs"`
-- Don't use `"type": "module"` in `package.json`
-
-### Jira Error 400: "Field cannot be set"
-**Cause:** Custom fields don't exist in the Jira project
-**Solution:**
-- Remove `JIRA_FIELD_*` variables from `.env`
-- Or add the fields to the issue creation screen in Jira
-
-### OpenAI Error: "No assistants found"
-**Cause:** Service account API key (`sk-svcacct-`) with restrictions
-**Solution:**
-- Use personal API key (`sk-...`) instead of service account
-- Verify that the API key has permissions for Assistants API
-
-### Jira Error: "The operation value must be an Atlassian document"
-**Cause:** Incorrect format in issue description
-**Solution:**
-- Use simple Markdown format instead of HTML
-- Avoid special characters in the description
-
-### Error: "Model ID not found"
-**Cause:** Incorrect Assistant ID or API key without permissions
-**Solution:**
-- Verify that the Assistant ID is correct
-- Use personal API key with full permissions
-
-## Project Structure
+### Project Structure
 
 ```
 src/
-├── controllers/     # API controllers
-├── routes/         # Express routes
-├── services/       # Services (Jira, OpenAI, Email)
-├── types/          # TypeScript definitions
-├── tests/          # Test scripts
-└── app.ts          # Entry point
+├── controllers/          # API route handlers
+│   ├── chatbot_controller.ts      # Chatbot and webhook logic
+│   ├── widget_integration_controller.ts  # Widget integration
+│   ├── admin_controller.ts        # Administrative functions
+│   ├── contact_controller.ts      # Contact form handling
+│   └── health_controller.ts       # Health monitoring
+├── services/            # Business logic services
+│   ├── openAI_service.ts         # OpenAI API integration
+│   ├── jira_service.ts           # Jira API integration
+│   ├── database_service.ts       # Database operations
+│   ├── configuration_service.ts  # System configuration
+│   └── email_service.ts          # Email notifications
+├── models/              # Database models
+│   └── index.ts         # Sequelize model definitions
+├── routes/              # Express route definitions
+│   └── index.ts         # Route configuration
+├── types/               # TypeScript type definitions
+│   └── index.ts         # Interface definitions
+├── utils/               # Utility functions
+│   └── validations.ts   # Input validation
+└── app.ts               # Application entry point
+
+public/                  # Static web interfaces
+├── index.html           # Chat widget interface
+├── ceo-dashboard.html   # Administrative dashboard
+├── webhook-monitor.html # Webhook monitoring
+└── ceo-dashboard.css    # Dashboard styling
 ```
 
-## Endpoints
+## Deployment
 
-### POST /api/chat
-Start or continue a conversation with the chatbot
+### Production Deployment
 
-### POST /api/contact
-Send contact form and create ticket in Jira
+1. **Server Setup**
+   ```bash
+   # Install Node.js and MySQL
+   sudo apt update
+   sudo apt install nodejs npm mysql-server
+   
+   # Clone and setup application
+   git clone <repository-url>
+   cd newChat
+   npm install --production
+   ```
 
-### GET /api/health
-Check API status
+2. **Database Configuration**
+   ```bash
+   # Create database
+   mysql -u root -p
+   CREATE DATABASE movonte_chat;
+   CREATE USER 'movonte_user'@'localhost' IDENTIFIED BY 'secure_password';
+   GRANT ALL PRIVILEGES ON movonte_chat.* TO 'movonte_user'@'localhost';
+   ```
+
+3. **Environment Configuration**
+   ```bash
+   # Copy and configure environment
+   cp .env.example .env
+   # Edit .env with production values
+   ```
+
+4. **Build and Start**
+   ```bash
+   npm run build
+   npm start
+   ```
+
+### Nginx Configuration
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+### SSL Configuration
+
+```bash
+# Install Certbot
+sudo apt install certbot python3-certbot-nginx
+
+# Obtain SSL certificate
+sudo certbot --nginx -d your-domain.com
+```
+
+## Monitoring and Maintenance
+
+### Health Checks
+
+- **API Health**: `GET /health` - Basic system status
+- **Database Health**: `GET /api/health/detailed` - Database connectivity
+- **External Services**: Monitor OpenAI and Jira API status
+
+### Log Monitoring
+
+- **Application Logs**: Monitor server logs for errors
+- **Webhook Logs**: Track webhook processing success/failure
+- **Database Logs**: Monitor query performance and errors
+
+### Performance Optimization
+
+- **Database Indexing**: Optimize frequently queried fields
+- **API Rate Limiting**: Implement throttling for external APIs
+- **Caching**: Cache frequently accessed data
+- **Connection Pooling**: Optimize database connections
+
+## Troubleshooting
+
+### Common Issues
+
+#### OpenAI API Errors
+- **Invalid API Key**: Verify key format and permissions
+- **Rate Limiting**: Implement exponential backoff
+- **Assistant Not Found**: Verify assistant ID and permissions
+
+#### Jira Integration Issues
+- **Authentication Failed**: Check API token and permissions
+- **Webhook Not Triggering**: Verify webhook URL and events
+- **Field Validation Errors**: Check custom field configurations
+
+#### Database Connection Issues
+- **Connection Timeout**: Verify database credentials and network
+- **Migration Errors**: Check database schema compatibility
+- **Performance Issues**: Monitor query execution times
+
+### Debug Tools
+
+- **Webhook Monitor**: Real-time webhook event tracking
+- **Test Scripts**: Individual service testing utilities
+- **Log Analysis**: Comprehensive error logging and analysis
+
+## Security Considerations
+
+### API Security
+- **Input Validation**: Sanitize all user inputs
+- **Rate Limiting**: Prevent API abuse
+- **CORS Configuration**: Restrict cross-origin requests
+- **Authentication**: Secure API endpoints
+
+### Data Protection
+- **Environment Variables**: Secure credential storage
+- **Database Security**: Encrypted connections and access control
+- **Log Security**: Avoid logging sensitive information
 
 ## Contributing
 
-1. Fork the project
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 ## License
 
-This project is under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Authors
+## Support
 
-- **Movonte** - *Initial development*
-
-## Acknowledgments
-
-- OpenAI for the Assistants API
-- Atlassian for the Jira API
-- The TypeScript and Node.js community
+For technical support and questions:
+- Create an issue in the repository
+- Contact the development team
+- Review the troubleshooting section
 
 ---
 
-**Note:** This project is under active development. Report issues for improvements and new features.
+**Note**: This system is designed for production use with proper security measures and monitoring. Ensure all environment variables are properly configured and security best practices are followed.
