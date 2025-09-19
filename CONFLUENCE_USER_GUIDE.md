@@ -308,17 +308,6 @@ All API responses follow a consistent format:
 - **Performance Optimization**: System speed and efficiency improvements
 - **Security Updates**: Latest security measures and protections
 
----
 
-## Contact Information
-
-For technical support, system issues, or feature requests:
-
-- **System Administrator**: [Contact Information]
-- **Technical Support**: [Support Email]
-- **Documentation**: [Documentation URL]
-- **Status Page**: [Status Page URL]
-
----
 
 *This document is maintained by the Movonte Development Team. Last updated: [Current Date]*
