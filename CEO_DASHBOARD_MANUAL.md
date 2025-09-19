@@ -22,7 +22,7 @@ The CEO Dashboard is a comprehensive administrative control panel for managing t
 The dashboard displays four key metrics at the top:
 
 1. **Available Assistants**: Total number of AI assistants configured
-2. **Configured Services**: Number of services set up (typically 2)
+2. **Configured Services**: Number of services set up (typically 1)
 3. **Active Services**: Number of currently active services
 4. **System Uptime**: Current system availability percentage
 
@@ -51,17 +51,11 @@ The dashboard displays four key metrics at the top:
 ### 2. Service Configuration
 
 #### Available Services
-The system manages two main services:
+The system manages one main service:
 
 1. **Landing Page Service**
    - **Service ID**: `landing-page`
-   - **Purpose**: Handles customer inquiries from website contact forms
-   - **Current Assistant**: Shows assigned AI assistant
-   - **Last Updated**: Timestamp of last configuration change
-
-2. **Chat General Service**
-   - **Service ID**: `chat-general`
-   - **Purpose**: Handles general chat interactions
+   - **Purpose**: Handles customer inquiries from website contact forms and chat widget interactions
    - **Current Assistant**: Shows assigned AI assistant
    - **Last Updated**: Timestamp of last configuration change
 
@@ -78,10 +72,6 @@ The system manages two main services:
 2. System will toggle service status
 3. Status change will be reflected immediately
 
-**Remove Service**
-1. Click "REMOVE" button
-2. Confirm the action
-3. Service will be permanently removed from configuration
 
 ### 3. Ticket Control
 

@@ -212,62 +212,10 @@
                                             data-service-id="landing-page" data-is-active="false">
                                         DEACTIVATE
                                     </button>
-                                    <button class="btn btn-danger remove-service-btn" 
-                                            data-service-id="landing-page">
-                                        REMOVE
-                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Chat General Service -->
-                        <div class="service-config">
-                            <div class="service-header">
-                                <div class="service-info">
-                                    <div class="service-name">Chat General</div>
-                                    <div class="service-details">
-                                        <div class="detail-row">
-                                            <span class="detail-label">Current Assistant:</span>
-                                            <span class="detail-value" id="chat-assistant-name">-</span>
-                                        </div>
-                                        <div class="detail-row">
-                                            <span class="detail-label">Service ID:</span>
-                                            <span class="detail-value">chat-general</span>
-                                        </div>
-                                        <div class="detail-row">
-                                            <span class="detail-label">Jira Project:</span>
-                                            <span class="detail-value" id="chat-project">-</span>
-                                        </div>
-                                        <div class="detail-row">
-                                            <span class="detail-label">Last Updated:</span>
-                                            <span class="detail-value" id="chat-last-updated">-</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="service-controls">
-                                <div class="control-section">
-                                    <label class="control-label">CHANGE ASSISTANT</label>
-                                    <select class="control-select" id="assistant-chat-general">
-                            <option value="">Select an assistant...</option>
-                        </select>
-                                </div>
-                                <div class="control-buttons">
-                                    <button class="btn btn-primary apply-change-btn" data-service-id="chat-general">
-                                        APPLY
-                                    </button>
-                                    <button class="btn btn-secondary toggle-service-btn" 
-                                            data-service-id="chat-general" data-is-active="false">
-                                        DEACTIVATE
-                                    </button>
-                                    <button class="btn btn-danger remove-service-btn" 
-                                            data-service-id="chat-general">
-                                        REMOVE
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -448,7 +396,7 @@
             updateStats(data) {
                 document.getElementById('totalAssistants').textContent = data.totalAssistants;
                 document.getElementById('activeServices').textContent = 
-                    this.serviceConfigs.filter(s => s.isActive && (s.serviceId === 'landing-page' || s.serviceId === 'chat-general')).length;
+                    this.serviceConfigs.filter(s => s.isActive && s.serviceId === 'landing-page').length;
             }
 
             renderAssistants() {
@@ -537,9 +485,6 @@
                 const landingSelect = document.getElementById('assistant-landing-page');
                 landingSelect.innerHTML = '<option value="">Select an assistant...</option>';
                 
-                // Chat General dropdown
-                const chatSelect = document.getElementById('assistant-chat-general');
-                chatSelect.innerHTML = '<option value="">Select an assistant...</option>';
                  
                  this.assistants.forEach(assistant => {
                     const option1 = document.createElement('option');
@@ -557,7 +502,6 @@
             updateServiceInfo() {
                 // Find service configurations
                 const landingService = this.serviceConfigs.find(s => s.serviceId === 'landing-page');
-                const chatService = this.serviceConfigs.find(s => s.serviceId === 'chat-general');
                 
                 // Update Landing Page service
                 if (landingService) {
@@ -578,24 +522,6 @@
                     }
                 }
                 
-                // Update Chat General service
-                if (chatService) {
-                    document.getElementById('chat-assistant-name').textContent = chatService.assistantName || '-';
-                    document.getElementById('chat-last-updated').textContent = new Date(chatService.lastUpdated).toLocaleString();
-                    document.getElementById('chat-project').textContent = this.activeProject || '-';
-                    
-                    // Set selected assistant
-                    const chatSelect = document.getElementById('assistant-chat-general');
-                    chatSelect.value = chatService.assistantId || '';
-                    
-                    // Update toggle button
-                    const chatToggle = document.querySelector('[data-service-id="chat-general"].toggle-service-btn');
-                    if (chatToggle) {
-                        chatToggle.textContent = chatService.isActive ? 'DEACTIVATE' : 'ACTIVATE';
-                        chatToggle.className = `btn ${chatService.isActive ? 'btn-secondary' : 'btn-success'} toggle-service-btn`;
-                        chatToggle.dataset.isActive = !chatService.isActive;
-                    }
-                }
             }
 
             async applyAssistantChange(serviceId) {
