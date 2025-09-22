@@ -65,31 +65,37 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
 // Middleware para redirigir al login si no está autenticado (para páginas HTML)
 export const redirectToLoginIfNotAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Verificar si hay token en cookies o headers
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    console.log('🔍 Verificando autenticación para:', req.path);
     
-    // También verificar cookies
+    // Verificar si hay token en cookies
     const cookieToken = req.cookies?.authToken;
-    const finalToken = token || cookieToken;
-
+    console.log('🍪 Cookie token:', cookieToken ? 'ENCONTRADO' : 'NO ENCONTRADO');
+    
+    // También verificar headers (para compatibilidad con JavaScript)
+    const authHeader = req.headers['authorization'];
+    const headerToken = authHeader && authHeader.split(' ')[1];
+    console.log('📋 Header token:', headerToken ? 'ENCONTRADO' : 'NO ENCONTRADO');
+    
+    const finalToken = cookieToken || headerToken;
+    
     if (!finalToken) {
-      // No hay token, redirigir al login
-      res.redirect('/login');
-      return;
+      console.log('❌ No hay token, redirigiendo al login');
+      return res.redirect('/login');
     }
 
     // Verificar el token
     const decoded = jwt.verify(finalToken, process.env.JWT_SECRET || 'fallback-secret') as any;
+    console.log('✅ Token válido para usuario:', decoded.userId);
     
     // Buscar el usuario en la base de datos
     const user = await User.findByPk(decoded.userId);
     
     if (!user || !user.isActive) {
-      // Usuario inválido, redirigir al login
-      res.redirect('/login');
-      return;
+      console.log('❌ Usuario inválido o inactivo, redirigiendo al login');
+      return res.redirect('/login');
     }
+
+    console.log('✅ Usuario autenticado:', user.username, 'rol:', user.role);
 
     // Agregar información del usuario a la request
     req.user = {
@@ -101,9 +107,9 @@ export const redirectToLoginIfNotAuth = async (req: Request, res: Response, next
 
     next();
   } catch (error) {
-    console.error('Error en autenticación:', error);
+    console.error('❌ Error en autenticación:', error);
     // Token inválido, redirigir al login
-    res.redirect('/login');
+    return res.redirect('/login');
   }
 };
 
