@@ -43,6 +43,9 @@
                 <a href="#" class="nav-link">Assistants</a>
                 <a href="#" class="nav-link">Services</a>
                 <a href="#" class="nav-link active">Settings</a>
+                <button id="logoutBtn" class="nav-link logout-btn" style="background: none; border: none; color: inherit; cursor: pointer; font-size: inherit;">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
             </div>
         </div>
     </nav>
@@ -373,10 +376,18 @@
                 this.remoteProjects = [];
                 this.remoteActiveProject = '';
                 this.remoteServerUrl = 'https://form.movonte.com';
+                this.authToken = localStorage.getItem('authToken');
                 this.initialize();
             }
 
             async initialize() {
+                // Verificar autenticación
+                if (!this.authToken) {
+                    console.log('❌ No hay token de autenticación, redirigiendo al login');
+                    window.location.href = '/login';
+                    return;
+                }
+                
                 await this.loadDashboard();
                 await this.loadProjects();
                 await this.loadRemoteProjects();
@@ -384,10 +395,47 @@
                 this.setupEventListeners();
             }
 
+            // Método para hacer peticiones autenticadas
+            async authenticatedFetch(url, options = {}) {
+                const defaultOptions = {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.authToken}`
+                    }
+                };
+                
+                const mergedOptions = {
+                    ...defaultOptions,
+                    ...options,
+                    headers: {
+                        ...defaultOptions.headers,
+                        ...options.headers
+                    }
+                };
+                
+                try {
+                    const response = await fetch(url, mergedOptions);
+                    
+                    // Si la respuesta es 401, redirigir al login
+                    if (response.status === 401) {
+                        console.log('❌ Token inválido, redirigiendo al login');
+                        localStorage.removeItem('authToken');
+                        window.location.href = '/login';
+                        return null;
+                    }
+                    
+                    return response;
+                } catch (error) {
+                    console.error('Error en petición autenticada:', error);
+                    throw error;
+                }
+            }
+
             async loadDashboard() {
                 try {
                     console.log('🔄 Loading dashboard data...');
-                    const response = await fetch('/api/admin/dashboard');
+                    const response = await this.authenticatedFetch('/api/admin/dashboard');
+                    if (!response) return; // Si no hay respuesta (redirigido al login)
                     const data = await response.json();
 
                     console.log('📊 Dashboard data received:', data);
@@ -422,7 +470,8 @@
 
             async loadProjects() {
                 try {
-                    const response = await fetch('/api/admin/projects');
+                    const response = await this.authenticatedFetch('/api/admin/projects');
+                    if (!response) return;
                     const data = await response.json();
 
                     if (data.success) {
@@ -613,14 +662,14 @@
                     console.log(`🔄 Aplicando cambio para servicio: ${serviceId}`);
                     console.log(`📋 Asistente seleccionado:`, assistant);
                     
-                    const response = await fetch(`/api/admin/services/${serviceId}`, {
+                    const response = await this.authenticatedFetch(`/api/admin/services/${serviceId}`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             assistantId: selectedAssistantId,
                             assistantName: assistant.name || 'Sin nombre'
                         })
                     });
+                    if (!response) return;
 
                     const data = await response.json();
                     
@@ -644,11 +693,11 @@
 
             async toggleService(serviceId, isActive) {
                 try {
-                    const response = await fetch(`/api/admin/services/${serviceId}/toggle`, {
+                    const response = await this.authenticatedFetch(`/api/admin/services/${serviceId}/toggle`, {
                         method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ isActive })
                     });
+                    if (!response) return;
 
                     const data = await response.json();
                     
@@ -672,11 +721,11 @@
                 if (!projectKey) return;
 
                 try {
-                    const response = await fetch('/api/admin/projects/set-active', {
+                    const response = await this.authenticatedFetch('/api/admin/projects/set-active', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ projectKey })
                     });
+                    if (!response) return;
 
                     const data = await response.json();
                     
@@ -731,7 +780,27 @@
                 }, 5000);
             }
 
+            async logout() {
+                try {
+                    // Llamar al endpoint de logout
+                    await this.authenticatedFetch('/api/auth/logout', {
+                        method: 'POST'
+                    });
+                } catch (error) {
+                    console.log('Error en logout:', error);
+                } finally {
+                    // Limpiar token y redirigir
+                    localStorage.removeItem('authToken');
+                    window.location.href = '/login';
+                }
+            }
+
                          setupEventListeners() {
+                // Event listener para logout
+                document.getElementById('logoutBtn')?.addEventListener('click', () => {
+                    this.logout();
+                });
+                
                 // Event listener para cambiar proyecto activo
                 document.getElementById('activeProject')?.addEventListener('change', (e) => {
                     this.changeActiveProject(e.target.value);
@@ -895,7 +964,8 @@
 
             async loadDisabledTickets() {
                 try {
-                    const response = await fetch('/api/admin/tickets/disabled');
+                    const response = await this.authenticatedFetch('/api/admin/tickets/disabled');
+                    if (!response) return;
                     const data = await response.json();
 
                     if (data.success) {
@@ -953,11 +1023,11 @@
                 }
 
                 try {
-                    const response = await fetch(`/api/admin/tickets/${issueKey}/disable`, {
+                    const response = await this.authenticatedFetch(`/api/admin/tickets/${issueKey}/disable`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ reason })
                     });
+                    if (!response) return;
 
                     const data = await response.json();
                     
@@ -991,10 +1061,10 @@
                 }
 
                 try {
-                    const response = await fetch(`/api/admin/tickets/${issueKey}/enable`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
+                    const response = await this.authenticatedFetch(`/api/admin/tickets/${issueKey}/enable`, {
+                        method: 'POST'
                     });
+                    if (!response) return;
 
                     const data = await response.json();
                     
@@ -1028,7 +1098,8 @@
                 }
 
                 try {
-                    const response = await fetch(`/api/admin/tickets/${issueKey}/status`);
+                    const response = await this.authenticatedFetch(`/api/admin/tickets/${issueKey}/status`);
+                    if (!response) return;
                     const data = await response.json();
                     
                     if (data.success) {
