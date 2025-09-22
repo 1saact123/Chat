@@ -116,8 +116,8 @@ export class OpenAIService {
         messageType: 'chat'
       };
 
-      // Use the active assistant for chat general service
-      const result = await this.processChatForService(message, 'chat-general', threadId, context);
+      // Use the active assistant for landing-page service (same as widget)
+      const result = await this.processChatForService(message, 'landing-page', threadId, context);
       
       return result;
 
@@ -166,7 +166,7 @@ export class OpenAIService {
 
       // Get the assistant that handled this conversation
       const threadConfig = await this.dbService.getThread(threadId);
-      const serviceId = threadConfig?.serviceId || 'chat-general';
+      const serviceId = threadConfig?.serviceId || 'landing-page'; // Use landing-page as default
       const assistantId = this.configService.getActiveAssistantForService(serviceId);
       
       console.log(`📊 Using assistant ${assistantId} for service ${serviceId} to generate report`);
@@ -579,7 +579,14 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
       // Get the assistant configured for this service
       const serviceAssistantId = this.configService.getActiveAssistantForService(serviceId);
       
+      console.log(`🔍 Service ${serviceId} assistant lookup:`, {
+        serviceId,
+        assistantId: serviceAssistantId,
+        hasAssistant: !!serviceAssistantId
+      });
+      
       if (!serviceAssistantId) {
+        console.error(`❌ No assistant configured for service '${serviceId}'`);
         return {
           success: false,
           threadId: '',

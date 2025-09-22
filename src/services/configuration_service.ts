@@ -55,7 +55,7 @@ export class ConfigurationService {
         serviceName: 'Integración Jira',
         assistantId: process.env.OPENAI_ASSISTANT_ID || '',
         assistantName: 'AI Assistant Chat',
-        isActive: true,
+        isActive: false, // DISABLED - Only use landing-page assistant
         lastUpdated: new Date()
       });
 
@@ -64,7 +64,7 @@ export class ConfigurationService {
         serviceName: 'Chat General',
         assistantId: process.env.OPENAI_ASSISTANT_ID || '',
         assistantName: 'AI Assistant Chat',
-        isActive: true,
+        isActive: false, // DISABLED - Only use landing-page assistant
         lastUpdated: new Date()
       });
 
@@ -73,7 +73,7 @@ export class ConfigurationService {
         serviceName: 'Chat General',
         assistantId: process.env.OPENAI_ASSISTANT_ID || '',
         assistantName: ' AI Assistant Chat',
-        isActive: true,
+        isActive: false, // DISABLED - Only use landing-page assistant
         lastUpdated: new Date()
       });
 
