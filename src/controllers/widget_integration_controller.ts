@@ -119,6 +119,9 @@ export class WidgetIntegrationController {
       });
 
       // Process with AI and get response
+      console.log(`🤖 Processing AI response for widget message: ${message}`);
+      console.log(`🎯 Using service: landing-page, threadId: widget_${issueKey}`);
+      
       const aiResponse = await this.openaiService.processChatForService(
         message,
         'landing-page',
@@ -129,6 +132,13 @@ export class WidgetIntegrationController {
           isWidgetMessage: true
         }
       );
+      
+      console.log(`🤖 AI Response received:`, {
+        success: aiResponse.success,
+        hasResponse: !!aiResponse.response,
+        threadId: aiResponse.threadId,
+        error: aiResponse.error
+      });
 
       if (aiResponse.success && aiResponse.response) {
         // NO agregar la respuesta de IA a Jira desde el widget

@@ -562,8 +562,8 @@
                 // Update service information
                 this.updateServiceInfo();
                 
-                // Setup event listeners
-                 this.setupDynamicEventListeners();
+                // Setup event listeners (only once)
+                this.setupDynamicEventListeners();
              }
 
             populateServiceAssistantDropdowns() {
@@ -644,19 +644,32 @@
             }
 
             async applyAssistantChange(serviceId) {
-                const selectElement = document.getElementById(`assistant-${serviceId}`);
-                const selectedAssistantId = selectElement.value;
+                console.log(`🔄 applyAssistantChange called with serviceId: ${serviceId}`);
                 
-                                 if (!selectedAssistantId) {
-                     this.showStatus('Please select an assistant first', 'error');
-                     return;
-                 }
+                const selectElement = document.getElementById(`assistant-${serviceId}`);
+                console.log(`🔍 Select element found:`, selectElement);
+                
+                if (!selectElement) {
+                    console.error(`❌ Select element not found for serviceId: ${serviceId}`);
+                    this.showStatus(`Select element not found for service: ${serviceId}`, 'error');
+                    return;
+                }
+                
+                const selectedAssistantId = selectElement.value;
+                console.log(`📋 Selected assistant ID: ${selectedAssistantId}`);
+                
+                if (!selectedAssistantId) {
+                    this.showStatus('Please select an assistant first', 'error');
+                    return;
+                }
 
-                 const assistant = this.assistants.find(a => a.id === selectedAssistantId);
-                 if (!assistant) {
-                     this.showStatus('Assistant not found', 'error');
-                     return;
-                 }
+                const assistant = this.assistants.find(a => a.id === selectedAssistantId);
+                console.log(`🔍 Assistant found:`, assistant);
+                
+                if (!assistant) {
+                    this.showStatus('Assistant not found', 'error');
+                    return;
+                }
 
                 try {
                     console.log(`🔄 Aplicando cambio para servicio: ${serviceId}`);
@@ -669,26 +682,30 @@
                             assistantName: assistant.name || 'Sin nombre'
                         })
                     });
+                    
+                    console.log(`📡 Response received:`, response);
+                    
                     if (!response) return;
 
                     const data = await response.json();
+                    console.log(`📊 Response data:`, data);
                     
-                                                              if (data.success) {
-                         console.log(`Change applied successfully:`, data);
-                         this.showStatus(`Assistant "${assistant.name}" applied to ${serviceId}`, 'success');
-                         
+                    if (data.success) {
+                        console.log(`✅ Change applied successfully:`, data);
+                        this.showStatus(`Assistant "${assistant.name}" applied to ${serviceId}`, 'success');
+                        
                         // Add activity log
                         this.addActivity(`Assistant "${assistant.name}" applied to ${serviceId}`, 'success');
                         
                         // Reload dashboard to update assistant statuses
-                         await this.loadDashboard();
-                     } else {
-                         throw new Error(data.error);
-                     }
-                 } catch (error) {
-                     console.error(`Error applying change:`, error);
-                     this.showStatus(`Error applying change: ${error.message}`, 'error');
-                 }
+                        await this.loadDashboard();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error(`❌ Error applying change:`, error);
+                    this.showStatus(`Error applying change: ${error.message}`, 'error');
+                }
             }
 
             async toggleService(serviceId, isActive) {
@@ -832,28 +849,39 @@
                 document.getElementById('refreshDisabledBtn')?.addEventListener('click', () => {
                     this.loadDisabledTickets();
                 });
-                 
-                 // Event listeners para botones dinámicos (se configuran después de renderizar)
-                 this.setupDynamicEventListeners();
              }
 
              setupDynamicEventListeners() {
                  // Event listeners para botones de aplicar cambio
                  document.querySelectorAll('.apply-change-btn').forEach(btn => {
-                     btn.addEventListener('click', (e) => {
-                         const serviceId = e.target.dataset.serviceId;
-                         this.applyAssistantChange(serviceId);
-                     });
+                     // Remove existing listeners to avoid duplicates
+                     btn.removeEventListener('click', this.handleApplyChange);
+                     btn.addEventListener('click', this.handleApplyChange.bind(this));
                  });
 
                  // Event listeners para botones de toggle
                  document.querySelectorAll('.toggle-service-btn').forEach(btn => {
-                     btn.addEventListener('click', (e) => {
-                         const serviceId = e.target.dataset.serviceId;
-                         const isActive = e.target.dataset.isActive === 'true';
-                         this.toggleService(serviceId, isActive);
-                     });
+                     // Remove existing listeners to avoid duplicates
+                     btn.removeEventListener('click', this.handleToggleService);
+                     btn.addEventListener('click', this.handleToggleService.bind(this));
                  });
+            }
+
+            handleApplyChange(e) {
+                console.log(`🔄 handleApplyChange called`);
+                console.log(`🔍 Event target:`, e.target);
+                console.log(`🔍 Dataset:`, e.target.dataset);
+                
+                const serviceId = e.target.dataset.serviceId;
+                console.log(`🔍 Service ID: ${serviceId}`);
+                
+                this.applyAssistantChange(serviceId);
+            }
+
+            handleToggleService(e) {
+                const serviceId = e.target.dataset.serviceId;
+                const isActive = e.target.dataset.isActive === 'true';
+                this.toggleService(serviceId, isActive);
             }
 
             // === REMOTE SERVER FUNCTIONS ===

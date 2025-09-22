@@ -293,16 +293,17 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
         console.log('Cleaned response (citations removed):', assistantResponse);
         
         // Check if the response is very similar to previous responses
-        const isRepetitive = this.checkForRepetitiveResponse(assistantResponse, context?.previousResponses || []);
-        if (isRepetitive) {
-          console.log('⚠️ Detected repetitive response, regenerating...');
-          // Try to generate a different response
-          const alternativeResponse = await this.generateAlternativeResponse(messages, context);
-          if (alternativeResponse) {
-            console.log('✅ Generated alternative response');
-            assistantResponse = this.cleanCitationReferences(alternativeResponse);
-          }
-        }
+        // TEMPORARILY DISABLED - This may be causing double responses
+        // const isRepetitive = this.checkForRepetitiveResponse(assistantResponse, context?.previousResponses || []);
+        // if (isRepetitive) {
+        //   console.log('⚠️ Detected repetitive response, regenerating...');
+        //   // Try to generate a different response
+        //   const alternativeResponse = await this.generateAlternativeResponse(messages, context);
+        //   if (alternativeResponse) {
+        //     console.log('✅ Generated alternative response');
+        //     assistantResponse = this.cleanCitationReferences(alternativeResponse);
+        //   }
+        // }
         
         // Save the user message and response in the history
         const now = new Date();
@@ -555,6 +556,13 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
   // Method to process chat with a specific service assistant
   async processChatForService(message: string, serviceId: string, threadId?: string, context?: any): Promise<ChatbotResponse> {
     try {
+      console.log(`🔄 processChatForService called with:`, {
+        message: message.substring(0, 100) + '...',
+        serviceId,
+        threadId,
+        context: context ? Object.keys(context) : 'none'
+      });
+      
       // Check if this is a report request (but not if we're already generating a report)
       if (this.isReportRequest(message) && !context?.isReportGeneration) {
         console.log('📊 Report request detected, generating conversation report...');
@@ -680,6 +688,14 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
               // Update thread activity
               await this.dbService.updateThreadActivity(threadId);
             }
+            
+            console.log(`✅ processChatForService returning response:`, {
+              success: true,
+              threadId: threadId || thread.id,
+              responseLength: cleanedResponse.length,
+              assistantId: serviceAssistantId,
+              assistantName: assistant.name || 'Unknown Assistant'
+            });
             
             return {
               success: true,
