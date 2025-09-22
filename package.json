@@ -21,7 +21,9 @@
     "test-final": "ts-node src/scripts/test-final-auth.ts",
     "test-redirect-debug": "ts-node src/scripts/test-redirect-debug.ts",
     "test-final-redirect": "ts-node src/scripts/test-final-redirect.ts",
-    "debug-app": "ts-node src/scripts/debug-app.ts"
+    "debug-app": "ts-node src/scripts/debug-app.ts",
+    "test-login-loop": "ts-node src/scripts/test-login-loop.ts",
+    "test-no-loop": "ts-node src/scripts/test-no-loop.ts"
   },
   "dependencies": {
     "@types/bcrypt": "^6.0.0",
