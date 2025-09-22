@@ -17,7 +17,8 @@
     "check-config": "ts-node src/scripts/check-db-config.ts",
     "test-database": "ts-node src/scripts/test-database.ts",
     "setup-auth": "ts-node src/scripts/setup-auth-config.ts",
-    "test-redirect": "ts-node src/scripts/test-redirect.ts"
+    "test-redirect": "ts-node src/scripts/test-redirect.ts",
+    "test-final": "ts-node src/scripts/test-final-auth.ts"
   },
   "dependencies": {
     "@types/bcrypt": "^6.0.0",

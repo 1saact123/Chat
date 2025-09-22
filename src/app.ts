@@ -119,32 +119,6 @@ class MovonteAPI {
     // Usar todas las rutas
     this.app.use('/', routes);
 
-    // Ruta por defecto
-    this.app.get('/', (req: Request, res: Response) => {
-      // ✅ Usar la función helper corregida
-      const protocol = (req as any).detectedProtocol;
-      const host = req.get('X-Forwarded-Host') || req.get('host') || `localhost:${this.port}`;
-      const baseUrl = `${protocol}://${host}`;
-
-      res.json({
-        message: 'Movonte API - Chatbot & Contact Service',
-        version: '1.0.0',
-        status: 'running',
-        protocol: protocol.toUpperCase(),
-        proxy_detected: !!req.get('X-Forwarded-Proto'),
-        secure_connection: (req as any).isSecure(),
-        endpoints: {
-          health: `${baseUrl}/health`,
-          contact: `${baseUrl}/api/contact`,
-          chatbot: `${baseUrl}/api/chatbot/*`,
-          jiraTest: `${baseUrl}/api/contact/test-jira`,
-          webhook: `${baseUrl}/api/chatbot/webhook/jira`
-        },
-        documentation: 'https://github.com/movonte/api-docs',
-        timestamp: new Date().toISOString()
-      });
-    });
-
     // Ruta 404
     this.app.use('*', (req: Request, res: Response) => {
       res.status(404).json({
