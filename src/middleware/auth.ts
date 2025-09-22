@@ -62,6 +62,51 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
   }
 };
 
+// Middleware para redirigir al login si no está autenticado (para páginas HTML)
+export const redirectToLoginIfNotAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    // Verificar si hay token en cookies o headers
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    // También verificar cookies
+    const cookieToken = req.cookies?.authToken;
+    const finalToken = token || cookieToken;
+
+    if (!finalToken) {
+      // No hay token, redirigir al login
+      res.redirect('/login');
+      return;
+    }
+
+    // Verificar el token
+    const decoded = jwt.verify(finalToken, process.env.JWT_SECRET || 'fallback-secret') as any;
+    
+    // Buscar el usuario en la base de datos
+    const user = await User.findByPk(decoded.userId);
+    
+    if (!user || !user.isActive) {
+      // Usuario inválido, redirigir al login
+      res.redirect('/login');
+      return;
+    }
+
+    // Agregar información del usuario a la request
+    req.user = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role
+    };
+
+    next();
+  } catch (error) {
+    console.error('Error en autenticación:', error);
+    // Token inválido, redirigir al login
+    res.redirect('/login');
+  }
+};
+
 // Middleware para verificar rol de administrador
 export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
   if (!req.user) {

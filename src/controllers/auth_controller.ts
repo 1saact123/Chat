@@ -70,6 +70,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Generar token
     const token = generateToken(user.id);
 
+    // Configurar cookie con el token
+    res.cookie('authToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000 // 24 horas
+    });
+
     // Respuesta exitosa
     res.json({
       success: true,
@@ -98,6 +106,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 // Logout (opcional, ya que JWT es stateless)
 export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Limpiar cookie de autenticación
+    res.clearCookie('authToken');
+    
     // En un sistema JWT stateless, el logout se maneja en el cliente
     // eliminando el token. Aquí solo confirmamos el logout.
     res.json({

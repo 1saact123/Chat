@@ -292,7 +292,7 @@
                         
                         if (response.ok) {
                             // Usuario ya autenticado, redirigir al dashboard
-                            window.location.href = '/ceo-dashboard';
+                            window.location.href = '/';
                         } else {
                             // Token inválido, limpiar
                             localStorage.removeItem('authToken');
@@ -336,7 +336,7 @@
                         
                         // Redirigir al dashboard después de un breve delay
                         setTimeout(() => {
-                            window.location.href = '/ceo-dashboard';
+                            window.location.href = '/';
                         }, 1500);
                     } else {
                         this.showError(data.error || 'Error en el login');

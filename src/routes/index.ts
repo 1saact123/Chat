@@ -9,7 +9,7 @@ import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
 import { login, logout, verifyToken, getProfile, changePassword } from '../controllers/auth_controller';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
+import { authenticateToken, requireAdmin, redirectToLoginIfNotAuth } from '../middleware/auth';
 
 // Initialize services
 // const emailService = new EmailService();
@@ -78,9 +78,14 @@ router.get('/assistant-selector', (req, res) => {
   res.sendFile('assistant-selector.html', { root: 'public' });
 });
 
-// Dashboard protegido - requiere autenticación
-router.get('/ceo-dashboard', authenticateToken, requireAdmin, (req, res) => {
+// Dashboard protegido - requiere autenticación (redirige al login si no está autenticado)
+router.get('/', redirectToLoginIfNotAuth, requireAdmin, (req, res) => {
   res.sendFile('index.html', { root: 'public' });
+});
+
+// Redirigir /ceo-dashboard a la raíz
+router.get('/ceo-dashboard', redirectToLoginIfNotAuth, requireAdmin, (req, res) => {
+  res.redirect('/');
 });
 
 router.get('/jira-integrated-widget', (req, res) => {

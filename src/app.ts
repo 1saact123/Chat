@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 
 import routes from './routes';
@@ -96,6 +97,9 @@ class MovonteAPI {
     
     // Logging
     this.app.use(morgan('combined'));
+    
+    // Cookie parser
+    this.app.use(cookieParser());
     
     // Parsing del body
     this.app.use(express.json({ limit: '10mb' }));
