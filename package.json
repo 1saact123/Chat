@@ -12,7 +12,8 @@
     "test:jira": "ts-node src/tests/test-jira.ts",
     "list-assistants": "ts-node src/tests/list-assistants.ts",
     "test-openai": "ts-node src/tests/test-openai.ts",
-    "test-assistant": "ts-node src/tests/test-assistant.ts"
+    "test-assistant": "ts-node src/tests/test-assistant.ts",
+    "create-admin": "ts-node src/scripts/create-admin-user.ts"
   },
   "dependencies": {
     "@types/bcrypt": "^6.0.0",
