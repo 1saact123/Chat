@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { Op } from 'sequelize';
 import { User } from '../models';
 
 // Función para generar JWT
@@ -13,22 +14,23 @@ const generateToken = (userId: number): string => {
 };
 
 // Login
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
 
     // Validar datos de entrada
     if (!username || !password) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Username y password son requeridos'
       });
+      return;
     }
 
     // Buscar usuario por username o email
     const user = await User.findOne({
       where: {
-        $or: [
+        [Op.or]: [
           { username: username },
           { email: username }
         ]
@@ -36,27 +38,30 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Credenciales inválidas'
       });
+      return;
     }
 
     // Verificar si el usuario está activo
     if (!user.isActive) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Usuario inactivo. Contacta al administrador'
       });
+      return;
     }
 
     // Verificar password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Credenciales inválidas'
       });
+      return;
     }
 
     // Actualizar último login
@@ -91,7 +96,7 @@ export const login = async (req: Request, res: Response) => {
 };
 
 // Logout (opcional, ya que JWT es stateless)
-export const logout = async (req: Request, res: Response) => {
+export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     // En un sistema JWT stateless, el logout se maneja en el cliente
     // eliminando el token. Aquí solo confirmamos el logout.
@@ -109,7 +114,7 @@ export const logout = async (req: Request, res: Response) => {
 };
 
 // Verificar token (para verificar si el usuario está autenticado)
-export const verifyToken = async (req: Request, res: Response) => {
+export const verifyToken = async (req: Request, res: Response): Promise<void> => {
   try {
     // Si llegamos aquí, el middleware de autenticación ya verificó el token
     res.json({
@@ -129,13 +134,14 @@ export const verifyToken = async (req: Request, res: Response) => {
 };
 
 // Obtener perfil del usuario autenticado
-export const getProfile = async (req: Request, res: Response) => {
+export const getProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Usuario no autenticado'
       });
+      return;
     }
 
     res.json({
@@ -154,47 +160,52 @@ export const getProfile = async (req: Request, res: Response) => {
 };
 
 // Cambiar password
-export const changePassword = async (req: Request, res: Response) => {
+export const changePassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { currentPassword, newPassword } = req.body;
 
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Usuario no autenticado'
       });
+      return;
     }
 
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Current password y new password son requeridos'
       });
+      return;
     }
 
     if (newPassword.length < 6) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'La nueva contraseña debe tener al menos 6 caracteres'
       });
+      return;
     }
 
     // Buscar usuario
     const user = await User.findByPk(req.user.id);
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: 'Usuario no encontrado'
       });
+      return;
     }
 
     // Verificar password actual
     const isValidPassword = await bcrypt.compare(currentPassword, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Contraseña actual incorrecta'
       });
+      return;
     }
 
     // Hash de la nueva contraseña

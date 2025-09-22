@@ -17,16 +17,17 @@ declare global {
 }
 
 // Middleware de autenticación
-export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      return res.status(401).json({ 
+      res.status(401).json({ 
         success: false, 
         error: 'Token de acceso requerido' 
       });
+      return;
     }
 
     // Verificar el token
@@ -36,10 +37,11 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     const user = await User.findByPk(decoded.userId);
     
     if (!user || !user.isActive) {
-      return res.status(401).json({ 
+      res.status(401).json({ 
         success: false, 
         error: 'Usuario no válido o inactivo' 
       });
+      return;
     }
 
     // Agregar información del usuario a la request
@@ -53,7 +55,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     next();
   } catch (error) {
     console.error('Error en autenticación:', error);
-    return res.status(401).json({ 
+    res.status(401).json({ 
       success: false, 
       error: 'Token inválido' 
     });
@@ -61,19 +63,21 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
 };
 
 // Middleware para verificar rol de administrador
-export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
   if (!req.user) {
-    return res.status(401).json({ 
+    res.status(401).json({ 
       success: false, 
       error: 'Autenticación requerida' 
     });
+    return;
   }
 
   if (req.user.role !== 'admin') {
-    return res.status(403).json({ 
+    res.status(403).json({ 
       success: false, 
       error: 'Acceso denegado. Se requieren permisos de administrador' 
     });
+    return;
   }
 
   next();
