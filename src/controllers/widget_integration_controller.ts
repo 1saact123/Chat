@@ -118,47 +118,17 @@ export class WidgetIntegrationController {
         source: 'widget'
       });
 
-      // Process with AI and get response
-      console.log(`🤖 Processing AI response for widget message: ${message}`);
-      console.log(`🎯 Using service: landing-page, threadId: widget_${issueKey}`);
+      // Widget only sends message to Jira - NO AI processing here
+      console.log(`📤 Widget sending message to Jira: ${message}`);
+      console.log(`🎯 Message will be processed by Jira webhook with landing-page assistant`);
       
-      const aiResponse = await this.openaiService.processChatForService(
-        message,
-        'landing-page',
-        `widget_${issueKey}`,
-        {
-          jiraIssueKey: issueKey,
-          customerInfo,
-          isWidgetMessage: true
-        }
-      );
-      
-      console.log(`🤖 AI Response received:`, {
-        success: aiResponse.success,
-        hasResponse: !!aiResponse.response,
-        threadId: aiResponse.threadId,
-        error: aiResponse.error
+      // Return success - the webhook will handle AI response
+      res.json({
+        success: true,
+        message: 'Message sent to Jira successfully. AI response will come via webhook.',
+        aiResponse: null, // No AI response from widget
+        threadId: `widget_${issueKey}`
       });
-
-      if (aiResponse.success && aiResponse.response) {
-        // NO agregar la respuesta de IA a Jira desde el widget
-        // Solo retornar la respuesta al frontend
-        // El webhook se encargará de agregar la respuesta a Jira si es necesario
-        
-        res.json({
-          success: true,
-          message: 'Message sent to Jira successfully',
-          aiResponse: aiResponse.response,
-          threadId: aiResponse.threadId
-        });
-      } else {
-        res.json({
-          success: true,
-          message: 'Message sent to Jira successfully',
-          aiResponse: null,
-          error: aiResponse.error
-        });
-      }
 
     } catch (error) {
       console.error('Error sending message to Jira:', error);

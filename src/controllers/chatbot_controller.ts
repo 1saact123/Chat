@@ -291,10 +291,10 @@ export class ChatbotController {
         console.log(`🔧 Contexto enriquecido creado para ${issueKey}`);
         console.log(`📤 Llamando a processChatForService con mensaje: "${payload.comment.body}"`);
         
-        // Usar el asistente específico del servicio chat-general para mantener consistencia
+        // Usar el mismo asistente que el widget (landing-page) para mantener consistencia
         const response = await this.openaiService.processChatForService(
           payload.comment.body, 
-          'chat-general', 
+          'landing-page', 
           `widget_${issueKey}`, // Usar el mismo thread que el widget
           enrichedContext
         );

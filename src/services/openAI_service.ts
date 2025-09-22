@@ -72,8 +72,8 @@ export class OpenAIService {
       console.log(`User message: ${userMessage}`);
       console.log(`🔗 Attempting to call OpenAI API...`);
 
-      // Use the method that handles context and threads
-      const result = await this.processWithChatCompletions(userMessage, threadId, context);
+      // Use the same method as widget to ensure consistent assistant
+      const result = await this.processChatForService(userMessage, 'landing-page', threadId, context);
       console.log(`✅ OpenAI API call completed:`, result.success ? 'SUCCESS' : 'FAILED');
       return result;
       
@@ -87,8 +87,8 @@ export class OpenAIService {
     try {
       console.log('processDirectChat called with:', { message, threadId, context });
       
-      // Usar Chat Completions directamente (no necesita asistente específico)
-      return await this.processWithChatCompletions(message, threadId, context);
+      // Use the same assistant as widget to ensure consistency
+      return await this.processChatForService(message, 'landing-page', threadId, context);
 
     } catch (error) {
       console.error('Error handling chat message:', error);
