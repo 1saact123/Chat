@@ -8,6 +8,7 @@ import 'dotenv/config';
 import routes from './routes';
 import { validateEnvironmentVariables } from './utils/validations';
 import { testConnection, syncDatabase } from './config/database';
+import { redirectToLoginIfNotAuth, requireAdmin } from './middleware/auth';
 
 class MovonteAPI {
   private app: express.Application;
@@ -105,9 +106,6 @@ class MovonteAPI {
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true }));
 
-    // Servir archivos estáticos
-    this.app.use(express.static('public'));
-
     // Headers adicionales
     this.app.use((req: Request, res: Response, next: NextFunction) => {
       res.header('X-Powered-By', 'Movonte API');
@@ -116,8 +114,16 @@ class MovonteAPI {
   }
 
   private setupRoutes(): void {
+    // Middleware personalizado para interceptar la ruta raíz ANTES de los archivos estáticos
+    this.app.get('/', redirectToLoginIfNotAuth, requireAdmin, (req: Request, res: Response) => {
+      res.sendFile('index.html', { root: 'public' });
+    });
+
     // Usar todas las rutas
     this.app.use('/', routes);
+
+    // Servir archivos estáticos DESPUÉS de las rutas
+    this.app.use(express.static('public'));
 
     // Ruta 404
     this.app.use('*', (req: Request, res: Response) => {

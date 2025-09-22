@@ -78,11 +78,6 @@ router.get('/assistant-selector', (req, res) => {
   res.sendFile('assistant-selector.html', { root: 'public' });
 });
 
-// Dashboard protegido - requiere autenticación (redirige al login si no está autenticado)
-router.get('/', redirectToLoginIfNotAuth, requireAdmin, (req, res) => {
-  res.sendFile('index.html', { root: 'public' });
-});
-
 // Redirigir /ceo-dashboard a la raíz
 router.get('/ceo-dashboard', redirectToLoginIfNotAuth, requireAdmin, (req, res) => {
   res.redirect('/');
