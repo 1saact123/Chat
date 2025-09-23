@@ -7,7 +7,6 @@ export class WidgetIntegrationController {
   private jiraService: JiraService;
   private openaiService: OpenAIService;
   private configService: ConfigurationService;
-  private disabledTicketNotifications: Set<string> = new Set(); // Track which tickets have shown disabled message
 
   constructor() {
     this.jiraService = JiraService.getInstance();
@@ -100,12 +99,20 @@ export class WidgetIntegrationController {
         });
 
         // Check if we've already shown the disabled message for this ticket
-        const hasShownDisabledMessage = this.disabledTicketNotifications.has(issueKey);
+        // Use a more persistent approach: check if the ticket was disabled recently (within last 5 minutes)
+        const disabledAt = new Date(disabledInfo?.disabledAt || new Date());
+        const now = new Date();
+        const timeSinceDisabled = now.getTime() - disabledAt.getTime();
+        const FIVE_MINUTES = 5 * 60 * 1000; // 5 minutes in milliseconds
         
-        if (!hasShownDisabledMessage) {
-          // Mark this ticket as having shown the disabled message
-          this.disabledTicketNotifications.add(issueKey);
-          
+        const shouldShowMessage = timeSinceDisabled < FIVE_MINUTES;
+        
+        console.log(`🔍 Ticket disabled at: ${disabledAt.toISOString()}`);
+        console.log(`🔍 Current time: ${now.toISOString()}`);
+        console.log(`🔍 Time since disabled: ${Math.round(timeSinceDisabled / 1000)}s`);
+        console.log(`🔍 Should show message: ${shouldShowMessage}`);
+        
+        if (shouldShowMessage) {
           res.json({
             success: true,
             message: 'Message sent to Jira, but AI assistant is disabled for this ticket. An agent will respond soon.',
@@ -532,11 +539,6 @@ export class WidgetIntegrationController {
 
       const isDisabled = this.configService.isTicketDisabled(issueKey);
       const disabledInfo = isDisabled ? this.configService.getDisabledTicketInfo(issueKey) : null;
-
-      // If ticket is not disabled, clear the notification flag
-      if (!isDisabled) {
-        this.disabledTicketNotifications.delete(issueKey);
-      }
 
       res.json({
         success: true,
