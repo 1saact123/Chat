@@ -7,6 +7,7 @@ export class WidgetIntegrationController {
   private jiraService: JiraService;
   private openaiService: OpenAIService;
   private configService: ConfigurationService;
+  private disabledTicketNotifications: Set<string> = new Set(); // Track which tickets have shown disabled message
 
   constructor() {
     this.jiraService = JiraService.getInstance();
@@ -98,16 +99,33 @@ export class WidgetIntegrationController {
           source: 'widget'
         });
 
-        res.json({
-          success: true,
-          message: 'Message sent to Jira, but AI assistant is disabled for this ticket',
-          aiDisabled: true,
-          disabledInfo: {
-            reason: disabledInfo?.reason || 'No reason provided',
-            disabledAt: disabledInfo?.disabledAt,
-            disabledBy: disabledInfo?.disabledBy
-          }
-        });
+        // Check if we've already shown the disabled message for this ticket
+        const hasShownDisabledMessage = this.disabledTicketNotifications.has(issueKey);
+        
+        if (!hasShownDisabledMessage) {
+          // Mark this ticket as having shown the disabled message
+          this.disabledTicketNotifications.add(issueKey);
+          
+          res.json({
+            success: true,
+            message: 'Message sent to Jira, but AI assistant is disabled for this ticket. An agent will respond soon.',
+            aiDisabled: true,
+            showDisabledMessage: true, // Frontend should show this message
+            disabledInfo: {
+              reason: disabledInfo?.reason || 'No reason provided',
+              disabledAt: disabledInfo?.disabledAt,
+              disabledBy: disabledInfo?.disabledBy
+            }
+          });
+        } else {
+          // Don't show the disabled message again, just send the message
+          res.json({
+            success: true,
+            message: 'Message sent to Jira successfully',
+            aiDisabled: true,
+            showDisabledMessage: false // Frontend should NOT show the disabled message
+          });
+        }
         return;
       }
 
@@ -514,6 +532,11 @@ export class WidgetIntegrationController {
 
       const isDisabled = this.configService.isTicketDisabled(issueKey);
       const disabledInfo = isDisabled ? this.configService.getDisabledTicketInfo(issueKey) : null;
+
+      // If ticket is not disabled, clear the notification flag
+      if (!isDisabled) {
+        this.disabledTicketNotifications.delete(issueKey);
+      }
 
       res.json({
         success: true,
