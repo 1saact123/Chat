@@ -26,10 +26,7 @@ export class ConfigurationService {
   private constructor() {
     this.dbService = DatabaseService.getInstance();
     this.loadConfigurations();
-    // Cargar configuraciones desde BD de forma asíncrona
-    this.loadConfigurationsFromDatabase().catch(error => {
-      console.error('❌ Error cargando configuraciones desde BD en constructor:', error);
-    });
+    this.loadConfigurationsFromDatabase();
   }
 
   public static getInstance(): ConfigurationService {
@@ -42,18 +39,48 @@ export class ConfigurationService {
   // Cargar configuraciones desde archivo
   private loadConfigurations(): void {
     try {
-      // Solo cargar configuraciones por defecto si no existen en BD
-      // Las configuraciones de BD tienen prioridad
-      console.log('✅ Configuraciones de servicio cargadas (por defecto)');
+      // Por ahora usamos configuraciones por defecto
+      // En producción esto se cargaría desde una base de datos o archivo
+      this.configurations.set('landing-page', {
+        serviceId: 'landing-page',
+        serviceName: 'Landing Page',
+        assistantId: process.env.OPENAI_ASSISTANT_ID || '',
+        assistantName: 'AI Assistant Chat',
+        isActive: true,
+        lastUpdated: new Date()
+      });
+
+      this.configurations.set('jira-integration', {
+        serviceId: 'jira-integration',
+        serviceName: 'Integración Jira',
+        assistantId: process.env.OPENAI_ASSISTANT_ID || '',
+        assistantName: 'AI Assistant Chat',
+        isActive: false, // DISABLED - Only use landing-page assistant
+        lastUpdated: new Date()
+      });
+
+      this.configurations.set('chat-general', {
+        serviceId: 'chat-general',
+        serviceName: 'Chat General',
+        assistantId: process.env.OPENAI_ASSISTANT_ID || '',
+        assistantName: 'AI Assistant Chat',
+        isActive: false, // DISABLED - Only use landing-page assistant
+        lastUpdated: new Date()
+      });
+
+      this.configurations.set('general-chat', {
+        serviceId: 'general-chat',
+        serviceName: 'Chat General',
+        assistantId: process.env.OPENAI_ASSISTANT_ID || '',
+        assistantName: ' AI Assistant Chat',
+        isActive: false, // DISABLED - Only use landing-page assistant
+        lastUpdated: new Date()
+      });
+
+      console.log('✅ Configuraciones de servicio cargadas');
     } catch (error) {
       console.error('❌ Error cargando configuraciones:', error);
     }
-  }
-
-  // Recargar configuraciones desde base de datos (método público)
-  async reloadConfigurationsFromDatabase(): Promise<void> {
-    console.log('🔄 Recargando configuraciones desde base de datos...');
-    await this.loadConfigurationsFromDatabase();
   }
 
   // Cargar configuraciones desde base de datos
@@ -65,10 +92,7 @@ export class ConfigurationService {
       if (dbConfigs.length > 0) {
         console.log(`📋 Encontradas ${dbConfigs.length} configuraciones en BD`);
         
-        // Limpiar configuraciones existentes para evitar conflictos
-        this.configurations.clear();
-        
-        // Cargar configuraciones desde BD
+        // Actualizar configuraciones con datos de BD
         for (const dbConfig of dbConfigs) {
           this.configurations.set(dbConfig.serviceId, {
             serviceId: dbConfig.serviceId,
@@ -78,69 +102,20 @@ export class ConfigurationService {
             isActive: dbConfig.isActive,
             lastUpdated: dbConfig.lastUpdated || new Date()
           });
-          console.log(`✅ Cargada configuración: ${dbConfig.serviceName} -> ${dbConfig.assistantName} (ID: ${dbConfig.assistantId})`);
+          console.log(`✅ Cargada configuración: ${dbConfig.serviceName} -> ${dbConfig.assistantName}`);
         }
         
-        // Mostrar todas las configuraciones cargadas
-        console.log('📊 Configuraciones actuales en memoria:');
-        for (const [serviceId, config] of this.configurations.entries()) {
-          console.log(`  - ${serviceId}: ${config.assistantName} (${config.assistantId}) - Active: ${config.isActive}`);
-        }
+        // Guardar configuraciones actualizadas en archivo
+        // this.saveConfigurations(); // TODO: Implementar si es necesario
       } else {
-        console.log('⚠️ No se encontraron configuraciones en BD, cargando configuraciones por defecto');
-        this.loadDefaultConfigurations();
+        console.log('⚠️ No se encontraron configuraciones en BD, usando configuraciones por defecto');
       }
       
       // Cargar tickets deshabilitados
       await this.loadDisabledTicketsFromDatabase();
     } catch (error) {
       console.error('❌ Error cargando configuraciones desde BD:', error);
-      // En caso de error, cargar configuraciones por defecto
-      this.loadDefaultConfigurations();
     }
-  }
-
-  // Cargar configuraciones por defecto solo si no hay configuraciones en BD
-  private loadDefaultConfigurations(): void {
-    console.log('🔄 Cargando configuraciones por defecto...');
-    
-    this.configurations.set('landing-page', {
-      serviceId: 'landing-page',
-      serviceName: 'Landing Page',
-      assistantId: process.env.OPENAI_ASSISTANT_ID || '',
-      assistantName: 'AI Assistant Chat',
-      isActive: true,
-      lastUpdated: new Date()
-    });
-
-    this.configurations.set('jira-integration', {
-      serviceId: 'jira-integration',
-      serviceName: 'Integración Jira',
-      assistantId: process.env.OPENAI_ASSISTANT_ID || '',
-      assistantName: 'AI Assistant Chat',
-      isActive: false,
-      lastUpdated: new Date()
-    });
-
-    this.configurations.set('chat-general', {
-      serviceId: 'chat-general',
-      serviceName: 'Chat General',
-      assistantId: process.env.OPENAI_ASSISTANT_ID || '',
-      assistantName: 'AI Assistant Chat',
-      isActive: false,
-      lastUpdated: new Date()
-    });
-
-    this.configurations.set('general-chat', {
-      serviceId: 'general-chat',
-      serviceName: 'Chat General',
-      assistantId: process.env.OPENAI_ASSISTANT_ID || '',
-      assistantName: 'AI Assistant Chat',
-      isActive: false,
-      lastUpdated: new Date()
-    });
-
-    console.log('✅ Configuraciones por defecto cargadas');
   }
 
   // Cargar tickets deshabilitados desde base de datos
@@ -207,10 +182,6 @@ export class ConfigurationService {
         });
         
         console.log(`✅ Configuración actualizada para ${serviceId}: ${assistantName} - Guardado en BD`);
-        
-        // Recargar configuraciones desde BD para asegurar sincronización
-        await this.reloadConfigurationsFromDatabase();
-        
         return true;
       }
       return false;
@@ -223,26 +194,7 @@ export class ConfigurationService {
   // Obtener asistente activo para un servicio
   getActiveAssistantForService(serviceId: string): string | null {
     const config = this.configurations.get(serviceId);
-    const assistantId = config && config.isActive ? config.assistantId : null;
-    
-    console.log(`🔍 getActiveAssistantForService(${serviceId}):`, {
-      serviceId,
-      hasConfig: !!config,
-      isActive: config?.isActive,
-      assistantId: assistantId,
-      assistantName: config?.assistantName,
-      lastUpdated: config?.lastUpdated
-    });
-    
-    // Si no hay configuración, intentar recargar desde BD
-    if (!config) {
-      console.log(`⚠️ No configuration found for ${serviceId}, attempting to reload from database...`);
-      this.loadConfigurationsFromDatabase().catch(error => {
-        console.error('❌ Error reloading configurations:', error);
-      });
-    }
-    
-    return assistantId;
+    return config && config.isActive ? config.assistantId : null;
   }
 
   // Activar/desactivar un servicio

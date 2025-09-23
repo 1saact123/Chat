@@ -1,7 +1,8 @@
 import { Sequelize } from 'sequelize';
-import 'dotenv/config';
-// Cargar variables de entorno
+import dotenv from 'dotenv';
 
+// Cargar variables de entorno
+dotenv.config();
 
 // Configuración de la base de datos
 const dbConfig = {
@@ -55,8 +56,7 @@ export async function testConnection(): Promise<boolean> {
 // Función para sincronizar modelos
 export async function syncDatabase(): Promise<void> {
   try {
-    // Usar alter: false para evitar problemas con índices excesivos
-    await sequelize.sync({ force: false, alter: false });
+    await sequelize.sync({ alter: true });
     console.log('✅ Base de datos sincronizada correctamente');
   } catch (error) {
     console.error('❌ Error sincronizando base de datos:', error);
