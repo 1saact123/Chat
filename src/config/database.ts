@@ -1,8 +1,7 @@
 import { Sequelize } from 'sequelize';
-import dotenv from 'dotenv';
-
+import 'dotenv/config';
 // Cargar variables de entorno
-dotenv.config();
+
 
 // Configuración de la base de datos
 const dbConfig = {

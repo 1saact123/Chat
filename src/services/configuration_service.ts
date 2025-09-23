@@ -42,45 +42,9 @@ export class ConfigurationService {
   // Cargar configuraciones desde archivo
   private loadConfigurations(): void {
     try {
-      // Por ahora usamos configuraciones por defecto
-      // En producción esto se cargaría desde una base de datos o archivo
-      this.configurations.set('landing-page', {
-        serviceId: 'landing-page',
-        serviceName: 'Landing Page',
-        assistantId: process.env.OPENAI_ASSISTANT_ID || '',
-        assistantName: 'AI Assistant Chat',
-        isActive: true,
-        lastUpdated: new Date()
-      });
-
-      this.configurations.set('jira-integration', {
-        serviceId: 'jira-integration',
-        serviceName: 'Integración Jira',
-        assistantId: process.env.OPENAI_ASSISTANT_ID || '',
-        assistantName: 'AI Assistant Chat',
-        isActive: false, // DISABLED - Only use landing-page assistant
-        lastUpdated: new Date()
-      });
-
-      this.configurations.set('chat-general', {
-        serviceId: 'chat-general',
-        serviceName: 'Chat General',
-        assistantId: process.env.OPENAI_ASSISTANT_ID || '',
-        assistantName: 'AI Assistant Chat',
-        isActive: false, // DISABLED - Only use landing-page assistant
-        lastUpdated: new Date()
-      });
-
-      this.configurations.set('general-chat', {
-        serviceId: 'general-chat',
-        serviceName: 'Chat General',
-        assistantId: process.env.OPENAI_ASSISTANT_ID || '',
-        assistantName: ' AI Assistant Chat',
-        isActive: false, // DISABLED - Only use landing-page assistant
-        lastUpdated: new Date()
-      });
-
-      console.log('✅ Configuraciones de servicio cargadas');
+      // Solo cargar configuraciones por defecto si no existen en BD
+      // Las configuraciones de BD tienen prioridad
+      console.log('✅ Configuraciones de servicio cargadas (por defecto)');
     } catch (error) {
       console.error('❌ Error cargando configuraciones:', error);
     }
@@ -101,7 +65,10 @@ export class ConfigurationService {
       if (dbConfigs.length > 0) {
         console.log(`📋 Encontradas ${dbConfigs.length} configuraciones en BD`);
         
-        // Actualizar configuraciones con datos de BD
+        // Limpiar configuraciones existentes para evitar conflictos
+        this.configurations.clear();
+        
+        // Cargar configuraciones desde BD
         for (const dbConfig of dbConfigs) {
           this.configurations.set(dbConfig.serviceId, {
             serviceId: dbConfig.serviceId,
@@ -119,18 +86,61 @@ export class ConfigurationService {
         for (const [serviceId, config] of this.configurations.entries()) {
           console.log(`  - ${serviceId}: ${config.assistantName} (${config.assistantId}) - Active: ${config.isActive}`);
         }
-        
-        // Guardar configuraciones actualizadas en archivo
-        // this.saveConfigurations(); // TODO: Implementar si es necesario
       } else {
-        console.log('⚠️ No se encontraron configuraciones en BD, usando configuraciones por defecto');
+        console.log('⚠️ No se encontraron configuraciones en BD, cargando configuraciones por defecto');
+        this.loadDefaultConfigurations();
       }
       
       // Cargar tickets deshabilitados
       await this.loadDisabledTicketsFromDatabase();
     } catch (error) {
       console.error('❌ Error cargando configuraciones desde BD:', error);
+      // En caso de error, cargar configuraciones por defecto
+      this.loadDefaultConfigurations();
     }
+  }
+
+  // Cargar configuraciones por defecto solo si no hay configuraciones en BD
+  private loadDefaultConfigurations(): void {
+    console.log('🔄 Cargando configuraciones por defecto...');
+    
+    this.configurations.set('landing-page', {
+      serviceId: 'landing-page',
+      serviceName: 'Landing Page',
+      assistantId: process.env.OPENAI_ASSISTANT_ID || '',
+      assistantName: 'AI Assistant Chat',
+      isActive: true,
+      lastUpdated: new Date()
+    });
+
+    this.configurations.set('jira-integration', {
+      serviceId: 'jira-integration',
+      serviceName: 'Integración Jira',
+      assistantId: process.env.OPENAI_ASSISTANT_ID || '',
+      assistantName: 'AI Assistant Chat',
+      isActive: false,
+      lastUpdated: new Date()
+    });
+
+    this.configurations.set('chat-general', {
+      serviceId: 'chat-general',
+      serviceName: 'Chat General',
+      assistantId: process.env.OPENAI_ASSISTANT_ID || '',
+      assistantName: 'AI Assistant Chat',
+      isActive: false,
+      lastUpdated: new Date()
+    });
+
+    this.configurations.set('general-chat', {
+      serviceId: 'general-chat',
+      serviceName: 'Chat General',
+      assistantId: process.env.OPENAI_ASSISTANT_ID || '',
+      assistantName: 'AI Assistant Chat',
+      isActive: false,
+      lastUpdated: new Date()
+    });
+
+    console.log('✅ Configuraciones por defecto cargadas');
   }
 
   // Cargar tickets deshabilitados desde base de datos
