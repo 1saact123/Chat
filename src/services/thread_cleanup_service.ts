@@ -1,4 +1,6 @@
 import { DatabaseService } from './database_service';
+import { sequelize } from '../config/database';
+import { QueryTypes } from 'sequelize';
 
 export class ThreadCleanupService {
   private static instance: ThreadCleanupService;
@@ -28,11 +30,11 @@ export class ThreadCleanupService {
       cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
       
       // Contar registros a eliminar
-      const countResult = await this.dbService.sequelize.query(
+      const countResult = await sequelize.query(
         'SELECT COUNT(*) as count FROM chat_threads WHERE created_at < ?',
         {
           replacements: [cutoffDate],
-          type: this.dbService.sequelize.QueryTypes.SELECT
+          type: QueryTypes.SELECT
         }
       );
       
@@ -46,21 +48,21 @@ export class ThreadCleanupService {
       console.log(`📊 Encontrados ${recordsToDelete} threads antiguos para eliminar`);
       
       // Eliminar threads antiguos
-      const deleteResult = await this.dbService.sequelize.query(
+      const deleteResult = await sequelize.query(
         'DELETE FROM chat_threads WHERE created_at < ?',
         {
           replacements: [cutoffDate],
-          type: this.dbService.sequelize.QueryTypes.DELETE
+          type: QueryTypes.DELETE
         }
       );
       
       console.log(`✅ Limpieza completada: ${recordsToDelete} threads eliminados`);
       
       // Verificar tamaño actual de la tabla
-      const currentCount = await this.dbService.sequelize.query(
+      const currentCount = await sequelize.query(
         'SELECT COUNT(*) as count FROM chat_threads',
         {
-          type: this.dbService.sequelize.QueryTypes.SELECT
+          type: QueryTypes.SELECT
         }
       );
       
@@ -78,7 +80,7 @@ export class ThreadCleanupService {
    */
   async getTableStats(): Promise<any> {
     try {
-      const stats = await this.dbService.sequelize.query(`
+      const stats = await sequelize.query(`
         SELECT 
           COUNT(*) as total_threads,
           MIN(created_at) as oldest_thread,
@@ -87,7 +89,7 @@ export class ThreadCleanupService {
           COUNT(DISTINCT issue_key) as unique_issues
         FROM chat_threads
       `, {
-        type: this.dbService.sequelize.QueryTypes.SELECT
+        type: QueryTypes.SELECT
       });
       
       return stats[0];
@@ -105,10 +107,10 @@ export class ThreadCleanupService {
     try {
       console.log('🚨 INICIANDO LIMPIEZA DE EMERGENCIA - ELIMINANDO TODOS LOS THREADS');
       
-      const result = await this.dbService.sequelize.query(
+      const result = await sequelize.query(
         'DELETE FROM chat_threads',
         {
-          type: this.dbService.sequelize.QueryTypes.DELETE
+          type: QueryTypes.DELETE
         }
       );
       

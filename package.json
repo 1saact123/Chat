@@ -24,7 +24,8 @@
     "debug-app": "ts-node src/scripts/debug-app.ts",
     "test-login-loop": "ts-node src/scripts/test-login-loop.ts",
     "test-no-loop": "ts-node src/scripts/test-no-loop.ts",
-    "cleanup-threads": "ts-node scripts/manual-cleanup.ts"
+    "cleanup-threads": "ts-node scripts/manual-cleanup.ts",
+    "update-rds": "ts-node scripts/update-rds-database.ts"
   },
   "dependencies": {
     "@types/bcrypt": "^6.0.0",
