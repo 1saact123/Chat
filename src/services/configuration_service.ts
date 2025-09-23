@@ -83,6 +83,12 @@ export class ConfigurationService {
     }
   }
 
+  // Recargar configuraciones desde base de datos (método público)
+  async reloadConfigurationsFromDatabase(): Promise<void> {
+    console.log('🔄 Recargando configuraciones desde base de datos...');
+    await this.loadConfigurationsFromDatabase();
+  }
+
   // Cargar configuraciones desde base de datos
   private async loadConfigurationsFromDatabase(): Promise<void> {
     try {
@@ -182,6 +188,10 @@ export class ConfigurationService {
         });
         
         console.log(`✅ Configuración actualizada para ${serviceId}: ${assistantName} - Guardado en BD`);
+        
+        // Recargar configuraciones desde BD para asegurar sincronización
+        await this.reloadConfigurationsFromDatabase();
+        
         return true;
       }
       return false;
@@ -194,7 +204,18 @@ export class ConfigurationService {
   // Obtener asistente activo para un servicio
   getActiveAssistantForService(serviceId: string): string | null {
     const config = this.configurations.get(serviceId);
-    return config && config.isActive ? config.assistantId : null;
+    const assistantId = config && config.isActive ? config.assistantId : null;
+    
+    console.log(`🔍 getActiveAssistantForService(${serviceId}):`, {
+      serviceId,
+      hasConfig: !!config,
+      isActive: config?.isActive,
+      assistantId: assistantId,
+      assistantName: config?.assistantName,
+      lastUpdated: config?.lastUpdated
+    });
+    
+    return assistantId;
   }
 
   // Activar/desactivar un servicio
