@@ -26,7 +26,10 @@ export class ConfigurationService {
   private constructor() {
     this.dbService = DatabaseService.getInstance();
     this.loadConfigurations();
-    this.loadConfigurationsFromDatabase();
+    // Cargar configuraciones desde BD de forma asíncrona
+    this.loadConfigurationsFromDatabase().catch(error => {
+      console.error('❌ Error cargando configuraciones desde BD en constructor:', error);
+    });
   }
 
   public static getInstance(): ConfigurationService {
@@ -108,7 +111,13 @@ export class ConfigurationService {
             isActive: dbConfig.isActive,
             lastUpdated: dbConfig.lastUpdated || new Date()
           });
-          console.log(`✅ Cargada configuración: ${dbConfig.serviceName} -> ${dbConfig.assistantName}`);
+          console.log(`✅ Cargada configuración: ${dbConfig.serviceName} -> ${dbConfig.assistantName} (ID: ${dbConfig.assistantId})`);
+        }
+        
+        // Mostrar todas las configuraciones cargadas
+        console.log('📊 Configuraciones actuales en memoria:');
+        for (const [serviceId, config] of this.configurations.entries()) {
+          console.log(`  - ${serviceId}: ${config.assistantName} (${config.assistantId}) - Active: ${config.isActive}`);
         }
         
         // Guardar configuraciones actualizadas en archivo
@@ -214,6 +223,14 @@ export class ConfigurationService {
       assistantName: config?.assistantName,
       lastUpdated: config?.lastUpdated
     });
+    
+    // Si no hay configuración, intentar recargar desde BD
+    if (!config) {
+      console.log(`⚠️ No configuration found for ${serviceId}, attempting to reload from database...`);
+      this.loadConfigurationsFromDatabase().catch(error => {
+        console.error('❌ Error reloading configurations:', error);
+      });
+    }
     
     return assistantId;
   }
