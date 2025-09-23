@@ -9,14 +9,17 @@ import routes from './routes';
 import { validateEnvironmentVariables } from './utils/validations';
 import { testConnection, syncDatabase } from './config/database';
 import { redirectToLoginIfNotAuth, requireAdmin } from './middleware/auth';
+import { ThreadCleanupService } from './services/thread_cleanup_service';
 
 class MovonteAPI {
   private app: express.Application;
   private port: number;
+  private cleanupService: ThreadCleanupService;
 
   constructor() {
     this.app = express();
     this.port = parseInt(process.env.PORT || '3000');
+    this.cleanupService = ThreadCleanupService.getInstance();
     
     this.setupMiddleware();
     this.setupRoutes();
@@ -196,6 +199,9 @@ class MovonteAPI {
       console.log('🔄 Sincronizando modelos de base de datos...');
       await syncDatabase();
       
+      // Configurar limpieza automática de threads
+      this.setupAutomaticCleanup();
+      
       // Solo servidor HTTP - nginx maneja HTTPS
       this.app.listen(this.port, '0.0.0.0', () => {
         console.log('\nMovonte API iniciada exitosamente!');
@@ -215,6 +221,40 @@ class MovonteAPI {
     } catch (error) {
       console.error('❌ Error iniciando la aplicación:', error);
       process.exit(1);
+    }
+  }
+
+  /**
+   * Configura la limpieza automática de threads antiguos
+   */
+  private setupAutomaticCleanup(): void {
+    try {
+      console.log('🧹 Configurando limpieza automática de threads...');
+      
+      // Limpieza inmediata al iniciar (opcional)
+      setTimeout(async () => {
+        try {
+          await this.cleanupService.cleanupOldThreads(30); // Mantener 30 días
+        } catch (error) {
+          console.error('❌ Error en limpieza inicial:', error);
+        }
+      }, 5000); // Esperar 5 segundos después del inicio
+      
+      // Limpieza automática cada 24 horas
+      const cleanupInterval = 24 * 60 * 60 * 1000; // 24 horas en milisegundos
+      setInterval(async () => {
+        try {
+          console.log('🕐 Ejecutando limpieza automática programada...');
+          await this.cleanupService.cleanupOldThreads(30);
+        } catch (error) {
+          console.error('❌ Error en limpieza automática:', error);
+        }
+      }, cleanupInterval);
+      
+      console.log('✅ Limpieza automática configurada (cada 24 horas)');
+      
+    } catch (error) {
+      console.error('❌ Error configurando limpieza automática:', error);
     }
   }
 }

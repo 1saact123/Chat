@@ -56,7 +56,8 @@ export async function testConnection(): Promise<boolean> {
 // Función para sincronizar modelos
 export async function syncDatabase(): Promise<void> {
   try {
-    await sequelize.sync({ alter: true });
+    // Usar alter: false para evitar problemas con índices excesivos
+    await sequelize.sync({ force: false, alter: false });
     console.log('✅ Base de datos sincronizada correctamente');
   } catch (error) {
     console.error('❌ Error sincronizando base de datos:', error);
