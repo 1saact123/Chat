@@ -158,16 +158,12 @@ class MovonteAPI {
     // Configurar Socket.IO
     this.io = new Server(this.httpServer, {
       cors: {
-        origin: [
-          "https://chat.movonte.com",
-          "https://movonte.com",
-          "https://movonte-consulting.github.io",
-          "http://localhost:3000",
-          "http://127.0.0.1:5500"
-        ],
+        origin: "*",
         methods: ["GET", "POST"],
-        credentials: true
-      }
+        credentials: false
+      },
+      transports: ['websocket', 'polling'],
+      allowEIO3: true
     });
 
     // Manejar conexiones WebSocket
@@ -175,6 +171,8 @@ class MovonteAPI {
       console.log('🔌 Cliente WebSocket conectado:', socket.id);
       console.log('👤 Usuario conectado al chat en tiempo real');
       console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
+      console.log('🌐 Cliente origin:', socket.handshake.headers.origin);
+      console.log('🌐 Cliente user-agent:', socket.handshake.headers['user-agent']);
       
       // Manejar mensajes del widget
       socket.on('widget-message', async (data) => {
@@ -207,10 +205,16 @@ class MovonteAPI {
         }
       });
       
+      // Manejar errores de conexión
+      socket.on('error', (error) => {
+        console.error('❌ Error en WebSocket:', error);
+      });
+      
       // Manejar desconexión
-      socket.on('disconnect', () => {
+      socket.on('disconnect', (reason) => {
         console.log('🔌 Cliente WebSocket desconectado:', socket.id);
         console.log('👤 Usuario desconectado del chat');
+        console.log('📡 Razón de desconexión:', reason);
         console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
       });
     });
