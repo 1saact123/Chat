@@ -167,7 +167,14 @@
             const message = messageInput.value.trim();
             if (!message) return;
             
+            if (!currentTicket) {
+                log('❌ No hay ticket disponible');
+                addMessage('system', 'Error: No hay ticket disponible');
+                return;
+            }
+            
             log('📤 Enviando mensaje via REST API...');
+            log('🎫 Current ticket:', currentTicket);
             addMessage('user', message);
             
             try {
@@ -226,7 +233,7 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    currentTicket = result.issueKey;
+                    currentTicket = result.jiraIssue.key;
                     log('✅ Ticket creado:', result);
                     addMessage('system', `Ticket creado: ${currentTicket}`);
                 } else {
