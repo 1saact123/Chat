@@ -158,8 +158,15 @@ class MovonteAPI {
     // Configurar Socket.IO
     this.io = new Server(this.httpServer, {
       cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+        origin: [
+          "https://chat.movonte.com",
+          "https://movonte.com",
+          "https://movonte-consulting.github.io",
+          "http://localhost:3000",
+          "http://127.0.0.1:5500"
+        ],
+        methods: ["GET", "POST"],
+        credentials: true
       }
     });
 
