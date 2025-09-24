@@ -166,6 +166,8 @@ class MovonteAPI {
     // Manejar conexiones WebSocket
     this.io.on('connection', (socket) => {
       console.log('🔌 Cliente WebSocket conectado:', socket.id);
+      console.log('👤 Usuario conectado al chat en tiempo real');
+      console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
       
       // Manejar mensajes del widget
       socket.on('widget-message', async (data) => {
@@ -201,6 +203,8 @@ class MovonteAPI {
       // Manejar desconexión
       socket.on('disconnect', () => {
         console.log('🔌 Cliente WebSocket desconectado:', socket.id);
+        console.log('👤 Usuario desconectado del chat');
+        console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
       });
     });
 
