@@ -16,7 +16,7 @@ import { OpenAIService } from './services/openAI_service';
 class MovonteAPI {
   private app: express.Application;
   private httpServer: any;
-  private io: Server;
+  private io!: Server;
   private port: number;
   private openaiService: OpenAIService;
 
@@ -193,7 +193,7 @@ class MovonteAPI {
           console.error('❌ Error procesando mensaje WebSocket:', error);
           socket.emit('error', {
             message: 'Error procesando mensaje',
-            error: error.message
+            error: error instanceof Error ? error.message : 'Error desconocido'
           });
         }
       });
