@@ -176,9 +176,18 @@ class MovonteAPI {
       console.log('👤 Usuario conectado al chat en tiempo real');
       console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
       
-      // 🎯 SOLO PARA RECIBIR RESPUESTAS DE IA - NO PROCESAR MENSAJES
-      // El widget usa endpoints REST normales para enviar mensajes
-      // El WebSocket solo envía respuestas de IA al frontend
+      // 🎯 MANEJAR SALAS POR TICKET
+      socket.on('join-ticket', (ticketId) => {
+        console.log(`🎫 Cliente ${socket.id} se une al ticket: ${ticketId}`);
+        socket.join(`ticket_${ticketId}`);
+        console.log(`✅ Cliente unido a la sala: ticket_${ticketId}`);
+      });
+      
+      socket.on('leave-ticket', (ticketId) => {
+        console.log(`🎫 Cliente ${socket.id} sale del ticket: ${ticketId}`);
+        socket.leave(`ticket_${ticketId}`);
+        console.log(`✅ Cliente salió de la sala: ticket_${ticketId}`);
+      });
       
       // Manejar desconexión
       socket.on('disconnect', () => {

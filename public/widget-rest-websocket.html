@@ -138,6 +138,12 @@
                 messageInput.disabled = false;
                 sendBtn.disabled = false;
                 addMessage('system', 'Conectado al chat en tiempo real');
+                
+                // 🎯 UNIRSE A LA SALA DEL TICKET ESPECÍFICO
+                if (currentTicket) {
+                    socket.emit('join-ticket', currentTicket);
+                    log(`🎫 Uniéndose al ticket: ${currentTicket}`);
+                }
             });
             
             socket.on('disconnect', () => {
@@ -236,6 +242,12 @@
                     currentTicket = result.jiraIssue.key;
                     log('✅ Ticket creado:', result);
                     addMessage('system', `Ticket creado: ${currentTicket}`);
+                    
+                    // 🎯 UNIRSE A LA SALA DEL TICKET SI YA ESTÁ CONECTADO
+                    if (socket && isConnected) {
+                        socket.emit('join-ticket', currentTicket);
+                        log(`🎫 Uniéndose al ticket: ${currentTicket}`);
+                    }
                 } else {
                     log('❌ Error creando ticket:', result);
                     addMessage('system', `Error: ${result.error}`);

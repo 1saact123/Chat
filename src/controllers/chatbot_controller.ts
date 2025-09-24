@@ -352,18 +352,21 @@ export class ChatbotController {
             console.log(`   Respuesta: ${response.response.substring(0, 100)}...`);
             console.log(`   Estadísticas: ${this.webhookStats.successfulResponses} respuestas exitosas`);
             
-            // 🔌 ENVIAR RESPUESTA VIA WEBSOCKET A CLIENTES CONECTADOS
+            // 🔌 ENVIAR RESPUESTA VIA WEBSOCKET SOLO AL TICKET ESPECÍFICO
             const webSocketServer = this.getWebSocketServer();
             if (webSocketServer) {
-              console.log(`📡 Enviando respuesta via WebSocket a clientes conectados...`);
-              webSocketServer.emit('ai-response', {
+              console.log(`📡 Enviando respuesta via WebSocket al ticket ${issueKey}...`);
+              
+              // Enviar solo a clientes conectados a este ticket específico
+              webSocketServer.to(`ticket_${issueKey}`).emit('ai-response', {
                 message: response.response,
                 threadId: `widget_${issueKey}`,
                 timestamp: new Date().toISOString(),
                 source: 'jira-webhook',
                 issueKey: issueKey
               });
-              console.log(`✅ Respuesta enviada via WebSocket`);
+              
+              console.log(`✅ Respuesta enviada via WebSocket al ticket ${issueKey}`);
             } else {
               console.log(`⚠️ WebSocket no disponible, respuesta no enviada a clientes`);
             }
