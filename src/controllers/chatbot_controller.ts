@@ -19,12 +19,24 @@ export class ChatbotController {
     throttledRequests: 0,
     lastReset: new Date()
   };
+  private io: any = null; // Referencia al WebSocket server
 
   constructor(
     private openaiService: OpenAIService,
     private emailService: EmailService | null
   ) {
     this.dbService = DatabaseService.getInstance();
+  }
+
+  // Método para establecer la referencia del WebSocket
+  setWebSocketServer(io: any): void {
+    this.io = io;
+  }
+
+  // Obtener referencia del WebSocket global
+  private getWebSocketServer(): any {
+    if (this.io) return this.io;
+    return (global as any).webSocketServer;
   }
 
   // Método privado para obtener estadísticas de webhooks
@@ -339,6 +351,22 @@ export class ChatbotController {
             console.log(`   Issue: ${payload.issue.key}`);
             console.log(`   Respuesta: ${response.response.substring(0, 100)}...`);
             console.log(`   Estadísticas: ${this.webhookStats.successfulResponses} respuestas exitosas`);
+            
+            // 🔌 ENVIAR RESPUESTA VIA WEBSOCKET A CLIENTES CONECTADOS
+            const webSocketServer = this.getWebSocketServer();
+            if (webSocketServer) {
+              console.log(`📡 Enviando respuesta via WebSocket a clientes conectados...`);
+              webSocketServer.emit('ai-response', {
+                message: response.response,
+                threadId: `widget_${issueKey}`,
+                timestamp: new Date().toISOString(),
+                source: 'jira-webhook',
+                issueKey: issueKey
+              });
+              console.log(`✅ Respuesta enviada via WebSocket`);
+            } else {
+              console.log(`⚠️ WebSocket no disponible, respuesta no enviada a clientes`);
+            }
           } catch (jiraError) {
             console.error('❌ Error adding AI response to Jira:', jiraError);
             // No fallar el webhook si no se puede agregar el comentario

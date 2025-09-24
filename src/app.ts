@@ -203,6 +203,15 @@ class MovonteAPI {
         console.log('🔌 Cliente WebSocket desconectado:', socket.id);
       });
     });
+
+    // 🔌 Pasar referencia del WebSocket a los controladores que la necesiten
+    this.setupWebSocketReferences();
+  }
+
+  private setupWebSocketReferences(): void {
+    // Hacer el WebSocket disponible globalmente para los controladores
+    (global as any).webSocketServer = this.io;
+    console.log('🔌 WebSocket server configurado globalmente');
   }
 
   private setupErrorHandling(): void {
