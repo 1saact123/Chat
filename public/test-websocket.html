@@ -1,43 +1,262 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test WebSocket</title>
+    <title>Test WebSocket Completo</title>
     <script src="https://chat.movonte.com/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        .connecting { background: #fff3cd; color: #856404; }
+        
+        .chat-container {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f8f9fa;
+        }
+        
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        
+        .message.user {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message.assistant {
+            background: #28a745;
+            color: white;
+        }
+        
+        .message.system {
+            background: #6c757d;
+            color: white;
+            text-align: center;
+            font-style: italic;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .input-group button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .input-group button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .test-buttons {
+            margin: 20px 0;
+        }
+        
+        .test-buttons button {
+            margin: 5px;
+            padding: 10px 15px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .logs {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Test WebSocket Connection</h1>
-    <div id="status">Conectando...</div>
-    <div id="messages"></div>
+    <h1>🧪 Test WebSocket Completo</h1>
     
+    <div id="status" class="status connecting">Conectando...</div>
+    
+    <div class="test-buttons">
+        <button onclick="testConnection()">🔌 Probar Conexión</button>
+        <button onclick="sendTestMessage()">📤 Enviar Mensaje de Prueba</button>
+        <button onclick="clearMessages()">🗑️ Limpiar Mensajes</button>
+        <button onclick="clearLogs()">📝 Limpiar Logs</button>
+    </div>
+    
+    <div class="chat-container">
+        <h3>💬 Chat en Tiempo Real</h3>
+        <div id="messages"></div>
+        
+        <div class="input-group">
+            <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." disabled>
+            <button id="sendBtn" onclick="sendMessage()" disabled>Enviar</button>
+        </div>
+    </div>
+    
+    <div class="logs">
+        <h4>📋 Logs del Sistema</h4>
+        <div id="logs"></div>
+    </div>
+
     <script>
-        const socket = io('https://chat.movonte.com');
+        let socket = null;
+        let isConnected = false;
+        let threadId = 'test_thread_' + Date.now();
+        
         const statusDiv = document.getElementById('status');
         const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const logsDiv = document.getElementById('logs');
         
-        socket.on('connect', () => {
-            console.log('✅ Conectado al WebSocket');
-            statusDiv.innerHTML = '✅ Conectado al WebSocket';
-            statusDiv.style.color = 'green';
-        });
+        // Inicializar conexión
+        function initConnection() {
+            log('🔌 Iniciando conexión WebSocket...');
+            socket = io('https://chat.movonte.com');
+            
+            socket.on('connect', () => {
+                log('✅ Conectado al WebSocket');
+                statusDiv.innerHTML = '✅ Conectado al WebSocket';
+                statusDiv.className = 'status connected';
+                isConnected = true;
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                addMessage('system', 'Conectado al chat en tiempo real');
+            });
+            
+            socket.on('disconnect', () => {
+                log('❌ Desconectado del WebSocket');
+                statusDiv.innerHTML = '❌ Desconectado del WebSocket';
+                statusDiv.className = 'status disconnected';
+                isConnected = false;
+                messageInput.disabled = true;
+                sendBtn.disabled = true;
+                addMessage('system', 'Desconectado del chat');
+            });
+            
+            socket.on('ai-response', (data) => {
+                log('🤖 Mensaje recibido del asistente:', data);
+                addMessage('assistant', data.message);
+            });
+            
+            socket.on('error', (error) => {
+                log('❌ Error WebSocket:', error);
+                addMessage('system', `Error: ${error.message}`);
+            });
+        }
         
-        socket.on('disconnect', () => {
-            console.log('❌ Desconectado del WebSocket');
-            statusDiv.innerHTML = '❌ Desconectado del WebSocket';
-            statusDiv.style.color = 'red';
-        });
+        // Enviar mensaje
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !isConnected) return;
+            
+            log('📤 Enviando mensaje:', message);
+            addMessage('user', message);
+            
+            socket.emit('widget-message', {
+                message: message,
+                threadId: threadId,
+                timestamp: new Date().toISOString()
+            });
+            
+            messageInput.value = '';
+        }
         
-        socket.on('ai-response', (data) => {
-            console.log('🤖 Mensaje recibido:', data);
+        // Enviar mensaje de prueba
+        function sendTestMessage() {
+            const testMessage = 'Hola, ¿cómo estás?';
+            messageInput.value = testMessage;
+            sendMessage();
+        }
+        
+        // Probar conexión
+        function testConnection() {
+            if (socket) {
+                socket.disconnect();
+            }
+            initConnection();
+        }
+        
+        // Agregar mensaje al chat
+        function addMessage(type, content) {
             const div = document.createElement('div');
-            div.innerHTML = `<strong>Asistente:</strong> ${data.message}`;
+            div.className = `message ${type}`;
+            div.textContent = content;
             messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Agregar log
+        function log(message, data = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            if (data) {
+                logEntry.innerHTML += `<br><small>${JSON.stringify(data, null, 2)}</small>`;
+            }
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+        
+        // Limpiar mensajes
+        function clearMessages() {
+            messagesDiv.innerHTML = '';
+            log('🗑️ Mensajes limpiados');
+        }
+        
+        // Limpiar logs
+        function clearLogs() {
+            logsDiv.innerHTML = '';
+        }
+        
+        // Event listeners
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
         });
         
-        socket.on('error', (error) => {
-            console.error('❌ Error:', error);
-            const div = document.createElement('div');
-            div.innerHTML = `<strong>Error:</strong> ${error.message}`;
-            messagesDiv.appendChild(div);
+        // Inicializar al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Iniciando test WebSocket completo...');
+            initConnection();
         });
     </script>
 </body>
