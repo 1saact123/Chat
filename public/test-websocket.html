@@ -138,7 +138,7 @@
     <script>
         let socket = null;
         let isConnected = false;
-        let threadId = 'test_thread_' + Date.now();
+        let threadId = 'widget_TI-472'; // Usar un ticket real de Jira para testing
         
         const statusDiv = document.getElementById('status');
         const messagesDiv = document.getElementById('messages');
@@ -176,6 +176,11 @@
                 addMessage('assistant', data.message);
             });
             
+            socket.on('message-saved', (data) => {
+                log('✅ Mensaje guardado en Jira:', data);
+                addMessage('system', `Mensaje guardado en ticket ${data.issueKey}`);
+            });
+            
             socket.on('error', (error) => {
                 log('❌ Error WebSocket:', error);
                 addMessage('system', `Error: ${error.message}`);
@@ -193,6 +198,10 @@
             socket.emit('widget-message', {
                 message: message,
                 threadId: threadId,
+                customerInfo: {
+                    name: 'Test User',
+                    email: 'test@movonte.com'
+                },
                 timestamp: new Date().toISOString()
             });
             

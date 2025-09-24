@@ -179,22 +179,41 @@ class MovonteAPI {
         try {
           console.log('📨 Mensaje recibido via WebSocket:', data);
           
-          // Procesar con IA usando el servicio existente
-          const response = await this.openaiService.processChatForService(
-            data.message, 
-            'landing-page', 
-            data.threadId,
-            { source: 'websocket' }
-          );
+          // Extraer issueKey del threadId (formato: widget_TI-472)
+          const issueKey = data.threadId?.replace('widget_', '');
           
-          // Enviar respuesta al widget
-          socket.emit('ai-response', {
-            message: response,
-            threadId: data.threadId,
-            timestamp: new Date().toISOString()
+          if (!issueKey) {
+            console.error('❌ No se pudo extraer issueKey del threadId:', data.threadId);
+            socket.emit('error', {
+              message: 'Error: No se pudo identificar el ticket de Jira',
+              error: 'threadId inválido'
+            });
+            return;
+          }
+          
+          console.log(`📤 Guardando mensaje del widget en Jira ticket: ${issueKey}`);
+          
+          // Importar JiraService para guardar el mensaje
+          const { JiraService } = await import('./services/jira_service');
+          const jiraService = JiraService.getInstance();
+          
+          // Guardar mensaje del usuario en Jira como comentario
+          await jiraService.addCommentToIssue(issueKey, data.message, {
+            name: data.customerInfo?.name || 'Widget User',
+            email: data.customerInfo?.email || 'widget@movonte.com',
+            source: 'widget'
           });
           
-          console.log('✅ Respuesta enviada via WebSocket');
+          console.log(`✅ Mensaje guardado en Jira ticket ${issueKey}`);
+          console.log(`🎯 El webhook de Jira procesará la respuesta de IA automáticamente`);
+          
+          // Confirmar al widget que el mensaje fue guardado
+          socket.emit('message-saved', {
+            issueKey: issueKey,
+            message: data.message,
+            timestamp: new Date().toISOString(),
+            status: 'saved-to-jira'
+          });
           
         } catch (error) {
           console.error('❌ Error procesando mensaje WebSocket:', error);
