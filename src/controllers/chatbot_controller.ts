@@ -39,6 +39,43 @@ export class ChatbotController {
     return (global as any).webSocketServer;
   }
 
+  // Enviar comentario al WebSocket
+  private sendCommentToWebSocket(comment: any, issueKey: string, isAI: boolean = false) {
+    const webSocketServer = this.getWebSocketServer();
+    if (!webSocketServer) {
+      console.log(`⚠️ WebSocket no disponible, comentario no enviado`);
+      return;
+    }
+
+    // Determinar si es comentario del widget (Chat User)
+    const isWidgetComment = comment.author.displayName === 'Chat User';
+    
+    // NO enviar comentarios del widget (Chat User)
+    if (isWidgetComment) {
+      console.log(`📱 Comentario del widget (Chat User) - NO enviado al WebSocket`);
+      return;
+    }
+
+    console.log(`📡 Enviando comentario via WebSocket:`, {
+      author: comment.author.displayName,
+      isAI: isAI,
+      isWidget: isWidgetComment,
+      issueKey: issueKey
+    });
+
+    webSocketServer.emit('new-comment', {
+      message: comment.body,
+      author: comment.author.displayName,
+      timestamp: comment.created,
+      issueKey: issueKey,
+      isAI: isAI,
+      isInternal: comment.jsdPublic === false,
+      accountId: comment.author.accountId
+    });
+
+    console.log(`✅ Comentario enviado via WebSocket`);
+  }
+
   // Método privado para obtener estadísticas de webhooks
   private getWebhookStatsData() {
     return {
@@ -219,9 +256,16 @@ export class ChatbotController {
           console.log(`   Account ID: ${payload.comment.author.accountId}`);
           console.log(`   Contenido: ${payload.comment.body.substring(0, 150)}...`);
           console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios de IA saltados`);
+          
+          // 🔌 ENVIAR COMENTARIO DE IA AL WEBSOCKET
+          this.sendCommentToWebSocket(payload.comment, payload.issue.key, true);
+          
           res.json({ success: true, message: 'Skipped AI comment', aiComment: true });
           return;
         }
+        
+        // Sistema de throttling para evitar respuestas muy rápidas
+        const issueKey = payload.issue.key;
         
         // Verificar que no sea un comentario del widget (para evitar duplicación)
         if (this.isWidgetComment(payload.comment)) {
@@ -232,12 +276,13 @@ export class ChatbotController {
           console.log(`   Account ID: ${payload.comment.author.accountId}`);
           console.log(`   Contenido: ${payload.comment.body.substring(0, 150)}...`);
           console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios del widget saltados`);
+          
+          // 🔌 ENVIAR COMENTARIO DEL WIDGET AL WEBSOCKET (NO PROCESAR)
+          this.sendCommentToWebSocket(payload.comment, issueKey, false);
+          
           res.json({ success: true, message: 'Skipped widget comment', widgetComment: true });
           return;
         }
-        
-        // Sistema de throttling para evitar respuestas muy rápidas
-        const issueKey = payload.issue.key;
         const nowTimestamp = Date.now();
         const lastResponse = this.lastResponseTime.get(issueKey) || 0;
         const timeSinceLastResponse = nowTimestamp - lastResponse;
@@ -260,6 +305,9 @@ export class ChatbotController {
         }
         
         console.log(`✅ PROCESANDO COMENTARIO: ${commentId}`);
+        
+        // 🔌 ENVIAR COMENTARIO DE AGENTE AL WEBSOCKET
+        this.sendCommentToWebSocket(payload.comment, issueKey, false);
         
         // Verificar si el asistente está desactivado para este ticket
         const configService = ConfigurationService.getInstance();
