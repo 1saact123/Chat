@@ -219,22 +219,6 @@ export class ChatbotController {
           console.log(`   Account ID: ${payload.comment.author.accountId}`);
           console.log(`   Contenido: ${payload.comment.body.substring(0, 150)}...`);
           console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios de IA saltados`);
-          
-          // 🔌 ENVIAR COMENTARIO DE IA VIA WEBSOCKET
-          const webSocketServer = this.getWebSocketServer();
-          if (webSocketServer) {
-            console.log(`📡 Enviando comentario de IA via WebSocket...`);
-            webSocketServer.emit('ai-response', {
-              message: payload.comment.body,
-              threadId: `widget_${payload.issue.key}`,
-              timestamp: payload.comment.created,
-              source: 'jira-comment',
-              issueKey: payload.issue.key,
-              author: payload.comment.author.displayName
-            });
-            console.log(`✅ Comentario de IA enviado via WebSocket`);
-          }
-          
           res.json({ success: true, message: 'Skipped AI comment', aiComment: true });
           return;
         }
@@ -296,24 +280,6 @@ export class ChatbotController {
         // Agregar el comentario del usuario al historial
         this.addToConversationHistory(issueKey, 'user', payload.comment.body);
         console.log(`📝 Comentario agregado al historial para ${issueKey}`);
-        
-        // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET (si no es del widget)
-        if (!this.isWidgetComment(payload.comment)) {
-          const webSocketServer = this.getWebSocketServer();
-          if (webSocketServer) {
-            console.log(`📡 Enviando comentario de agente via WebSocket...`);
-            webSocketServer.emit('new-comment', {
-              message: payload.comment.body,
-              threadId: `widget_${issueKey}`,
-              timestamp: payload.comment.created,
-              source: 'jira-comment',
-              issueKey: issueKey,
-              author: payload.comment.author.displayName,
-              isInternal: (payload.comment as any).jsdPublic === false
-            });
-            console.log(`✅ Comentario de agente enviado via WebSocket`);
-          }
-        }
         
         // Obtener historial de conversación para contexto
         const conversationHistory = this.conversationHistory.get(issueKey) || [];

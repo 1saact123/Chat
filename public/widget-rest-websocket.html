@@ -156,27 +156,6 @@
                 addMessage('assistant', data.message);
             });
             
-            // 🎯 RECIBIR COMENTARIOS DE AGENTES VIA WEBSOCKET
-            socket.on('new-comment', (data) => {
-                log('💬 Nuevo comentario recibido:', data);
-                
-                // Determinar el tipo de mensaje basado en el autor
-                let messageType = 'system';
-                let messageContent = data.message;
-                
-                if (data.isInternal) {
-                    // Es una nota interna de un agente
-                    messageType = 'system';
-                    messageContent = `[Nota interna] ${data.author}: ${data.message}`;
-                } else {
-                    // Es un comentario de un agente
-                    messageType = 'system';
-                    messageContent = `${data.author}: ${data.message}`;
-                }
-                
-                addMessage(messageType, messageContent);
-            });
-            
             socket.on('error', (error) => {
                 log('❌ Error WebSocket:', error);
                 addMessage('system', `Error: ${error.message}`);
