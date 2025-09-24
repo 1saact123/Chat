@@ -42,23 +42,17 @@
             text-align: right;
         }
         
-         .message.assistant {
-             background: #28a745;
-             color: white;
-         }
-         
-         .message.agent {
-             background: #17a2b8;
-             color: white;
-             border-left: 4px solid #138496;
-         }
-         
-         .message.system {
-             background: #6c757d;
-             color: white;
-             text-align: center;
-             font-style: italic;
-         }
+        .message.assistant {
+            background: #28a745;
+            color: white;
+        }
+        
+        .message.system {
+            background: #6c757d;
+            color: white;
+            text-align: center;
+            font-style: italic;
+        }
         
         .input-group {
             display: flex;
@@ -162,7 +156,7 @@
                 addMessage('assistant', data.message);
             });
             
-            // 🎯 RECIBIR TODOS LOS COMENTARIOS VIA WEBSOCKET
+            // 🎯 RECIBIR COMENTARIOS DE AGENTES VIA WEBSOCKET
             socket.on('new-comment', (data) => {
                 log('💬 Nuevo comentario recibido:', data);
                 
@@ -170,19 +164,13 @@
                 let messageType = 'system';
                 let messageContent = data.message;
                 
-                if (data.author === 'contact service account') {
-                    // Es una respuesta de IA
-                    messageType = 'assistant';
-                } else if (data.author === 'Chat User') {
-                    // Es un mensaje del cliente (NO debería llegar aquí)
-                    return; // No mostrar comentarios del widget
-                } else if (data.isInternal) {
+                if (data.isInternal) {
                     // Es una nota interna de un agente
                     messageType = 'system';
                     messageContent = `[Nota interna] ${data.author}: ${data.message}`;
                 } else {
                     // Es un comentario de un agente
-                    messageType = 'agent';
+                    messageType = 'system';
                     messageContent = `${data.author}: ${data.message}`;
                 }
                 
