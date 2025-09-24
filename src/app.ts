@@ -1,4 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -9,17 +11,23 @@ import routes from './routes';
 import { validateEnvironmentVariables } from './utils/validations';
 import { testConnection, syncDatabase } from './config/database';
 import { redirectToLoginIfNotAuth, requireAdmin } from './middleware/auth';
+import { OpenAIService } from './services/openAI_service';
 
 class MovonteAPI {
   private app: express.Application;
+  private httpServer: any;
+  private io: Server;
   private port: number;
+  private openaiService: OpenAIService;
 
   constructor() {
     this.app = express();
     this.port = parseInt(process.env.PORT || '3000');
+    this.openaiService = new OpenAIService();
     
     this.setupMiddleware();
     this.setupRoutes();
+    this.setupWebSockets();
     this.setupErrorHandling();
   }
 
@@ -143,6 +151,60 @@ class MovonteAPI {
     });
   }
 
+  private setupWebSockets(): void {
+    // Crear servidor HTTP
+    this.httpServer = createServer(this.app);
+    
+    // Configurar Socket.IO
+    this.io = new Server(this.httpServer, {
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+      }
+    });
+
+    // Manejar conexiones WebSocket
+    this.io.on('connection', (socket) => {
+      console.log('🔌 Cliente WebSocket conectado:', socket.id);
+      
+      // Manejar mensajes del widget
+      socket.on('widget-message', async (data) => {
+        try {
+          console.log('📨 Mensaje recibido via WebSocket:', data);
+          
+          // Procesar con IA usando el servicio existente
+          const response = await this.openaiService.processChatForService(
+            data.message, 
+            'landing-page', 
+            data.threadId,
+            { source: 'websocket' }
+          );
+          
+          // Enviar respuesta al widget
+          socket.emit('ai-response', {
+            message: response,
+            threadId: data.threadId,
+            timestamp: new Date().toISOString()
+          });
+          
+          console.log('✅ Respuesta enviada via WebSocket');
+          
+        } catch (error) {
+          console.error('❌ Error procesando mensaje WebSocket:', error);
+          socket.emit('error', {
+            message: 'Error procesando mensaje',
+            error: error.message
+          });
+        }
+      });
+      
+      // Manejar desconexión
+      socket.on('disconnect', () => {
+        console.log('🔌 Cliente WebSocket desconectado:', socket.id);
+      });
+    });
+  }
+
   private setupErrorHandling(): void {
     // Manejo global de errores
     this.app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
@@ -196,22 +258,24 @@ class MovonteAPI {
       console.log('🔄 Sincronizando modelos de base de datos...');
       await syncDatabase();
       
-      // Solo servidor HTTP - nginx maneja HTTPS
-      this.app.listen(this.port, '0.0.0.0', () => {
+      // Servidor HTTP con WebSockets - nginx maneja HTTPS
+      this.httpServer.listen(this.port, '0.0.0.0', () => {
         console.log('\nMovonte API iniciada exitosamente!');
         console.log('📦 Running behind nginx reverse proxy');
         console.log('🗄️ Base de datos MySQL conectada');
+        console.log('🔌 WebSockets habilitados');
         console.log(`🚀 Servidor ejecutándose en puerto ${this.port}`);
         console.log(`📡 URL: http://localhost:${this.port}`);
         console.log('\nEndpoints disponibles:');
-      console.log(`   Health Check: http://localhost:${this.port}/health`);
-      console.log(`   Contact Form: POST http://localhost:${this.port}/api/contact`);
-      console.log(`   Jira Test: http://localhost:${this.port}/api/contact/test-jira`);
-      console.log(`   Chatbot Webhook: POST http://localhost:${this.port}/api/chatbot/webhook/jira`);
-      console.log(`   Direct Chat: POST http://localhost:${this.port}/api/chatbot/chat`);
-      console.log('\n✅ API lista para recibir solicitudes (incluye webhooks de Jira)');
-      console.log('🔗 Public URL: https://chat.movonte.com\n');
-    });
+        console.log(`   Health Check: http://localhost:${this.port}/health`);
+        console.log(`   Contact Form: POST http://localhost:${this.port}/api/contact`);
+        console.log(`   Jira Test: http://localhost:${this.port}/api/contact/test-jira`);
+        console.log(`   Chatbot Webhook: POST http://localhost:${this.port}/api/chatbot/webhook/jira`);
+        console.log(`   Direct Chat: POST http://localhost:${this.port}/api/chatbot/chat`);
+        console.log(`   WebSocket: ws://localhost:${this.port}/socket.io/`);
+        console.log('\n✅ API lista para recibir solicitudes (incluye webhooks de Jira y WebSockets)');
+        console.log('🔗 Public URL: https://chat.movonte.com\n');
+      });
     } catch (error) {
       console.error('❌ Error iniciando la aplicación:', error);
       process.exit(1);
