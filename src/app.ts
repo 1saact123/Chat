@@ -158,12 +158,16 @@ class MovonteAPI {
     // Configurar Socket.IO
     this.io = new Server(this.httpServer, {
       cors: {
-        origin: "*",
+        origin: [
+          "https://chat.movonte.com",
+          "https://movonte.com",
+          "https://movonte-consulting.github.io",
+          "http://localhost:3000",
+          "http://127.0.0.1:5500"
+        ],
         methods: ["GET", "POST"],
-        credentials: false
-      },
-      transports: ['websocket', 'polling'],
-      allowEIO3: true
+        credentials: true
+      }
     });
 
     // Manejar conexiones WebSocket
@@ -171,69 +175,15 @@ class MovonteAPI {
       console.log('🔌 Cliente WebSocket conectado:', socket.id);
       console.log('👤 Usuario conectado al chat en tiempo real');
       console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
-      console.log('🌐 Cliente origin:', socket.handshake.headers.origin);
-      console.log('🌐 Cliente user-agent:', socket.handshake.headers['user-agent']);
       
-      // Manejar mensajes del widget
-      socket.on('widget-message', async (data) => {
-        try {
-          console.log('📨 Mensaje recibido via WebSocket:', data);
-          
-          // Extraer issueKey del threadId (formato: widget_TI-472)
-          const issueKey = data.threadId?.replace('widget_', '');
-          
-          if (!issueKey) {
-            console.error('❌ No se pudo extraer issueKey del threadId:', data.threadId);
-            socket.emit('error', {
-              message: 'Error: No se pudo identificar el ticket de Jira',
-              error: 'threadId inválido'
-            });
-            return;
-          }
-          
-          console.log(`📤 Guardando mensaje del widget en Jira ticket: ${issueKey}`);
-          
-          // Importar JiraService para guardar el mensaje
-          const { JiraService } = await import('./services/jira_service');
-          const jiraService = JiraService.getInstance();
-          
-          // Guardar mensaje del usuario en Jira como comentario
-          await jiraService.addCommentToIssue(issueKey, data.message, {
-            name: data.customerInfo?.name || 'Widget User',
-            email: data.customerInfo?.email || 'widget@movonte.com',
-            source: 'widget'
-          });
-          
-          console.log(`✅ Mensaje guardado en Jira ticket ${issueKey}`);
-          console.log(`🎯 El webhook de Jira procesará la respuesta de IA automáticamente`);
-          
-          // Confirmar al widget que el mensaje fue guardado
-          socket.emit('message-saved', {
-            issueKey: issueKey,
-            message: data.message,
-            timestamp: new Date().toISOString(),
-            status: 'saved-to-jira'
-          });
-          
-        } catch (error) {
-          console.error('❌ Error procesando mensaje WebSocket:', error);
-          socket.emit('error', {
-            message: 'Error procesando mensaje',
-            error: error instanceof Error ? error.message : 'Error desconocido'
-          });
-        }
-      });
-      
-      // Manejar errores de conexión
-      socket.on('error', (error) => {
-        console.error('❌ Error en WebSocket:', error);
-      });
+      // 🎯 SOLO PARA RECIBIR RESPUESTAS DE IA - NO PROCESAR MENSAJES
+      // El widget usa endpoints REST normales para enviar mensajes
+      // El WebSocket solo envía respuestas de IA al frontend
       
       // Manejar desconexión
-      socket.on('disconnect', (reason) => {
+      socket.on('disconnect', () => {
         console.log('🔌 Cliente WebSocket desconectado:', socket.id);
         console.log('👤 Usuario desconectado del chat');
-        console.log('📡 Razón de desconexión:', reason);
         console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
       });
     });

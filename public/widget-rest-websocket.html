@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test WebSocket Completo</title>
+    <title>Widget REST + WebSocket</title>
     <script src="https://chat.movonte.com/socket.io/socket.io.js"></script>
     <style>
         body {
@@ -81,20 +81,6 @@
             cursor: not-allowed;
         }
         
-        .test-buttons {
-            margin: 20px 0;
-        }
-        
-        .test-buttons button {
-            margin: 5px;
-            padding: 10px 15px;
-            background: #17a2b8;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        
         .logs {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -109,19 +95,12 @@
     </style>
 </head>
 <body>
-    <h1>🧪 Test WebSocket Completo</h1>
+    <h1>🎯 Widget REST + WebSocket</h1>
     
     <div id="status" class="status connecting">Conectando...</div>
     
-    <div class="test-buttons">
-        <button onclick="testConnection()">🔌 Probar Conexión</button>
-        <button onclick="sendTestMessage()">📤 Enviar Mensaje de Prueba</button>
-        <button onclick="clearMessages()">🗑️ Limpiar Mensajes</button>
-        <button onclick="clearLogs()">📝 Limpiar Logs</button>
-    </div>
-    
     <div class="chat-container">
-        <h3>💬 Chat en Tiempo Real</h3>
+        <h3>💬 Chat Widget</h3>
         <div id="messages"></div>
         
         <div class="input-group">
@@ -138,7 +117,7 @@
     <script>
         let socket = null;
         let isConnected = false;
-        let threadId = 'test_thread_' + Date.now();
+        let currentTicket = null;
         
         const statusDiv = document.getElementById('status');
         const messagesDiv = document.getElementById('messages');
@@ -146,14 +125,14 @@
         const sendBtn = document.getElementById('sendBtn');
         const logsDiv = document.getElementById('logs');
         
-        // Inicializar conexión
-        function initConnection() {
-            log('🔌 Iniciando conexión WebSocket...');
+        // Inicializar conexión WebSocket
+        function initWebSocket() {
+            log('🔌 Conectando WebSocket para recibir respuestas...');
             socket = io('https://chat.movonte.com');
             
             socket.on('connect', () => {
-                log('✅ Conectado al WebSocket');
-                statusDiv.innerHTML = '✅ Conectado al WebSocket';
+                log('✅ WebSocket conectado - Listo para recibir respuestas de IA');
+                statusDiv.innerHTML = '✅ Conectado - Listo para recibir respuestas';
                 statusDiv.className = 'status connected';
                 isConnected = true;
                 messageInput.disabled = false;
@@ -162,7 +141,7 @@
             });
             
             socket.on('disconnect', () => {
-                log('❌ Desconectado del WebSocket');
+                log('❌ WebSocket desconectado');
                 statusDiv.innerHTML = '❌ Desconectado del WebSocket';
                 statusDiv.className = 'status disconnected';
                 isConnected = false;
@@ -171,8 +150,9 @@
                 addMessage('system', 'Desconectado del chat');
             });
             
+            // 🎯 RECIBIR RESPUESTAS DE IA VIA WEBSOCKET
             socket.on('ai-response', (data) => {
-                log('🤖 Mensaje recibido del asistente:', data);
+                log('🤖 Respuesta de IA recibida:', data);
                 addMessage('assistant', data.message);
             });
             
@@ -182,36 +162,82 @@
             });
         }
         
-        // Enviar mensaje
-        function sendMessage() {
+        // Enviar mensaje via REST API
+        async function sendMessage() {
             const message = messageInput.value.trim();
-            if (!message || !isConnected) return;
+            if (!message) return;
             
-            log('📤 Enviando mensaje:', message);
+            log('📤 Enviando mensaje via REST API...');
             addMessage('user', message);
             
-            socket.emit('widget-message', {
-                message: message,
-                threadId: threadId,
-                timestamp: new Date().toISOString()
-            });
+            try {
+                // Usar endpoint REST normal del widget
+                const response = await fetch('https://chat.movonte.com/api/widget/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        issueKey: currentTicket,
+                        customerInfo: {
+                            name: 'Widget User',
+                            email: 'widget@movonte.com'
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log('✅ Mensaje enviado exitosamente:', result);
+                    addMessage('system', 'Mensaje enviado a Jira');
+                } else {
+                    log('❌ Error enviando mensaje:', result);
+                    addMessage('system', `Error: ${result.error}`);
+                }
+                
+            } catch (error) {
+                log('❌ Error en la petición:', error);
+                addMessage('system', `Error: ${error.message}`);
+            }
             
             messageInput.value = '';
         }
         
-        // Enviar mensaje de prueba
-        function sendTestMessage() {
-            const testMessage = 'Hola, ¿cómo estás?';
-            messageInput.value = testMessage;
-            sendMessage();
-        }
-        
-        // Probar conexión
-        function testConnection() {
-            if (socket) {
-                socket.disconnect();
+        // Crear ticket inicial
+        async function createInitialTicket() {
+            log('🎫 Creando ticket inicial...');
+            
+            try {
+                const response = await fetch('https://chat.movonte.com/api/landing/create-ticket', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: 'Widget User',
+                        email: 'widget@movonte.com',
+                        message: 'Widget Chat iniciado',
+                        source: 'widget'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentTicket = result.issueKey;
+                    log('✅ Ticket creado:', result);
+                    addMessage('system', `Ticket creado: ${currentTicket}`);
+                } else {
+                    log('❌ Error creando ticket:', result);
+                    addMessage('system', `Error: ${result.error}`);
+                }
+                
+            } catch (error) {
+                log('❌ Error creando ticket:', error);
+                addMessage('system', `Error: ${error.message}`);
             }
-            initConnection();
         }
         
         // Agregar mensaje al chat
@@ -235,17 +261,6 @@
             logsDiv.scrollTop = logsDiv.scrollHeight;
         }
         
-        // Limpiar mensajes
-        function clearMessages() {
-            messagesDiv.innerHTML = '';
-            log('🗑️ Mensajes limpiados');
-        }
-        
-        // Limpiar logs
-        function clearLogs() {
-            logsDiv.innerHTML = '';
-        }
-        
         // Event listeners
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -254,9 +269,14 @@
         });
         
         // Inicializar al cargar la página
-        document.addEventListener('DOMContentLoaded', () => {
-            log('🚀 Iniciando test WebSocket completo...');
-            initConnection();
+        document.addEventListener('DOMContentLoaded', async () => {
+            log('🚀 Iniciando widget REST + WebSocket...');
+            
+            // 1. Crear ticket inicial
+            await createInitialTicket();
+            
+            // 2. Conectar WebSocket para recibir respuestas
+            initWebSocket();
         });
     </script>
 </body>
