@@ -214,6 +214,7 @@ export class ChatbotController {
         }
         
         // Verificar que no sea un comentario de la IA (detección mejorada)
+        console.log(`🔍 DEBUG - Verificando si es comentario de IA...`);
         if (this.isAIComment(payload.comment)) {
           this.webhookStats.aiCommentsSkipped++;
           console.log(`🤖 COMENTARIO DE IA DETECTADO:`);
@@ -243,6 +244,7 @@ export class ChatbotController {
         }
         
         // Verificar que no sea un comentario del widget (para evitar duplicación)
+        console.log(`🔍 DEBUG - Verificando si es comentario del widget...`);
         if (this.isWidgetComment(payload.comment)) {
           this.webhookStats.aiCommentsSkipped++;
           console.log(`📱 COMENTARIO DEL WIDGET DETECTADO:`);
@@ -278,6 +280,10 @@ export class ChatbotController {
         }
         
         console.log(`✅ PROCESANDO COMENTARIO: ${commentId}`);
+        console.log(`🔍 DEBUG - Autor: ${payload.comment.author.displayName}`);
+        console.log(`🔍 DEBUG - Email: ${payload.comment.author.emailAddress}`);
+        console.log(`🔍 DEBUG - Account ID: ${payload.comment.author.accountId}`);
+        console.log(`🔍 DEBUG - Contenido: ${payload.comment.body.substring(0, 100)}...`);
         
         // Verificar si el asistente está desactivado para este ticket
         const configService = ConfigurationService.getInstance();
@@ -370,24 +376,8 @@ export class ChatbotController {
             console.log(`   Respuesta: ${response.response.substring(0, 100)}...`);
             console.log(`   Estadísticas: ${this.webhookStats.successfulResponses} respuestas exitosas`);
             
-            // 🔌 ENVIAR RESPUESTA VIA WEBSOCKET SOLO AL TICKET ESPECÍFICO
-            const webSocketServer = this.getWebSocketServer();
-            if (webSocketServer) {
-              console.log(`📡 Enviando respuesta via WebSocket al ticket ${issueKey}...`);
-              
-              // Enviar solo a clientes conectados a este ticket específico
-              webSocketServer.to(`ticket_${issueKey}`).emit('ai-response', {
-                message: response.response,
-                threadId: `widget_${issueKey}`,
-                timestamp: new Date().toISOString(),
-                source: 'jira-webhook',
-                issueKey: issueKey
-              });
-              
-              console.log(`✅ Respuesta enviada via WebSocket al ticket ${issueKey}`);
-            } else {
-              console.log(`⚠️ WebSocket no disponible, respuesta no enviada a clientes`);
-            }
+            // 🔌 RESPUESTA DE IA PROCESADA - SE ENVIARÁ VIA WEBHOOK DE JIRA
+            console.log(`✅ Respuesta de IA procesada, se enviará via webhook de Jira`);
           } catch (jiraError) {
             console.error('❌ Error adding AI response to Jira:', jiraError);
             // No fallar el webhook si no se puede agregar el comentario
