@@ -285,6 +285,21 @@ export class ChatbotController {
         console.log(`🔍 DEBUG - Account ID: ${payload.comment.author.accountId}`);
         console.log(`🔍 DEBUG - Contenido: ${payload.comment.body.substring(0, 100)}...`);
         
+        // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET (ANTES DE CUALQUIER VERIFICACIÓN)
+        const webSocketServer = this.getWebSocketServer();
+        if (webSocketServer) {
+          console.log(`📡 Enviando comentario de agente via WebSocket al ticket ${issueKey}...`);
+          webSocketServer.to(`ticket_${issueKey}`).emit('jira-comment', {
+            message: payload.comment.body,
+            author: payload.comment.author.displayName,
+            timestamp: payload.comment.created,
+            source: 'jira-agent',
+            issueKey: issueKey,
+            isAI: false
+          });
+          console.log(`✅ Comentario de agente enviado via WebSocket al ticket ${issueKey}`);
+        }
+        
         // Verificar si el asistente está desactivado para este ticket
         const configService = ConfigurationService.getInstance();
         if (configService.isTicketDisabled(issueKey)) {
@@ -388,21 +403,6 @@ export class ChatbotController {
             hasResponse: !!response.response,
             error: response.error
           });
-        }
-        
-        // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET
-        const webSocketServer = this.getWebSocketServer();
-        if (webSocketServer) {
-          console.log(`📡 Enviando comentario de agente via WebSocket al ticket ${issueKey}...`);
-          webSocketServer.to(`ticket_${issueKey}`).emit('jira-comment', {
-            message: payload.comment.body,
-            author: payload.comment.author.displayName,
-            timestamp: payload.comment.created,
-            source: 'jira-agent',
-            issueKey: issueKey,
-            isAI: false
-          });
-          console.log(`✅ Comentario de agente enviado via WebSocket al ticket ${issueKey}`);
         }
         
         res.json(response);
