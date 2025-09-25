@@ -180,6 +180,12 @@
             socket.on('jira-comment', (data) => {
                 log('💬 Comentario de Jira recibido:', data);
                 
+                // Filtrar mensajes del widget (Chat User)
+                if (data.author === 'Chat User') {
+                    log('🚫 Mensaje del widget filtrado:', data.message);
+                    return; // No mostrar mensajes del widget
+                }
+                
                 if (data.isAI) {
                     // Es un comentario de IA
                     addMessage('assistant', data.message);
