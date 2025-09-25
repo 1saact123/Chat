@@ -187,8 +187,11 @@ export class ChatbotController {
       
       // Solo procesar eventos de comentarios y creación de tickets
       if (payload.webhookEvent === 'comment_created' && payload.comment) {
+        // Obtener el issueKey al inicio
+        const issueKey = payload.issue.key;
+        
         // Crear un ID único para este comentario (más robusto)
-        const commentId = `${payload.issue.key}_${payload.comment.id}_${payload.comment.created}_${payload.comment.author.accountId}`;
+        const commentId = `${issueKey}_${payload.comment.id}_${payload.comment.created}_${payload.comment.author.accountId}`;
         
         // Verificar si ya procesamos este comentario
         if (this.processedComments.has(commentId)) {
@@ -219,6 +222,22 @@ export class ChatbotController {
           console.log(`   Account ID: ${payload.comment.author.accountId}`);
           console.log(`   Contenido: ${payload.comment.body.substring(0, 150)}...`);
           console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios de IA saltados`);
+          
+          // 🔌 ENVIAR COMENTARIO DE IA VIA WEBSOCKET
+          const webSocketServer = this.getWebSocketServer();
+          if (webSocketServer) {
+            console.log(`📡 Enviando comentario de IA via WebSocket al ticket ${issueKey}...`);
+            webSocketServer.to(`ticket_${issueKey}`).emit('jira-comment', {
+              message: payload.comment.body,
+              author: payload.comment.author.displayName,
+              timestamp: payload.comment.created,
+              source: 'jira-ai',
+              issueKey: issueKey,
+              isAI: true
+            });
+            console.log(`✅ Comentario de IA enviado via WebSocket al ticket ${issueKey}`);
+          }
+          
           res.json({ success: true, message: 'Skipped AI comment', aiComment: true });
           return;
         }
@@ -237,7 +256,6 @@ export class ChatbotController {
         }
         
         // Sistema de throttling para evitar respuestas muy rápidas
-        const issueKey = payload.issue.key;
         const nowTimestamp = Date.now();
         const lastResponse = this.lastResponseTime.get(issueKey) || 0;
         const timeSinceLastResponse = nowTimestamp - lastResponse;
@@ -380,6 +398,21 @@ export class ChatbotController {
             hasResponse: !!response.response,
             error: response.error
           });
+        }
+        
+        // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET
+        const webSocketServer = this.getWebSocketServer();
+        if (webSocketServer) {
+          console.log(`📡 Enviando comentario de agente via WebSocket al ticket ${issueKey}...`);
+          webSocketServer.to(`ticket_${issueKey}`).emit('jira-comment', {
+            message: payload.comment.body,
+            author: payload.comment.author.displayName,
+            timestamp: payload.comment.created,
+            source: 'jira-agent',
+            issueKey: issueKey,
+            isAI: false
+          });
+          console.log(`✅ Comentario de agente enviado via WebSocket al ticket ${issueKey}`);
         }
         
         res.json(response);

@@ -162,6 +162,19 @@
                 addMessage('assistant', data.message);
             });
             
+            // 🎯 RECIBIR COMENTARIOS DE JIRA (IA Y AGENTES)
+            socket.on('jira-comment', (data) => {
+                log('💬 Comentario de Jira recibido:', data);
+                
+                if (data.isAI) {
+                    // Es un comentario de IA
+                    addMessage('assistant', data.message);
+                } else {
+                    // Es un comentario de agente
+                    addMessage('system', `${data.author}: ${data.message}`);
+                }
+            });
+            
             socket.on('error', (error) => {
                 log('❌ Error WebSocket:', error);
                 addMessage('system', `Error: ${error.message}`);
