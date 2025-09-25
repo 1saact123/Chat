@@ -35,7 +35,8 @@ ChatThread.init({
   },
   threadId: {
     type: DataTypes.STRING(255),
-    allowNull: false
+    allowNull: false,
+    unique: true
   },
   openaiThreadId: {
     type: DataTypes.STRING(255),
@@ -56,13 +57,7 @@ ChatThread.init({
 }, {
   sequelize,
   tableName: 'chat_threads',
-  timestamps: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ['threadId']
-    }
-  ]
+  timestamps: true
 });
 
 // Interface para ChatMessage
@@ -153,7 +148,8 @@ ServiceConfiguration.init({
   },
   serviceId: {
     type: DataTypes.STRING(100),
-    allowNull: false
+    allowNull: false,
+    unique: true
   },
   serviceName: {
     type: DataTypes.STRING(255),
@@ -179,13 +175,7 @@ ServiceConfiguration.init({
 }, {
   sequelize,
   tableName: 'service_configurations',
-  timestamps: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ['serviceId']
-    }
-  ]
+  timestamps: true
 });
 
 // Interface para WebhookStats
@@ -220,7 +210,8 @@ WebhookStats.init({
   },
   date: {
     type: DataTypes.DATEONLY,
-    allowNull: false
+    allowNull: false,
+    unique: true
   },
   totalWebhooks: {
     type: DataTypes.INTEGER,
@@ -240,13 +231,7 @@ WebhookStats.init({
 }, {
   sequelize,
   tableName: 'webhook_stats',
-  timestamps: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ['date']
-    }
-  ]
+  timestamps: true
 });
 
 // Definir relaciones
@@ -289,11 +274,13 @@ User.init({
   },
   username: {
     type: DataTypes.STRING(50),
-    allowNull: false
+    allowNull: false,
+    unique: true
   },
   email: {
     type: DataTypes.STRING(100),
-    allowNull: false
+    allowNull: false,
+    unique: true
   },
   password: {
     type: DataTypes.STRING(255),
@@ -316,17 +303,7 @@ User.init({
 }, {
   sequelize,
   tableName: 'users',
-  timestamps: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ['username']
-    },
-    {
-      unique: true,
-      fields: ['email']
-    }
-  ]
+  timestamps: true
 });
 
 // Los modelos ya están exportados arriba, no necesitamos re-exportarlos
