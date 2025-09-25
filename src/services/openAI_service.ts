@@ -131,27 +131,16 @@ export class OpenAIService {
     }
   }
 
-  // Generate conversation report using the assistant
+  // Generate conversation report using the assistant (OPTIMIZED - No BD messages)
   private async generateConversationReport(issueKey: string, threadId: string): Promise<ChatbotResponse> {
     try {
       console.log(`📊 Generating report for threadId: ${threadId}, issueKey: ${issueKey}`);
       
-      // Get conversation history from database
-      const { thread, messages } = await this.dbService.getThreadWithMessages(threadId);
+      // 🚀 OPTIMIZACIÓN: Obtener conversación directamente de OpenAI API
+      const thread = await this.dbService.getThread(threadId);
       
-      console.log(`📊 Thread found: ${!!thread}, Messages count: ${messages.length}`);
-      if (thread) {
-        console.log(`📊 Thread details:`, {
-          threadId: thread.threadId,
-          openaiThreadId: thread.openaiThreadId,
-          jiraIssueKey: thread.jiraIssueKey,
-          serviceId: thread.serviceId,
-          lastActivity: thread.lastActivity
-        });
-      }
-      
-      if (!thread || messages.length === 0) {
-        console.log(`⚠️ No thread or messages found for ${threadId}`);
+      if (!thread || !thread.openaiThreadId) {
+        console.log(`⚠️ No thread or OpenAI thread ID found for ${threadId}`);
         return {
           success: true,
           threadId,
@@ -159,10 +148,31 @@ export class OpenAIService {
         };
       }
 
-      // Build conversation history with timestamps
-      const conversationHistory = messages.map(msg => 
-        `[${msg.timestamp.toISOString()}] ${msg.role.toUpperCase()}: ${msg.content}`
-      ).join('\n');
+      console.log(`📊 Thread found: ${thread.threadId}, OpenAI Thread: ${thread.openaiThreadId}`);
+      
+      // Obtener mensajes directamente de OpenAI
+      const messages = await this.openai.beta.threads.messages.list(thread.openaiThreadId);
+      console.log(`📊 Messages from OpenAI: ${messages.data.length}`);
+      
+      if (messages.data.length === 0) {
+        console.log(`⚠️ No messages found in OpenAI thread for ${threadId}`);
+        return {
+          success: true,
+          threadId,
+          response: `No hay historial de conversación disponible para el ticket ${issueKey}.`
+        };
+      }
+
+      // Build conversation history from OpenAI messages
+      const conversationHistory = messages.data
+        .sort((a, b) => a.created_at - b.created_at) // Ordenar por fecha
+        .map(msg => {
+          const role = msg.role;
+          const content = msg.content[0]?.type === 'text' ? msg.content[0].text.value : '';
+          const timestamp = new Date(msg.created_at * 1000).toISOString();
+          return `[${timestamp}] ${role.toUpperCase()}: ${content}`;
+        })
+        .join('\n');
 
       // Get the assistant that handled this conversation
       const threadConfig = await this.dbService.getThread(threadId);
@@ -674,25 +684,13 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
             const cleanedResponse = this.cleanCitationReferences(assistantMessage.content[0].text.value);
             console.log('Cleaned assistant response (citations removed):', cleanedResponse);
             
-            // Save messages to database
+            // 🚀 OPTIMIZACIÓN: No guardar mensajes en BD para evitar problemas de rendimiento
+            // Los mensajes se mantienen en el thread de OpenAI y se pueden recuperar via API
+            console.log(`💾 Mensajes no guardados en BD (optimización activada)`);
+            console.log(`📝 Thread ID: ${threadId} - Mensajes disponibles via OpenAI API`);
+            
+            // Solo actualizar actividad del thread (sin guardar mensajes)
             if (threadId) {
-              // Save user message
-              await this.dbService.addMessage({
-                threadId: threadId,
-                role: 'user',
-                content: message,
-                timestamp: new Date()
-              });
-              
-              // Save assistant message (with cleaned content)
-              await this.dbService.addMessage({
-                threadId: threadId,
-                role: 'assistant',
-                content: cleanedResponse,
-                timestamp: new Date()
-              });
-              
-              // Update thread activity
               await this.dbService.updateThreadActivity(threadId);
             }
             
