@@ -107,6 +107,12 @@
             <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." disabled>
             <button id="sendBtn" onclick="sendMessage()" disabled>Enviar</button>
         </div>
+        
+        <div class="ticket-controls" style="margin-top: 10px; text-align: center;">
+            <button onclick="clearTicketAndCreateNew()" style="background: #ff6b6b; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                🗑️ Nueva Conversación
+            </button>
+        </div>
     </div>
     
     <div class="logs">
@@ -118,6 +124,88 @@
         let socket = null;
         let isConnected = false;
         let currentTicket = null;
+        
+        // 🔐 FUNCIONES DE ENCRIPTACIÓN/DESENCRIPTACIÓN
+        const ENCRYPTION_KEY = 'movonte-widget-2024'; // Clave de encriptación
+        
+        // Función para encriptar datos
+        function encryptData(data) {
+            try {
+                const jsonString = JSON.stringify(data);
+                const encoded = btoa(unescape(encodeURIComponent(jsonString)));
+                return encoded;
+            } catch (error) {
+                console.error('Error encriptando datos:', error);
+                return null;
+            }
+        }
+        
+        // Función para desencriptar datos
+        function decryptData(encryptedData) {
+            try {
+                const decoded = decodeURIComponent(escape(atob(encryptedData)));
+                return JSON.parse(decoded);
+            } catch (error) {
+                console.error('Error desencriptando datos:', error);
+                return null;
+            }
+        }
+        
+        // Función para guardar ticket encriptado en localStorage
+        function saveEncryptedTicket(ticketData) {
+            try {
+                const encryptedTicket = encryptData({
+                    ticketId: ticketData.ticketId,
+                    timestamp: Date.now(),
+                    expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 días
+                });
+                
+                if (encryptedTicket) {
+                    localStorage.setItem('movonte_widget_ticket', encryptedTicket);
+                    log('💾 Ticket guardado encriptado en localStorage');
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error guardando ticket:', error);
+            }
+            return false;
+        }
+        
+        // Función para recuperar ticket encriptado de localStorage
+        function loadEncryptedTicket() {
+            try {
+                const encryptedTicket = localStorage.getItem('movonte_widget_ticket');
+                if (!encryptedTicket) {
+                    log('📭 No hay ticket guardado en localStorage');
+                    return null;
+                }
+                
+                const ticketData = decryptData(encryptedTicket);
+                if (!ticketData) {
+                    log('❌ Error desencriptando ticket');
+                    return null;
+                }
+                
+                // Verificar si el ticket ha expirado
+                if (Date.now() > ticketData.expiresAt) {
+                    log('⏰ Ticket expirado, eliminando...');
+                    localStorage.removeItem('movonte_widget_ticket');
+                    return null;
+                }
+                
+                log('✅ Ticket recuperado de localStorage:', ticketData);
+                return ticketData;
+            } catch (error) {
+                console.error('Error cargando ticket:', error);
+                return null;
+            }
+        }
+        
+        // Función para limpiar ticket de localStorage
+        function clearEncryptedTicket() {
+            localStorage.removeItem('movonte_widget_ticket');
+            log('🗑️ Ticket eliminado de localStorage');
+        }
         
         const statusDiv = document.getElementById('status');
         const messagesDiv = document.getElementById('messages');
@@ -262,6 +350,17 @@
                     log('✅ Ticket creado:', result);
                     addMessage('system', `Ticket creado: ${currentTicket}`);
                     
+                    // 🔐 GUARDAR TICKET ENCRIPTADO EN LOCALSTORAGE
+                    const ticketData = {
+                        ticketId: currentTicket,
+                        jiraIssue: result.jiraIssue,
+                        timestamp: Date.now()
+                    };
+                    
+                    if (saveEncryptedTicket(ticketData)) {
+                        log('💾 Ticket guardado encriptado para persistencia');
+                    }
+                    
                     // 🎯 UNIRSE A LA SALA DEL TICKET SI YA ESTÁ CONECTADO
                     if (socket && isConnected) {
                         socket.emit('join-ticket', currentTicket);
@@ -306,15 +405,55 @@
             }
         });
         
+        // Función para intentar recuperar ticket existente
+        async function tryRecoverTicket() {
+            const savedTicket = loadEncryptedTicket();
+            if (savedTicket && savedTicket.ticketId) {
+                log('🔄 Intentando recuperar ticket existente:', savedTicket.ticketId);
+                currentTicket = savedTicket.ticketId;
+                
+                // Unirse a la sala del ticket si ya está conectado
+                if (socket && isConnected) {
+                    socket.emit('join-ticket', currentTicket);
+                    log(`🎫 Reuniéndose al ticket: ${currentTicket}`);
+                }
+                
+                addMessage('system', `Conversación recuperada: ${currentTicket}`);
+                return true;
+            }
+            return false;
+        }
+        
+        // Función para limpiar ticket y crear uno nuevo
+        async function clearTicketAndCreateNew() {
+            log('🗑️ Limpiando ticket actual y creando uno nuevo...');
+            
+            // Limpiar ticket actual
+            clearEncryptedTicket();
+            currentTicket = null;
+            
+            // Limpiar mensajes del chat
+            messagesDiv.innerHTML = '';
+            
+            // Crear nuevo ticket
+            await createInitialTicket();
+            
+            addMessage('system', 'Nueva conversación iniciada');
+        }
+        
         // Inicializar al cargar la página
         document.addEventListener('DOMContentLoaded', async () => {
             log('🚀 Iniciando widget REST + WebSocket...');
             
-            // 1. Crear ticket inicial
-            await createInitialTicket();
-            
-            // 2. Conectar WebSocket para recibir respuestas
+            // 1. Conectar WebSocket primero
             initWebSocket();
+            
+            // 2. Intentar recuperar ticket existente
+            const ticketRecovered = await tryRecoverTicket();
+            if (!ticketRecovered) {
+                // 3. Si no hay ticket guardado, crear uno nuevo
+                await createInitialTicket();
+            }
         });
     </script>
 </body>
