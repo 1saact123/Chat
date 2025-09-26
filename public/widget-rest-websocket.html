@@ -113,33 +113,6 @@
                 🗑️ Nueva Conversación
             </button>
         </div>
-        
-        <!-- Configuración del Flujo Paralelo -->
-        <div class="parallel-flow-config" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">
-            <h4>🔄 Configuración del Flujo Paralelo</h4>
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">URL del Webhook:</label>
-                <input type="text" id="webhookUrl" placeholder="https://tu-webhook-url.com/endpoint" 
-                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">ID del Asistente (opcional):</label>
-                <input type="text" id="assistantId" placeholder="asst-xxxxx" 
-                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-            </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <button onclick="configureParallelFlow()" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                    🔧 Configurar Flujo Paralelo
-                </button>
-                <button onclick="testWebhook()" style="background: #17a2b8; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                    🧪 Probar Webhook
-                </button>
-                <button onclick="getParallelFlowStats()" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                    📊 Estadísticas
-                </button>
-            </div>
-            <div id="parallelFlowStatus" style="font-size: 12px; color: #666;"></div>
-        </div>
     </div>
     
     <div class="logs">
@@ -468,105 +441,6 @@
             addMessage('system', 'Nueva conversación iniciada');
         }
         
-        // 🔄 FUNCIONES DEL FLUJO PARALELO
-        async function configureParallelFlow() {
-            const webhookUrl = document.getElementById('webhookUrl').value.trim();
-            const assistantId = document.getElementById('assistantId').value.trim();
-            
-            if (!webhookUrl) {
-                updateParallelFlowStatus('❌ URL del webhook es requerida', 'error');
-                return;
-            }
-            
-            try {
-                log('🔧 Configurando flujo paralelo...');
-                updateParallelFlowStatus('⏳ Configurando...', 'info');
-                
-                const response = await fetch('https://chat.movonte.com/api/chatbot/parallel-flow/configure', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        enabled: true,
-                        webhookUrl: webhookUrl,
-                        assistantId: assistantId || undefined,
-                        timeout: 10000
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    log('✅ Flujo paralelo configurado exitosamente');
-                    updateParallelFlowStatus('✅ Flujo paralelo configurado', 'success');
-                } else {
-                    log('❌ Error configurando flujo paralelo:', result.error);
-                    updateParallelFlowStatus(`❌ Error: ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                log('❌ Error en configuración:', error);
-                updateParallelFlowStatus(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-        
-        async function testWebhook() {
-            try {
-                log('🧪 Probando webhook...');
-                updateParallelFlowStatus('⏳ Probando webhook...', 'info');
-                
-                const response = await fetch('https://chat.movonte.com/api/chatbot/parallel-flow/test-webhook', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    log('✅ Webhook funcionando correctamente');
-                    updateParallelFlowStatus('✅ Webhook funcionando', 'success');
-                } else {
-                    log('❌ Error en webhook:', result.error);
-                    updateParallelFlowStatus(`❌ Error: ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                log('❌ Error probando webhook:', error);
-                updateParallelFlowStatus(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-        
-        async function getParallelFlowStats() {
-            try {
-                log('📊 Obteniendo estadísticas...');
-                updateParallelFlowStatus('⏳ Obteniendo estadísticas...', 'info');
-                
-                const response = await fetch('https://chat.movonte.com/api/chatbot/parallel-flow/stats');
-                const result = await response.json();
-                
-                if (result.success) {
-                    log('📊 Estadísticas del flujo paralelo:', result.stats);
-                    updateParallelFlowStatus(`📊 Habilitado: ${result.stats.enabled}, Webhook: ${result.stats.webhookConfigured}, Threads: ${result.stats.totalThreads || 0}`, 'info');
-                } else {
-                    log('❌ Error obteniendo estadísticas:', result.error);
-                    updateParallelFlowStatus(`❌ Error: ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                log('❌ Error obteniendo estadísticas:', error);
-                updateParallelFlowStatus(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-        
-        function updateParallelFlowStatus(message, type) {
-            const statusDiv = document.getElementById('parallelFlowStatus');
-            statusDiv.textContent = message;
-            statusDiv.style.color = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#6c757d';
-        }
-
         // Inicializar al cargar la página
         document.addEventListener('DOMContentLoaded', async () => {
             log('🚀 Iniciando widget REST + WebSocket...');

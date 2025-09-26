@@ -251,6 +251,54 @@
                     </div>
                 </div>
 
+                <!-- Webhook Configuration Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Webhook Configuration</h2>
+                        <p>Configure parallel webhook flow for external integrations</p>
+                    </div>
+                    <div class="section-content">
+                        <!-- Webhook URL Configuration -->
+                        <div class="webhook-config-form">
+                            <div class="form-group">
+                                <label for="webhookUrl" class="form-label">Webhook URL</label>
+                                <input type="url" id="webhookUrl" class="form-input" 
+                                       placeholder="https://your-jira-instance.com/rest/webhooks/1.0/webhook/your-webhook-id"
+                                       value="">
+                            </div>
+                            <div class="form-group">
+                                <label for="webhookAssistant" class="form-label">Webhook Assistant</label>
+                                <select id="webhookAssistant" class="form-select">
+                                    <option value="">Select an assistant for webhook flow...</option>
+                                </select>
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn btn-primary" id="saveWebhookConfigBtn">
+                                    <i class="fas fa-save"></i> Save Webhook Configuration
+                                </button>
+                                <button class="btn btn-secondary" id="testWebhookBtn">
+                                    <i class="fas fa-test-tube"></i> Test Webhook
+                                </button>
+                                <button class="btn btn-warning" id="disableWebhookBtn">
+                                    <i class="fas fa-ban"></i> Disable Webhook
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Webhook Status -->
+                        <div class="webhook-status">
+                            <div class="info-row">
+                                <span class="info-label">Webhook Status:</span>
+                                <span class="info-value" id="webhookStatus">Not configured</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Last Test:</span>
+                                <span class="info-value" id="webhookLastTest">Never</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Ticket Control Section -->
                 <div class="section-card">
                     <div class="section-header">
@@ -392,6 +440,7 @@
                 await this.loadProjects();
                 await this.loadRemoteProjects();
                 await this.loadDisabledTickets();
+                await this.updateWebhookStatus();
                 this.setupEventListeners();
             }
 
@@ -579,6 +628,19 @@
                         option.value = assistant.id;
                         option.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
                         landingSelect.appendChild(option);
+                    });
+                }
+
+                // Webhook Assistant dropdown
+                const webhookSelect = document.getElementById('webhookAssistant');
+                if (webhookSelect) {
+                    webhookSelect.innerHTML = '<option value="">Select an assistant...</option>';
+                    
+                    this.assistants.forEach(assistant => {
+                        const option = document.createElement('option');
+                        option.value = assistant.id;
+                        option.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
+                        webhookSelect.appendChild(option);
                     });
                 }
             }
@@ -848,6 +910,19 @@
 
                 document.getElementById('refreshDisabledBtn')?.addEventListener('click', () => {
                     this.loadDisabledTickets();
+                });
+
+                // Webhook configuration event listeners
+                document.getElementById('saveWebhookConfigBtn')?.addEventListener('click', () => {
+                    this.saveWebhookConfiguration();
+                });
+
+                document.getElementById('testWebhookBtn')?.addEventListener('click', () => {
+                    this.testWebhook();
+                });
+
+                document.getElementById('disableWebhookBtn')?.addEventListener('click', () => {
+                    this.disableWebhook();
                 });
              }
 
@@ -1148,6 +1223,110 @@
                 } catch (error) {
                     console.error('Error checking ticket status:', error);
                     this.showStatus(`Error checking status: ${error.message}`, 'error');
+                }
+            }
+
+            // === WEBHOOK CONFIGURATION METHODS ===
+
+            async saveWebhookConfiguration() {
+                const webhookUrl = document.getElementById('webhookUrl').value.trim();
+                const webhookAssistant = document.getElementById('webhookAssistant').value;
+
+                if (!webhookUrl) {
+                    this.showStatus('Please enter a webhook URL', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await this.authenticatedFetch('/api/admin/webhook/configure', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            webhookUrl: webhookUrl,
+                            assistantId: webhookAssistant || null
+                        })
+                    });
+                    if (!response) return;
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showStatus('Webhook configuration saved successfully', 'success');
+                        this.addActivity('Webhook configuration updated', 'success');
+                        this.updateWebhookStatus();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error saving webhook configuration:', error);
+                    this.showStatus(`Error saving webhook: ${error.message}`, 'error');
+                }
+            }
+
+            async testWebhook() {
+                try {
+                    const response = await this.authenticatedFetch('/api/admin/webhook/test', {
+                        method: 'POST'
+                    });
+                    if (!response) return;
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showStatus('Webhook test successful', 'success');
+                        this.addActivity('Webhook test completed successfully', 'success');
+                        document.getElementById('webhookLastTest').textContent = new Date().toLocaleString();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error testing webhook:', error);
+                    this.showStatus(`Webhook test failed: ${error.message}`, 'error');
+                }
+            }
+
+            async disableWebhook() {
+                try {
+                    const response = await this.authenticatedFetch('/api/admin/webhook/disable', {
+                        method: 'POST'
+                    });
+                    if (!response) return;
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showStatus('Webhook disabled successfully', 'success');
+                        this.addActivity('Webhook disabled', 'warning');
+                        this.updateWebhookStatus();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error disabling webhook:', error);
+                    this.showStatus(`Error disabling webhook: ${error.message}`, 'error');
+                }
+            }
+
+            async updateWebhookStatus() {
+                try {
+                    const response = await this.authenticatedFetch('/api/admin/webhook/status');
+                    if (!response) return;
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const status = data.data.isEnabled ? 'Enabled' : 'Disabled';
+                        const url = data.data.webhookUrl ? 'Configured' : 'Not configured';
+                        
+                        document.getElementById('webhookStatus').textContent = `${status} - ${url}`;
+                        document.getElementById('webhookUrl').value = data.data.webhookUrl || '';
+                        
+                        // Update assistant dropdown
+                        const webhookAssistantSelect = document.getElementById('webhookAssistant');
+                        if (webhookAssistantSelect) {
+                            webhookAssistantSelect.value = data.data.assistantId || '';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error updating webhook status:', error);
                 }
             }
         }

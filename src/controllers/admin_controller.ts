@@ -635,4 +635,182 @@ export class AdminController {
       });
     }
   }
+
+  // === WEBHOOK CONFIGURATION METHODS ===
+
+  // Configurar webhook
+  async configureWebhook(req: Request, res: Response): Promise<void> {
+    try {
+      const { webhookUrl, assistantId } = req.body;
+
+      if (!webhookUrl) {
+        res.status(400).json({
+          success: false,
+          error: 'Se requiere la URL del webhook'
+        });
+        return;
+      }
+
+      console.log(`🔧 Configurando webhook: ${webhookUrl}`);
+
+      // Configurar webhook URL
+      this.configService.setWebhookUrl(webhookUrl);
+      this.configService.setWebhookEnabled(true);
+
+      // Si se especifica un asistente diferente para webhook, configurarlo
+      if (assistantId) {
+        // Verificar que el asistente existe
+        const assistants = await this.openaiService.listAssistants();
+        const assistantExists = assistants.some(a => a.id === assistantId);
+        
+        if (!assistantExists) {
+          res.status(400).json({
+            success: false,
+            error: 'El asistente especificado no existe'
+          });
+          return;
+        }
+
+        // Configurar el asistente para el servicio webhook-parallel
+        const assistant = assistants.find(a => a.id === assistantId);
+        if (assistant) {
+          await this.configService.updateServiceConfiguration(
+            'webhook-parallel', 
+            assistantId, 
+            assistant.name || 'Webhook Assistant'
+          );
+          this.configService.toggleService('webhook-parallel', true);
+          console.log(`✅ Asistente configurado para webhook: ${assistant.name}`);
+        }
+      }
+
+      res.json({
+        success: true,
+        message: 'Webhook configurado exitosamente',
+        data: {
+          webhookUrl,
+          assistantId: assistantId || null,
+          isEnabled: true
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error configurando webhook:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Probar webhook
+  async testWebhook(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('🧪 Probando webhook...');
+
+      const webhookUrl = this.configService.getWebhookUrl();
+      if (!webhookUrl) {
+        res.status(400).json({
+          success: false,
+          error: 'Webhook no configurado'
+        });
+        return;
+      }
+
+      // Importar WebhookService dinámicamente
+      const { WebhookService } = await import('../services/webhook_service');
+      const webhookService = WebhookService.getInstance();
+
+      // Enviar mensaje de prueba
+      const testResult = await webhookService.sendToWebhook({
+        issueKey: 'TEST-001',
+        message: 'Test message from CEO Dashboard',
+        author: 'CEO Dashboard',
+        timestamp: new Date().toISOString(),
+        source: 'jira-comment',
+        threadId: 'test_webhook_' + Date.now(),
+        assistantId: 'test',
+        assistantName: 'Test Assistant',
+        response: 'This is a test response from the webhook system.',
+        context: { isTest: true }
+      });
+
+      if (testResult.success) {
+        res.json({
+          success: true,
+          message: 'Webhook test successful',
+          data: {
+            webhookUrl,
+            testResult
+          },
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: `Webhook test failed: ${testResult.error}`,
+          data: {
+            webhookUrl,
+            testResult
+          }
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error probando webhook:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Deshabilitar webhook
+  async disableWebhook(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('🚫 Deshabilitando webhook...');
+
+      this.configService.setWebhookEnabled(false);
+
+      res.json({
+        success: true,
+        message: 'Webhook deshabilitado exitosamente',
+        data: {
+          isEnabled: false
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error deshabilitando webhook:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Obtener estado del webhook
+  async getWebhookStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const webhookConfig = this.configService.getWebhookConfiguration();
+      const webhookService = this.configService.getServiceConfiguration('webhook-parallel');
+
+      res.json({
+        success: true,
+        data: {
+          webhookUrl: webhookConfig?.webhookUrl || null,
+          isEnabled: this.configService.isWebhookEnabled(),
+          assistantId: webhookService?.assistantId || null,
+          assistantName: webhookService?.assistantName || null,
+          lastUpdated: webhookConfig?.lastUpdated || null
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo estado del webhook:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
 }

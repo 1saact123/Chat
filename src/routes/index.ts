@@ -231,17 +231,20 @@ router.get('/api/widget/check-messages', widgetIntegrationController.checkNewMes
 // Check if assistant is disabled for a ticket
 router.get('/api/widget/assistant-status', widgetIntegrationController.checkAssistantStatus.bind(widgetIntegrationController));
 
+// === WEBHOOK CONFIGURATION ROUTES - PROTECTED ===
+// Configurar webhook
+router.post('/api/admin/webhook/configure', authenticateToken, requireAdmin, adminController.configureWebhook.bind(adminController));
+
+// Probar webhook
+router.post('/api/admin/webhook/test', authenticateToken, requireAdmin, adminController.testWebhook.bind(adminController));
+
+// Deshabilitar webhook
+router.post('/api/admin/webhook/disable', authenticateToken, requireAdmin, adminController.disableWebhook.bind(adminController));
+
+// Obtener estado del webhook
+router.get('/api/admin/webhook/status', authenticateToken, requireAdmin, adminController.getWebhookStatus.bind(adminController));
+
 // Send email with chat context - COMMENTED OUT FOR TESTING
 // router.post('/api/chatbot/email/send-with-context', chatbotController.sendEmailWithChatContext.bind(chatbotController));
-
-// === PARALLEL FLOW ROUTES ===
-// Configurar flujo paralelo
-router.post('/api/chatbot/parallel-flow/configure', chatbotController.configureParallelFlow.bind(chatbotController));
-
-// Probar webhook del flujo paralelo
-router.post('/api/chatbot/parallel-flow/test-webhook', chatbotController.testParallelFlowWebhook.bind(chatbotController));
-
-// Obtener estadísticas del flujo paralelo
-router.get('/api/chatbot/parallel-flow/stats', chatbotController.getParallelFlowStats.bind(chatbotController));
 
 export default router;

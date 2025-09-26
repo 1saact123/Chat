@@ -1,32 +1,26 @@
 import axios from 'axios';
-import { ChatbotResponse } from '../types';
+import { ConfigurationService } from './configuration_service';
 
 export interface WebhookPayload {
-  ticketId: string;
+  issueKey: string;
   message: string;
-  response: string;
+  author: string;
+  timestamp: string;
+  source: 'jira-comment' | 'widget-message';
   threadId: string;
-  timestamp: Date;
   assistantId?: string;
-  metadata?: {
-    issueKey?: string;
-    author?: string;
-    source?: string;
-  };
-}
-
-export interface WebhookConfig {
-  url: string;
-  enabled: boolean;
-  timeout?: number;
-  retries?: number;
+  assistantName?: string;
+  response?: string;
+  context?: any;
 }
 
 export class WebhookService {
   private static instance: WebhookService;
-  private config: WebhookConfig | null = null;
+  private configService: ConfigurationService;
 
-  private constructor() {}
+  private constructor() {
+    this.configService = ConfigurationService.getInstance();
+  }
 
   public static getInstance(): WebhookService {
     if (!WebhookService.instance) {
@@ -35,117 +29,135 @@ export class WebhookService {
     return WebhookService.instance;
   }
 
-  // Configurar webhook
-  public setWebhookConfig(config: WebhookConfig): void {
-    this.config = config;
-    console.log(`🔗 Webhook configurado: ${config.url} (enabled: ${config.enabled})`);
-  }
-
-  // Obtener configuración actual
-  public getWebhookConfig(): WebhookConfig | null {
-    return this.config;
-  }
-
-  // Enviar datos al webhook
-  public async sendToWebhook(payload: WebhookPayload): Promise<{ success: boolean; error?: string }> {
-    if (!this.config || !this.config.enabled || !this.config.url) {
-      console.log('⚠️ Webhook no configurado o deshabilitado');
-      return { success: false, error: 'Webhook no configurado' };
-    }
-
+  /**
+   * Envía datos al webhook configurado
+   */
+  async sendToWebhook(payload: WebhookPayload): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log(`📤 Enviando datos al webhook: ${this.config.url}`);
-      console.log('📦 Payload:', JSON.stringify(payload, null, 2));
+      const webhookUrl = this.configService.getWebhookUrl();
+      
+      if (!webhookUrl) {
+        console.log('⚠️ No webhook URL configured, skipping webhook send');
+        return { success: true };
+      }
 
-      const response = await axios.post(this.config.url, payload, {
-        timeout: this.config.timeout || 10000,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Movonte-Chatbot-Webhook/1.0'
-        }
+      console.log(`📡 Enviando datos al webhook: ${webhookUrl}`);
+      console.log(`📦 Payload:`, {
+        issueKey: payload.issueKey,
+        message: payload.message.substring(0, 100) + '...',
+        author: payload.author,
+        source: payload.source,
+        threadId: payload.threadId
       });
 
-      console.log(`✅ Webhook enviado exitosamente: ${response.status}`);
+      const response = await axios.post(webhookUrl, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Movonte-Chat-System/1.0'
+        },
+        timeout: 10000 // 10 segundos timeout
+      });
+
+      console.log(`✅ Webhook enviado exitosamente:`, {
+        status: response.status,
+        statusText: response.statusText
+      });
+
       return { success: true };
 
     } catch (error) {
       console.error('❌ Error enviando webhook:', error);
       
-      // Intentar reintentos si están configurados
-      if (this.config.retries && this.config.retries > 0) {
-        console.log(`🔄 Reintentando webhook (${this.config.retries} intentos restantes)...`);
-        this.config.retries--;
-        return await this.sendToWebhook(payload);
+      if (axios.isAxiosError(error)) {
+        console.error('   Status:', error.response?.status);
+        console.error('   Data:', error.response?.data);
+        console.error('   Message:', error.message);
       }
 
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Error desconocido' 
+        error: error instanceof Error ? error.message : 'Unknown error' 
       };
     }
   }
 
-  // Crear payload desde respuesta de chatbot
-  public createPayloadFromResponse(
-    chatbotResponse: ChatbotResponse, 
-    originalMessage: string, 
-    ticketId: string,
-    metadata?: any
-  ): WebhookPayload {
-    return {
-      ticketId,
-      message: originalMessage,
-      response: chatbotResponse.response || '',
-      threadId: chatbotResponse.threadId,
-      timestamp: new Date(),
-      assistantId: metadata?.assistantId,
-      metadata: {
-        issueKey: metadata?.issueKey,
-        author: metadata?.author,
-        source: metadata?.source || 'chatbot'
-      }
+  /**
+   * Envía datos de comentario de Jira al webhook
+   */
+  async sendJiraCommentToWebhook(
+    issueKey: string, 
+    message: string, 
+    author: string, 
+    timestamp: string,
+    threadId: string,
+    assistantId?: string,
+    assistantName?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const payload: WebhookPayload = {
+      issueKey,
+      message,
+      author,
+      timestamp,
+      source: 'jira-comment',
+      threadId,
+      assistantId,
+      assistantName
     };
+
+    return await this.sendToWebhook(payload);
   }
 
-  // Probar conexión al webhook
-  public async testWebhook(): Promise<{ success: boolean; error?: string; response?: any }> {
-    if (!this.config || !this.config.url) {
-      return { success: false, error: 'Webhook no configurado' };
-    }
+  /**
+   * Envía datos de mensaje del widget al webhook
+   */
+  async sendWidgetMessageToWebhook(
+    issueKey: string,
+    message: string,
+    author: string,
+    timestamp: string,
+    threadId: string,
+    response?: string,
+    context?: any
+  ): Promise<{ success: boolean; error?: string }> {
+    const payload: WebhookPayload = {
+      issueKey,
+      message,
+      author,
+      timestamp,
+      source: 'widget-message',
+      threadId,
+      response,
+      context
+    };
 
-    try {
-      const testPayload: WebhookPayload = {
-        ticketId: 'TEST-' + Date.now(),
-        message: 'Mensaje de prueba',
-        response: 'Respuesta de prueba del chatbot',
-        threadId: 'test-thread',
-        timestamp: new Date(),
-        metadata: {
-          source: 'test'
-        }
-      };
+    return await this.sendToWebhook(payload);
+  }
 
-      const response = await axios.post(this.config.url, testPayload, {
-        timeout: this.config.timeout || 10000,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Movonte-Chatbot-Webhook/1.0'
-        }
-      });
+  /**
+   * Envía respuesta de IA al webhook
+   */
+  async sendAIResponseToWebhook(
+    issueKey: string,
+    originalMessage: string,
+    aiResponse: string,
+    threadId: string,
+    assistantId: string,
+    assistantName: string,
+    context?: any
+  ): Promise<{ success: boolean; error?: string }> {
+    const payload: WebhookPayload = {
+      issueKey,
+      message: originalMessage,
+      author: 'AI Assistant',
+      timestamp: new Date().toISOString(),
+      source: 'jira-comment',
+      threadId,
+      assistantId,
+      assistantName,
+      response: aiResponse,
+      context
+    };
 
-      return { 
-        success: true, 
-        response: {
-          status: response.status,
-          data: response.data
-        }
-      };
-
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Error desconocido' 
-      };
-    }
+    return await this.sendToWebhook(payload);
   }
 }

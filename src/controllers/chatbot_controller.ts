@@ -3,7 +3,7 @@ import { OpenAIService } from '../services/openAI_service';
 import { EmailService } from '../services/email_service';
 import { DatabaseService } from '../services/database_service';
 import { ConfigurationService } from '../services/configuration_service';
-import { ParallelFlowService } from '../services/parallel_flow_service';
+import { WebhookService } from '../services/webhook_service';
 import { JiraWebhookPayload } from '../types';
 
 export class ChatbotController {
@@ -11,7 +11,6 @@ export class ChatbotController {
   private lastResponseTime = new Map<string, number>(); // Para throttling por issue
   private conversationHistory = new Map<string, Array<{role: string, content: string, timestamp: Date}>>(); // Historial por issue
   private dbService: DatabaseService;
-  private parallelFlowService: ParallelFlowService;
   private webhookStats = {
     totalReceived: 0,
     duplicatesSkipped: 0,
@@ -28,7 +27,6 @@ export class ChatbotController {
     private emailService: EmailService | null
   ) {
     this.dbService = DatabaseService.getInstance();
-    this.parallelFlowService = ParallelFlowService.getInstance();
   }
 
   // Método para establecer la referencia del WebSocket
@@ -396,14 +394,13 @@ export class ChatbotController {
             
             // 🔌 RESPUESTA DE IA PROCESADA - SE ENVIARÁ VIA WEBHOOK DE JIRA
             console.log(`✅ Respuesta de IA procesada, se enviará via webhook de Jira`);
-            
-            // 🔄 INICIAR FLUJO PARALELO (si está habilitado)
-            this.initiateParallelFlow(payload, response, issueKey);
-            
           } catch (jiraError) {
             console.error('❌ Error adding AI response to Jira:', jiraError);
             // No fallar el webhook si no se puede agregar el comentario
           }
+
+          // 🚀 FLUJO PARALELO: ENVIAR DATOS AL WEBHOOK CONFIGURADO
+          this.sendToWebhookInParallel(issueKey, payload.comment.body, payload.comment.author.displayName, payload.comment.created, response, enrichedContext);
         } else {
           console.log(`❌ Respuesta fallida o vacía:`, {
             success: response.success,
@@ -912,113 +909,88 @@ Formato el reporte de manera clara y profesional.`;
     }
   }
 
-  // 🔄 MÉTODO PARA INICIAR FLUJO PARALELO
-  private async initiateParallelFlow(
-    payload: JiraWebhookPayload, 
+  // 🚀 MÉTODO PARA ENVIAR DATOS AL WEBHOOK EN PARALELO
+  private async sendToWebhookInParallel(
+    issueKey: string, 
+    originalMessage: string, 
+    author: string, 
+    timestamp: string, 
     aiResponse: any, 
-    issueKey: string
+    context: any
   ): Promise<void> {
     try {
-      console.log(`🔄 Iniciando flujo paralelo para ticket: ${issueKey}`);
+      console.log(`🚀 Iniciando flujo paralelo de webhook para ${issueKey}...`);
       
-      // Configurar metadata para el flujo paralelo
-      const metadata = {
-        issueKey: issueKey,
-        author: payload.comment?.author?.displayName || 'Unknown',
-        source: 'jira-comment',
-        originalMessage: payload.comment?.body || '',
-        aiResponse: aiResponse.response
-      };
-
-      // Procesar en flujo paralelo (no bloquea la respuesta principal)
-      const parallelResult = await this.parallelFlowService.processParallelFlow(
-        payload.comment?.body || '',
-        issueKey,
-        metadata
-      );
-
-      if (parallelResult.success) {
-        console.log(`✅ Flujo paralelo completado exitosamente`);
-        console.log(`   Thread ID: ${parallelResult.threadId}`);
-        console.log(`   Webhook enviado: ${parallelResult.webhookSent}`);
-      } else {
-        console.log(`❌ Flujo paralelo falló: ${parallelResult.error}`);
+      // Verificar si el webhook está configurado y habilitado
+      const configService = ConfigurationService.getInstance();
+      if (!configService.isWebhookEnabled() || !configService.getWebhookUrl()) {
+        console.log(`⚠️ Webhook no configurado o deshabilitado, saltando envío paralelo`);
+        return;
       }
 
-    } catch (error) {
-      console.error('❌ Error en flujo paralelo:', error);
-      // No fallar el proceso principal si el flujo paralelo falla
-    }
-  }
-
-  // 🔧 MÉTODOS DE CONFIGURACIÓN DEL FLUJO PARALELO
-  public async configureParallelFlow(req: Request, res: Response): Promise<void> {
-    try {
-      const { enabled, webhookUrl, assistantId, timeout } = req.body;
+      // Crear thread separado para el webhook (usando asistente diferente si está configurado)
+      const webhookThreadId = `webhook_${issueKey}_${Date.now()}`;
+      const webhookAssistantId = configService.getActiveAssistantForService('webhook-parallel') || 
+                                 configService.getActiveAssistantForService('landing-page');
       
-      this.parallelFlowService.configure({
-        enabled: enabled || false,
-        webhookUrl: webhookUrl,
-        assistantId: assistantId,
-        timeout: timeout || 10000
-      });
+      console.log(`🧵 Thread separado para webhook: ${webhookThreadId}`);
+      console.log(`🤖 Asistente para webhook: ${webhookAssistantId || 'default'}`);
 
-      console.log(`🔧 Flujo paralelo configurado:`, {
-        enabled,
-        webhookUrl: webhookUrl ? '***configurado***' : 'no configurado',
-        assistantId
-      });
+      // Crear contexto específico para el webhook
+      const webhookContext = {
+        ...context,
+        isWebhookFlow: true,
+        originalIssueKey: issueKey,
+        webhookThreadId: webhookThreadId,
+        source: 'webhook-parallel'
+      };
 
-      res.json({
-        success: true,
-        message: 'Flujo paralelo configurado exitosamente',
-        config: this.parallelFlowService.getConfig()
-      });
-
-    } catch (error) {
-      console.error('❌ Error configurando flujo paralelo:', error);
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Error interno del servidor'
-      });
-    }
-  }
-
-  public async testParallelFlowWebhook(req: Request, res: Response): Promise<void> {
-    try {
-      const result = await this.parallelFlowService.testWebhook();
+      // Procesar con asistente separado (si está configurado) o usar el mismo
+      const webhookService = WebhookService.getInstance();
       
-      res.json({
-        success: result.success,
-        message: result.success ? 'Webhook funcionando correctamente' : 'Error en webhook',
-        error: result.error,
-        response: (result as any).response
-      });
+      if (webhookAssistantId && webhookAssistantId !== configService.getActiveAssistantForService('landing-page')) {
+        // Usar asistente diferente para webhook
+        console.log(`🔄 Procesando con asistente diferente para webhook...`);
+        const webhookResponse = await this.openaiService.processChatForService(
+          originalMessage,
+          'webhook-parallel', // Servicio específico para webhook
+          webhookThreadId,
+          webhookContext
+        );
+
+        if (webhookResponse.success && webhookResponse.response) {
+          console.log(`✅ Respuesta de webhook generada: ${webhookResponse.response.substring(0, 100)}...`);
+          
+          // Enviar datos al webhook
+          await webhookService.sendAIResponseToWebhook(
+            issueKey,
+            originalMessage,
+            webhookResponse.response,
+            webhookThreadId,
+            webhookResponse.assistantId || webhookAssistantId,
+            webhookResponse.assistantName || 'Webhook Assistant',
+            webhookContext
+          );
+        }
+      } else {
+        // Usar la misma respuesta de IA pero enviar al webhook
+        console.log(`📡 Enviando respuesta existente al webhook...`);
+        await webhookService.sendAIResponseToWebhook(
+          issueKey,
+          originalMessage,
+          aiResponse.response,
+          webhookThreadId,
+          aiResponse.assistantId || 'default',
+          aiResponse.assistantName || 'AI Assistant',
+          webhookContext
+        );
+      }
+
+      console.log(`✅ Flujo paralelo de webhook completado para ${issueKey}`);
 
     } catch (error) {
-      console.error('❌ Error probando webhook:', error);
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Error interno del servidor'
-      });
-    }
-  }
-
-  public async getParallelFlowStats(req: Request, res: Response): Promise<void> {
-    try {
-      const stats = await this.parallelFlowService.getStats();
-      
-      res.json({
-        success: true,
-        stats
-      });
-
-    } catch (error) {
-      console.error('❌ Error obteniendo estadísticas:', error);
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Error interno del servidor'
-      });
+      console.error('❌ Error en flujo paralelo de webhook:', error);
+      // No fallar el proceso principal si el webhook falla
     }
   }
 }

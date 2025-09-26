@@ -16,10 +16,17 @@ interface DisabledTicket {
   disabledBy: string;
 }
 
+interface WebhookConfiguration {
+  webhookUrl: string;
+  isEnabled: boolean;
+  lastUpdated: Date;
+}
+
 export class ConfigurationService {
   private static instance: ConfigurationService;
   private configurations: Map<string, ServiceConfiguration> = new Map();
   private disabledTickets: Map<string, DisabledTicket> = new Map();
+  private webhookConfig: WebhookConfiguration | null = null;
   private readonly CONFIG_FILE = 'service-config.json';
   private dbService: DatabaseService;
 
@@ -74,6 +81,15 @@ export class ConfigurationService {
         assistantId: process.env.OPENAI_ASSISTANT_ID || '',
         assistantName: ' AI Assistant Chat',
         isActive: false, // DISABLED - Only use landing-page assistant
+        lastUpdated: new Date()
+      });
+
+      this.configurations.set('webhook-parallel', {
+        serviceId: 'webhook-parallel',
+        serviceName: 'Webhook Parallel Flow',
+        assistantId: process.env.OPENAI_ASSISTANT_ID || '',
+        assistantName: 'AI Assistant Chat',
+        isActive: false, // DISABLED by default - needs to be configured
         lastUpdated: new Date()
       });
 
@@ -303,5 +319,41 @@ export class ConfigurationService {
       .filter(ticket => ticket.disabledAt > oneDayAgo).length;
     
     return { total, recent };
+  }
+
+  // === WEBHOOK CONFIGURATION METHODS ===
+
+  // Configurar webhook URL
+  setWebhookUrl(webhookUrl: string): void {
+    this.webhookConfig = {
+      webhookUrl,
+      isEnabled: true,
+      lastUpdated: new Date()
+    };
+    console.log(`✅ Webhook URL configurada: ${webhookUrl}`);
+  }
+
+  // Obtener webhook URL
+  getWebhookUrl(): string | null {
+    return this.webhookConfig?.webhookUrl || null;
+  }
+
+  // Habilitar/deshabilitar webhook
+  setWebhookEnabled(isEnabled: boolean): void {
+    if (this.webhookConfig) {
+      this.webhookConfig.isEnabled = isEnabled;
+      this.webhookConfig.lastUpdated = new Date();
+      console.log(`✅ Webhook ${isEnabled ? 'habilitado' : 'deshabilitado'}`);
+    }
+  }
+
+  // Verificar si webhook está habilitado
+  isWebhookEnabled(): boolean {
+    return this.webhookConfig?.isEnabled || false;
+  }
+
+  // Obtener configuración completa del webhook
+  getWebhookConfiguration(): WebhookConfiguration | null {
+    return this.webhookConfig;
   }
 }
