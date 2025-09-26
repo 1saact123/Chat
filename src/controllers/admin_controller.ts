@@ -723,16 +723,20 @@ export class AdminController {
 
       // Enviar mensaje de prueba
       const testResult = await webhookService.sendToWebhook({
-        issueKey: 'TEST-001',
-        message: 'Test message from CEO Dashboard',
+        issueKey: 'TEST-1', // Usar TEST-1 como en tu ejemplo
+        message: 'Test message from CEO Dashboard - Webhook Integration Test',
         author: 'CEO Dashboard',
         timestamp: new Date().toISOString(),
         source: 'jira-comment',
         threadId: 'test_webhook_' + Date.now(),
         assistantId: 'test',
         assistantName: 'Test Assistant',
-        response: 'This is a test response from the webhook system.',
-        context: { isTest: true }
+        response: 'This is a test response from the webhook system. The parallel flow is working correctly.',
+        context: { 
+          isTest: true,
+          testType: 'jira-automation-webhook',
+          timestamp: new Date().toISOString()
+        }
       });
 
       if (testResult.success) {

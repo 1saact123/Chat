@@ -261,10 +261,11 @@
                         <!-- Webhook URL Configuration -->
                         <div class="webhook-config-form">
                             <div class="form-group">
-                                <label for="webhookUrl" class="form-label">Webhook URL</label>
+                                <label for="webhookUrl" class="form-label">Jira Automation Webhook URL</label>
                                 <input type="url" id="webhookUrl" class="form-input" 
-                                       placeholder="https://your-jira-instance.com/rest/webhooks/1.0/webhook/your-webhook-id"
+                                       placeholder="https://api-private.atlassian.com/automation/webhooks/jira/a/..."
                                        value="">
+                                <small class="form-help">URL del webhook de Jira Automation (formato: api-private.atlassian.com/automation/webhooks/...)</small>
                             </div>
                             <div class="form-group">
                                 <label for="webhookAssistant" class="form-label">Webhook Assistant</label>
@@ -292,8 +293,16 @@
                                 <span class="info-value" id="webhookStatus">Not configured</span>
                             </div>
                             <div class="info-row">
+                                <span class="info-label">Webhook Type:</span>
+                                <span class="info-value" id="webhookType">Jira Automation</span>
+                            </div>
+                            <div class="info-row">
                                 <span class="info-label">Last Test:</span>
                                 <span class="info-value" id="webhookLastTest">Never</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Token Status:</span>
+                                <span class="info-value" id="webhookTokenStatus">Not configured</span>
                             </div>
                         </div>
                     </div>
@@ -1315,9 +1324,16 @@
                     if (data.success) {
                         const status = data.data.isEnabled ? 'Enabled' : 'Disabled';
                         const url = data.data.webhookUrl ? 'Configured' : 'Not configured';
+                        const isJiraAutomation = data.data.webhookUrl?.includes('api-private.atlassian.com/automation/webhooks');
+                        const webhookType = isJiraAutomation ? 'Jira Automation' : 'REST';
                         
                         document.getElementById('webhookStatus').textContent = `${status} - ${url}`;
+                        document.getElementById('webhookType').textContent = webhookType;
                         document.getElementById('webhookUrl').value = data.data.webhookUrl || '';
+                        
+                        // Check token status (simplified check)
+                        const hasToken = data.data.webhookUrl?.includes('api-private.atlassian.com');
+                        document.getElementById('webhookTokenStatus').textContent = hasToken ? 'Required for Jira Automation' : 'Not required';
                         
                         // Update assistant dropdown
                         const webhookAssistantSelect = document.getElementById('webhookAssistant');

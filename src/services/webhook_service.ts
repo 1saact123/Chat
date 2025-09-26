@@ -50,17 +50,55 @@ export class WebhookService {
         threadId: payload.threadId
       });
 
-      const response = await axios.post(webhookUrl, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Movonte-Chat-System/1.0'
-        },
+      // Determinar si es un webhook de Jira Automation
+      const isJiraAutomation = webhookUrl.includes('api-private.atlassian.com/automation/webhooks');
+      
+      let requestPayload: any;
+      let headers: any = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Movonte-Chat-System/1.0'
+      };
+
+      if (isJiraAutomation) {
+        // Formato para Jira Automation webhook
+        requestPayload = {
+          issues: [payload.issueKey],
+          // Datos adicionales que puede usar la automation
+          webhookData: {
+            message: payload.message,
+            author: payload.author,
+            timestamp: payload.timestamp,
+            source: payload.source,
+            threadId: payload.threadId,
+            assistantId: payload.assistantId,
+            assistantName: payload.assistantName,
+            response: payload.response,
+            context: payload.context
+          }
+        };
+        
+        // Agregar token de automation si está configurado
+        const automationToken = process.env.JIRA_AUTOMATION_TOKEN;
+        if (automationToken) {
+          headers['X-Automation-Webhook-Token'] = automationToken;
+        }
+        
+        console.log(`🤖 Enviando a Jira Automation webhook con formato especial`);
+      } else {
+        // Formato estándar para webhooks REST
+        requestPayload = payload;
+        console.log(`📡 Enviando a webhook REST estándar`);
+      }
+
+      const response = await axios.post(webhookUrl, requestPayload, {
+        headers,
         timeout: 10000 // 10 segundos timeout
       });
 
       console.log(`✅ Webhook enviado exitosamente:`, {
         status: response.status,
-        statusText: response.statusText
+        statusText: response.statusText,
+        webhookType: isJiraAutomation ? 'Jira Automation' : 'REST'
       });
 
       return { success: true };
