@@ -40,6 +40,13 @@ export class DatabaseService {
     });
   }
 
+  async getParallelThreads(): Promise<ChatThread[]> {
+    return await ChatThread.findAll({
+      where: { isParallel: true },
+      order: [['lastActivity', 'DESC']]
+    });
+  }
+
   // ===== CHAT MESSAGES =====
   
   async addMessage(messageData: ChatMessageAttributes): Promise<ChatMessage> {

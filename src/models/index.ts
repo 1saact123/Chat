@@ -8,6 +8,7 @@ export interface ChatThreadAttributes {
   openaiThreadId?: string;
   jiraIssueKey?: string;
   serviceId?: string;
+  isParallel?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   lastActivity?: Date;
@@ -22,6 +23,7 @@ export class ChatThread extends Model<ChatThreadAttributes, ChatThreadCreationAt
   public openaiThreadId?: string;
   public jiraIssueKey?: string;
   public serviceId?: string;
+  public isParallel?: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
   public lastActivity?: Date;
@@ -49,6 +51,11 @@ ChatThread.init({
   serviceId: {
     type: DataTypes.STRING(100),
     allowNull: true
+  },
+  isParallel: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
+    defaultValue: false
   },
   lastActivity: {
     type: DataTypes.DATE,
