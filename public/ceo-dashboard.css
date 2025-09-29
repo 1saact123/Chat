@@ -879,3 +879,199 @@ body {
         gap: 12px;
     }
 }
+
+/* Status-Based Disable Styles */
+.status-config-form {
+    margin-bottom: 24px;
+}
+
+.status-config-section {
+    margin-top: 16px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e1e5e9;
+}
+
+.form-checkbox {
+    margin-right: 8px;
+    transform: scale(1.1);
+}
+
+.status-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    background: white;
+    padding: 8px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 4px;
+}
+
+.status-item:hover {
+    background: #f0f7ff;
+    border-color: #0052cc;
+}
+
+.status-item.selected {
+    background: #e3f2fd;
+    border: 1px solid #2196f3;
+    color: #1976d2;
+}
+
+.status-item input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.1);
+}
+
+.status-name {
+    font-weight: 500;
+    flex: 1;
+}
+
+.status-description {
+    font-size: 12px;
+    color: #666;
+    margin-left: 8px;
+}
+
+.selected-statuses {
+    min-height: 60px;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    background: white;
+    padding: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.no-selection {
+    color: #999;
+    font-style: italic;
+    align-self: center;
+    width: 100%;
+    text-align: center;
+}
+
+.selected-status-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid #bbdefb;
+}
+
+.selected-status-tag .remove-btn {
+    margin-left: 6px;
+    cursor: pointer;
+    color: #1976d2;
+    font-weight: bold;
+    padding: 0 2px;
+    border-radius: 2px;
+    transition: background 0.2s ease;
+}
+
+.selected-status-tag .remove-btn:hover {
+    background: #1976d2;
+    color: white;
+}
+
+.status-disabled-tickets-section {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #e1e5e9;
+}
+
+.status-disabled-ticket-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: white;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+}
+
+.status-disabled-ticket-item:hover {
+    border-color: #ff9800;
+    background: #fff8e1;
+}
+
+.status-disabled-ticket-item .ticket-info {
+    flex: 1;
+}
+
+.status-disabled-ticket-item .ticket-key {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.status-disabled-ticket-item .ticket-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.status-disabled-ticket-item .ticket-reason {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+}
+
+.status-disabled-ticket-item .ticket-date {
+    font-size: 11px;
+    color: #999;
+}
+
+.status-disabled-ticket-item .status-badge {
+    display: inline-block;
+    background: #ff9800;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    margin-left: 8px;
+}
+
+/* Responsive adjustments for status config */
+@media (max-width: 768px) {
+    .status-list {
+        max-height: 150px;
+    }
+    
+    .selected-statuses {
+        min-height: 80px;
+    }
+    
+    .status-disabled-ticket-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .status-disabled-ticket-item .ticket-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}

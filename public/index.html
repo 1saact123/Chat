@@ -357,31 +357,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- AI Auto-Disable by Status -->
-                <div class="section-card">
-                    <div class="section-header">
-                        <h2>AI Auto-Disable by Status</h2>
-                        <p>Selecciona estados de Jira que deshabilitan automáticamente la IA</p>
-                    </div>
-                    <div class="section-content">
-                        <div class="form-group">
-                            <label for="autoDisableStatuses" class="form-label">Estados que cortan IA</label>
-                            <select id="autoDisableStatuses" class="form-select" multiple size="6">
-                                <option>Cargando estados...</option>
-                            </select>
-                            <small class="form-help">Sugerencia: incluye estados como ESCALATED, ON HOLD, WAITING FOR AGENT</small>
-                        </div>
-                        <div class="form-actions">
-                            <button class="btn btn-primary" id="saveAutoDisableStatusesBtn">
-                                <i class="fas fa-save"></i> Guardar Estados
-                            </button>
-                            <button class="btn btn-secondary" id="reloadStatusesBtn">
-                                <i class="fas fa-sync"></i> Recargar estados de Jira
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -474,7 +449,6 @@
                 await this.loadProjects();
                 await this.loadRemoteProjects();
                 await this.loadDisabledTickets();
-                await this.loadAutoDisableStatuses();
                 await this.updateWebhookStatus();
                 this.setupEventListeners();
             }
@@ -642,8 +616,6 @@
             renderServices() {
                 // Populate assistant dropdowns
                 this.populateServiceAssistantDropdowns();
-                // Populate Jira statuses for auto-disable
-                this.populateJiraStatuses();
                 
                 // Update service information
                 this.updateServiceInfo();
@@ -679,77 +651,6 @@
                         option.textContent = assistant.name || `Assistant ${assistant.id.slice(0, 8)}`;
                         webhookSelect.appendChild(option);
                     });
-                }
-            }
-
-            async populateJiraStatuses() {
-                try {
-                    const response = await this.authenticatedFetch('/api/admin/jira/statuses');
-                    if (!response) return;
-                    const data = await response.json();
-                    if (data.success) {
-                        const select = document.getElementById('autoDisableStatuses');
-                        if (!select) return;
-                        const current = new Set(Array.from(select.selectedOptions).map(o => o.value));
-                        select.innerHTML = '';
-                        // Añadir sugerencias comunes al inicio si no vienen de Jira
-                        const suggested = ['ESCALATED', 'ON HOLD', 'WAITING FOR SUPPORT', 'PENDING', 'IN PROGRESS'];
-                        const jiraStatuses = data.statuses.map(s => s.name);
-                        const unique = Array.from(new Set([...suggested, ...jiraStatuses])).sort();
-                        unique.forEach(name => {
-                            const opt = document.createElement('option');
-                            opt.value = name;
-                            opt.textContent = name;
-                            // mantener selección actual
-                            if (current.has(name)) opt.selected = true;
-                            select.appendChild(opt);
-                        });
-                        // Marcar seleccionados los guardados
-                        await this.loadAutoDisableStatuses();
-                    }
-                } catch (error) {
-                    console.error('Error loading Jira statuses:', error);
-                }
-            }
-
-            async loadAutoDisableStatuses() {
-                try {
-                    const response = await this.authenticatedFetch('/api/admin/ai/auto-disable-statuses');
-                    if (!response) return;
-                    const data = await response.json();
-                    if (data.success) {
-                        const select = document.getElementById('autoDisableStatuses');
-                        if (!select) return;
-                        const set = new Set((data.statuses || []).map(s => s.toUpperCase()));
-                        Array.from(select.options).forEach(opt => {
-                            opt.selected = set.has(opt.value.toUpperCase());
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error loading auto-disable statuses:', error);
-                }
-            }
-
-            async saveAutoDisableStatuses() {
-                const select = document.getElementById('autoDisableStatuses');
-                if (!select) return;
-                const statuses = Array.from(select.selectedOptions).map(o => o.value);
-                try {
-                    const response = await this.authenticatedFetch('/api/admin/ai/auto-disable-statuses', {
-                        method: 'PUT',
-                        body: JSON.stringify({ statuses })
-                    });
-                    if (!response) return;
-                    const data = await response.json();
-                    if (data.success) {
-                        this.showStatus('Estados de auto-desactivación guardados', 'success');
-                        this.addActivity('Auto-disable statuses updated', 'success');
-                    } else {
-                        throw new Error(data.error || 'Error saving statuses');
-                    }
-                } catch (error) {
-                    console.error('Error saving auto-disable statuses:', error);
-                    this.showStatus(`Error saving statuses: ${error.message}`, 'error');
                 }
             }
 
@@ -1018,14 +919,6 @@
 
                 document.getElementById('refreshDisabledBtn')?.addEventListener('click', () => {
                     this.loadDisabledTickets();
-                });
-
-                // Auto-disable statuses
-                document.getElementById('saveAutoDisableStatusesBtn')?.addEventListener('click', () => {
-                    this.saveAutoDisableStatuses();
-                });
-                document.getElementById('reloadStatusesBtn')?.addEventListener('click', () => {
-                    this.populateJiraStatuses();
                 });
 
                 // Webhook configuration event listeners

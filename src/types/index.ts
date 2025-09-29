@@ -30,6 +30,22 @@ export interface JiraWebhookPayload {
       };
       created: string;
     };
+    // Para eventos de cambio de estado
+    changelog?: {
+      items: Array<{
+        field: string;
+        fieldtype: string;
+        from?: string;
+        fromString?: string;
+        to?: string;
+        toString?: string;
+      }>;
+    };
+    user?: {
+      displayName: string;
+      emailAddress?: string;
+      accountId: string;
+    };
   }
   
   export interface ChatThread {

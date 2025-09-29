@@ -243,36 +243,6 @@ export class JiraService {
   }
 
   /**
-   * List available statuses for the active project (workflow statuses)
-   */
-  async listProjectStatuses(): Promise<Array<{ name: string; id?: string; category?: string }>> {
-    try {
-      console.log(`Listing statuses for project ${this.projectKey}`);
-
-      // Jira Cloud: statuses are not strictly per project, but per workflow; use search as fallback
-      const response = await axios.get(
-        `${this.baseUrl}/rest/api/3/status`,
-        {
-          headers: {
-            'Authorization': `Basic ${this.auth}`,
-            'Accept': 'application/json'
-          }
-        }
-      );
-
-      const statuses = Array.isArray(response.data) ? response.data : [];
-      return statuses.map((s: any) => ({
-        name: s.name,
-        id: s.id,
-        category: s.statusCategory?.name
-      }));
-    } catch (error) {
-      console.error('Error listing project statuses:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Search issues by customer email
    */
   async searchIssuesByEmail(email: string): Promise<any> {
@@ -300,6 +270,80 @@ export class JiraService {
       return response.data;
     } catch (error) {
       console.error(`Error searching issues for email ${email}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get available statuses for a project
+   */
+  async getAvailableStatuses(projectKey?: string): Promise<any[]> {
+    try {
+      console.log(`Getting available statuses for project: ${projectKey || 'all'}`);
+      
+      let jql = '';
+      if (projectKey) {
+        jql = `project = ${projectKey}`;
+      }
+      
+      const response = await axios.get(
+        `${this.baseUrl}/rest/api/3/search`,
+        {
+          params: {
+            jql: jql || 'ORDER BY created DESC',
+            maxResults: 1,
+            fields: 'status'
+          },
+          headers: {
+            'Authorization': `Basic ${this.auth}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      // Get unique statuses from the response
+      const statuses = new Map();
+      response.data.issues.forEach((issue: any) => {
+        const status = issue.fields.status;
+        statuses.set(status.name, {
+          id: status.id,
+          name: status.name,
+          description: status.description || status.name
+        });
+      });
+
+      return Array.from(statuses.values());
+    } catch (error) {
+      console.error(`Error getting available statuses:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all possible statuses from Jira metadata
+   */
+  async getAllPossibleStatuses(): Promise<any[]> {
+    try {
+      console.log(`Getting all possible statuses from Jira metadata`);
+      
+      const response = await axios.get(
+        `${this.baseUrl}/rest/api/3/status`,
+        {
+          headers: {
+            'Authorization': `Basic ${this.auth}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      return response.data.map((status: any) => ({
+        id: status.id,
+        name: status.name,
+        description: status.description || status.name,
+        statusCategory: status.statusCategory
+      }));
+    } catch (error) {
+      console.error(`Error getting all possible statuses:`, error);
       throw error;
     }
   }

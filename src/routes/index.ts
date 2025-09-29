@@ -165,13 +165,6 @@ router.get('/api/admin/projects/:projectKey', authenticateToken, requireAdmin, a
 // Probar conexión con Jira
 router.get('/api/admin/jira/test-connection', authenticateToken, requireAdmin, adminController.testJiraConnection.bind(adminController));
 
-// Listar estados de Jira
-router.get('/api/admin/jira/statuses', authenticateToken, requireAdmin, adminController.listJiraStatuses.bind(adminController));
-
-// Auto-disable statuses config
-router.get('/api/admin/ai/auto-disable-statuses', authenticateToken, requireAdmin, adminController.getAutoDisableStatuses.bind(adminController));
-router.put('/api/admin/ai/auto-disable-statuses', authenticateToken, requireAdmin, adminController.setAutoDisableStatuses.bind(adminController));
-
 // Endpoint público para obtener asistente activo de un servicio
 router.get('/api/services/:serviceId/assistant', adminController.getActiveAssistantForService.bind(adminController));
 

@@ -410,34 +410,6 @@ export class ChatbotController {
         }
         
         res.json(response);
-      } else if (payload.webhookEvent === 'jira:issue_updated' || payload.webhookEvent === 'issue_updated') {
-        // Detectar cambio de estado del ticket
-        const issueKey = payload.issue.key;
-        const currentStatus = payload.issue.fields.status?.name || '';
-        const configService = ConfigurationService.getInstance();
-
-        console.log(`♻️ ISSUE UPDATED: ${issueKey} - Status: ${currentStatus}`);
-
-        if (configService.shouldAutoDisableForStatus(currentStatus)) {
-          // Si entra a un estado configurado, deshabilitar IA automáticamente
-          const alreadyDisabled = configService.isTicketDisabled(issueKey);
-          if (!alreadyDisabled) {
-            console.log(`🚫 Auto-desactivando IA para ${issueKey} por estado '${currentStatus}'`);
-            await configService.disableAssistantForTicket(issueKey, `Auto: estado '${currentStatus}'`);
-          }
-        } else {
-          // Si sale de un estado configurado y estaba deshabilitado por auto, reactivar
-          if (configService.isTicketDisabled(issueKey)) {
-            const info = configService.getDisabledTicketInfo(issueKey);
-            const wasAuto = (info?.reason || '').startsWith('Auto:');
-            if (wasAuto) {
-              console.log(`✅ Auto-reactivando IA para ${issueKey} (estado actual '${currentStatus}' no es de corte)`);
-              await configService.enableAssistantForTicket(issueKey);
-            }
-          }
-        }
-
-        res.json({ success: true, message: 'Issue status update processed', issueKey, status: currentStatus });
       } else if (payload.webhookEvent === 'jira:issue_created') {
         // Procesar evento de creación de ticket
         console.log(`🎫 NUEVO TICKET CREADO:`);
@@ -956,31 +928,50 @@ Formato el reporte de manera clara y profesional.`;
         return;
       }
 
-      // Crear thread separado para el webhook (estable por ticket)
-      // Usamos un identificador determinístico para evitar crear múltiples issues en Automation
-      const webhookThreadId = `webhook_${issueKey}`;
-      const webhookAssistantId = configService.getActiveAssistantForService('webhook-parallel') || 
-                                 configService.getActiveAssistantForService('landing-page');
+      // Crear thread separado para el webhook (usando asistente diferente si está configurado)
+      const webhookThreadId = `webhook_${issueKey}_${Date.now()}`;
+      
+      // Obtener asistentes para ambos servicios
+      const landingAssistantId = configService.getActiveAssistantForService('landing-page');
+      const webhookAssistantId = configService.getActiveAssistantForService('webhook-parallel');
       
       console.log(`🧵 Thread separado para webhook: ${webhookThreadId}`);
-      console.log(`🤖 Asistente para webhook: ${webhookAssistantId || 'default'}`);
+      console.log(`🔍 Asistente landing-page: ${landingAssistantId || 'NO CONFIGURADO'}`);
+      console.log(`🔍 Asistente webhook-parallel: ${webhookAssistantId || 'NO CONFIGURADO'}`);
+      console.log(`🔍 Servicio webhook-parallel activo: ${configService.isServiceActive('webhook-parallel')}`);
+      
+      // Si no hay asistente específico para webhook, usar el de landing-page
+      const finalWebhookAssistantId = webhookAssistantId || landingAssistantId;
+      console.log(`🤖 Asistente final para webhook: ${finalWebhookAssistantId || 'default'}`);
 
-      // Crear contexto específico para el webhook
+      // Crear contexto específico para el webhook SIN historial compartido
       const webhookContext = {
-        ...context,
+        jiraIssueKey: issueKey,
+        issueSummary: context.issueSummary,
+        issueStatus: context.issueStatus,
+        authorName: context.authorName,
+        isJiraComment: true,
+        conversationType: 'webhook-parallel',
         isWebhookFlow: true,
         originalIssueKey: issueKey,
         webhookThreadId: webhookThreadId,
-        correlationId: webhookThreadId,
-        source: 'webhook-parallel'
+        source: 'webhook-parallel',
+        // NO incluir conversationHistory para evitar interferencia
+        conversationHistory: [], // Historial vacío para webhook
+        previousResponses: [] // Sin respuestas previas
       };
 
       // Procesar con asistente separado (si está configurado) o usar el mismo
       const webhookService = WebhookService.getInstance();
       
-      if (webhookAssistantId && webhookAssistantId !== configService.getActiveAssistantForService('landing-page')) {
+      if (finalWebhookAssistantId && finalWebhookAssistantId !== landingAssistantId) {
         // Usar asistente diferente para webhook
         console.log(`🔄 Procesando con asistente diferente para webhook...`);
+        console.log(`🔍 Asistente principal: ${landingAssistantId}`);
+        console.log(`🔍 Asistente webhook: ${finalWebhookAssistantId}`);
+        console.log(`🔍 Thread principal: widget_${issueKey}`);
+        console.log(`🔍 Thread webhook: ${webhookThreadId}`);
+        
         const webhookResponse = await this.openaiService.processChatForService(
           originalMessage,
           'webhook-parallel', // Servicio específico para webhook
@@ -997,20 +988,21 @@ Formato el reporte de manera clara y profesional.`;
             originalMessage,
             webhookResponse.response,
             webhookThreadId,
-            webhookResponse.assistantId || webhookAssistantId,
+            webhookResponse.assistantId || finalWebhookAssistantId || 'default',
             webhookResponse.assistantName || 'Webhook Assistant',
             webhookContext
           );
         }
       } else {
         // Usar la misma respuesta de IA pero enviar al webhook
-        console.log(`📡 Enviando respuesta existente al webhook...`);
+        console.log(`📡 Enviando respuesta existente al webhook (mismo asistente)...`);
+        console.log(`🔍 Ambos flujos usan el mismo asistente: ${finalWebhookAssistantId}`);
         await webhookService.sendAIResponseToWebhook(
           issueKey,
           originalMessage,
           aiResponse.response,
           webhookThreadId,
-          aiResponse.assistantId || 'default',
+          aiResponse.assistantId || finalWebhookAssistantId || 'default',
           aiResponse.assistantName || 'AI Assistant',
           webhookContext
         );

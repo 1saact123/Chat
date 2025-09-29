@@ -380,48 +380,6 @@ export class AdminController {
     }
   }
 
-  // === AUTO-DISABLE STATUS MANAGEMENT ===
-
-  // Listar estados disponibles en Jira
-  async listJiraStatuses(req: Request, res: Response): Promise<void> {
-    try {
-      const jiraService = JiraService.getInstance();
-      const statuses = await jiraService.listProjectStatuses();
-      res.json({ success: true, statuses, count: statuses.length, timestamp: new Date().toISOString() });
-    } catch (error) {
-      console.error('❌ Error al listar estados de Jira:', error);
-      res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Error desconocido' });
-    }
-  }
-
-  // Obtener estados configurados que disparan auto-desactivación
-  async getAutoDisableStatuses(req: Request, res: Response): Promise<void> {
-    try {
-      const statuses = this.configService.getAutoDisableStatuses();
-      res.json({ success: true, statuses, timestamp: new Date().toISOString() });
-    } catch (error) {
-      console.error('❌ Error obteniendo estados de auto-desactivación:', error);
-      res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Error desconocido' });
-    }
-  }
-
-  // Actualizar estados configurados que disparan auto-desactivación
-  async setAutoDisableStatuses(req: Request, res: Response): Promise<void> {
-    try {
-      const { statuses } = req.body as { statuses: string[] };
-      if (!Array.isArray(statuses)) {
-        res.status(400).json({ success: false, error: 'statuses debe ser un arreglo de strings' });
-        return;
-      }
-
-      await this.configService.setAutoDisableStatuses(statuses);
-      res.json({ success: true, statuses: this.configService.getAutoDisableStatuses(), timestamp: new Date().toISOString() });
-    } catch (error) {
-      console.error('❌ Error guardando estados de auto-desactivación:', error);
-      res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Error desconocido' });
-    }
-  }
-
   // Obtener el proyecto activo actual
   async getActiveProject(req: Request, res: Response): Promise<void> {
     try {
@@ -723,6 +681,7 @@ export class AdminController {
           );
           this.configService.toggleService('webhook-parallel', true);
           console.log(`✅ Asistente configurado para webhook: ${assistant.name}`);
+          console.log(`✅ Servicio webhook-parallel activado`);
         }
       }
 
