@@ -262,13 +262,14 @@ export class ConfigurationService {
     
     // Persistir en base de datos
     try {
-      await this.dbService.createOrUpdateServiceConfig(
-        'status-based-disable',
-        'Status-Based Disable Config',
-        isEnabled ? 'ENABLED' : 'DISABLED',
-        `Trigger Statuses: ${triggerStatuses.join(', ')}`,
-        true
-      );
+      await this.dbService.createOrUpdateServiceConfig({
+        serviceId: 'status-based-disable',
+        serviceName: 'Status-Based Disable Config',
+        assistantId: isEnabled ? 'ENABLED' : 'DISABLED',
+        assistantName: `Trigger Statuses: ${triggerStatuses.join(', ')}`,
+        isActive: true,
+        lastUpdated: new Date()
+      });
       console.log(`✅ Status-based disable config saved to database`);
     } catch (error) {
       console.error('❌ Error saving status-based disable config to database:', error);
@@ -300,7 +301,7 @@ export class ConfigurationService {
         this.statusBasedDisableConfig = {
           isEnabled,
           triggerStatuses,
-          lastUpdated: config.lastUpdated
+          lastUpdated: config.lastUpdated || new Date()
         };
         
         console.log(`✅ Status-based disable config loaded from database:`, this.statusBasedDisableConfig);
