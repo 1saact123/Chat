@@ -186,7 +186,7 @@ export class ChatbotController {
       console.log(`   Usuario: ${payload.comment?.author?.displayName || 'N/A'}`);
       console.log(`   Timestamp: ${new Date().toISOString()}`);
       
-      // Solo procesar eventos de comentarios y creación de tickets
+      // Procesar eventos de comentarios, creación de tickets y cambios de estado
       if (payload.webhookEvent === 'comment_created' && payload.comment) {
         // Obtener el issueKey al inicio
         const issueKey = payload.issue.key;
@@ -410,6 +410,13 @@ export class ChatbotController {
         }
         
         res.json(response);
+      } else if (payload.webhookEvent === 'jira:issue_updated' && payload.changelog) {
+        // Procesar cambios de estado
+        await this.handleStatusChange(payload);
+        res.json({ 
+          success: true, 
+          message: 'Status change processed'
+        });
       } else if (payload.webhookEvent === 'jira:issue_created') {
         // Procesar evento de creación de ticket
         console.log(`🎫 NUEVO TICKET CREADO:`);
@@ -1013,6 +1020,51 @@ Formato el reporte de manera clara y profesional.`;
     } catch (error) {
       console.error('❌ Error en flujo paralelo de webhook:', error);
       // No fallar el proceso principal si el webhook falla
+    }
+  }
+
+  // 🔄 MÉTODO PARA MANEJAR CAMBIOS DE ESTADO
+  private async handleStatusChange(payload: JiraWebhookPayload): Promise<void> {
+    try {
+      const issueKey = payload.issue.key;
+      const configService = ConfigurationService.getInstance();
+      
+      console.log(`🔄 Procesando cambio de estado para ticket ${issueKey}`);
+      
+      // Buscar cambios de estado en el changelog
+      if (payload.changelog && payload.changelog.items) {
+        for (const item of payload.changelog.items) {
+          if (item.field === 'status') {
+            const oldStatus = item.fromString;
+            const newStatus = item.toString;
+            
+            console.log(`📊 Cambio de estado detectado: ${oldStatus} → ${newStatus}`);
+            
+            // Verificar si debe deshabilitar/habilitar la IA
+            const statusChanged = await configService.checkAndHandleStatusChange(issueKey, newStatus || '');
+            
+            if (statusChanged) {
+              // Agregar comentario en Jira explicando el cambio
+              const { JiraService } = await import('../services/jira_service');
+              const jiraService = JiraService.getInstance();
+              
+              const isDisabled = configService.isTicketDisabled(issueKey);
+              const commentText = isDisabled 
+                ? `🤖 **AI Assistant Auto-Disabled**\n\nThe AI assistant has been automatically disabled because the ticket status changed to "${newStatus}".\n\nTo re-enable the assistant, change the status to a non-triggering state or use the CEO Dashboard.`
+                : `🤖 **AI Assistant Auto-Enabled**\n\nThe AI assistant has been automatically re-enabled because the ticket status changed from a triggering state to "${newStatus}".`;
+              
+              await jiraService.addCommentToIssue(issueKey, commentText, {
+                name: 'AI Status Manager',
+                source: 'jira'
+              });
+              
+              console.log(`✅ Comentario de cambio de estado agregado a ${issueKey}`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error procesando cambio de estado:', error);
     }
   }
 }

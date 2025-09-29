@@ -244,6 +244,16 @@ router.post('/api/admin/webhook/disable', authenticateToken, requireAdmin, admin
 // Obtener estado del webhook
 router.get('/api/admin/webhook/status', authenticateToken, requireAdmin, adminController.getWebhookStatus.bind(adminController));
 
+// === STATUS-BASED DISABLE ROUTES - PROTECTED ===
+// Configurar deshabilitación basada en estados
+router.post('/api/admin/status-disable/configure', authenticateToken, requireAdmin, adminController.configureStatusBasedDisable.bind(adminController));
+
+// Obtener configuración de deshabilitación basada en estados
+router.get('/api/admin/status-disable/config', authenticateToken, requireAdmin, adminController.getStatusBasedDisableConfig.bind(adminController));
+
+// Obtener estados disponibles de Jira
+router.get('/api/admin/statuses/available', authenticateToken, requireAdmin, adminController.getAvailableStatuses.bind(adminController));
+
 // Send email with chat context - COMMENTED OUT FOR TESTING
 // router.post('/api/chatbot/email/send-with-context', chatbotController.sendEmailWithChatContext.bind(chatbotController));
 

@@ -704,6 +704,91 @@ export class AdminController {
     }
   }
 
+  // === STATUS-BASED DISABLE METHODS ===
+
+  // Configurar deshabilitación basada en estados
+  async configureStatusBasedDisable(req: Request, res: Response): Promise<void> {
+    try {
+      const { isEnabled, triggerStatuses } = req.body;
+
+      if (typeof isEnabled !== 'boolean') {
+        res.status(400).json({
+          success: false,
+          error: 'isEnabled debe ser un booleano'
+        });
+        return;
+      }
+
+      if (!Array.isArray(triggerStatuses)) {
+        res.status(400).json({
+          success: false,
+          error: 'triggerStatuses debe ser un array'
+        });
+        return;
+      }
+
+      console.log(`🔧 Configurando deshabilitación basada en estados:`, {
+        isEnabled,
+        triggerStatuses
+      });
+
+      this.configService.setStatusBasedDisableConfig(isEnabled, triggerStatuses);
+
+      res.json({
+        success: true,
+        message: 'Status-based disable configuration saved successfully',
+        data: {
+          isEnabled,
+          triggerStatuses,
+          lastUpdated: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Error configuring status-based disable:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Obtener configuración de deshabilitación basada en estados
+  async getStatusBasedDisableConfig(req: Request, res: Response): Promise<void> {
+    try {
+      const config = this.configService.getStatusBasedDisableConfig();
+      
+      res.json({
+        success: true,
+        data: config
+      });
+    } catch (error) {
+      console.error('Error getting status-based disable config:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Obtener estados disponibles de Jira
+  async getAvailableStatuses(req: Request, res: Response): Promise<void> {
+    try {
+      const jiraService = JiraService.getInstance();
+      const statuses = await jiraService.getAllPossibleStatuses();
+      
+      res.json({
+        success: true,
+        data: statuses
+      });
+    } catch (error) {
+      console.error('Error getting available statuses:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
   // Probar webhook
   async testWebhook(req: Request, res: Response): Promise<void> {
     try {

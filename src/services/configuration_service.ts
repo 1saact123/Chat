@@ -16,6 +16,12 @@ interface DisabledTicket {
   disabledBy: string;
 }
 
+interface StatusBasedDisableConfig {
+  isEnabled: boolean;
+  triggerStatuses: string[];
+  lastUpdated: Date;
+}
+
 interface WebhookConfiguration {
   webhookUrl: string;
   isEnabled: boolean;
@@ -27,6 +33,11 @@ export class ConfigurationService {
   private configurations: Map<string, ServiceConfiguration> = new Map();
   private disabledTickets: Map<string, DisabledTicket> = new Map();
   private webhookConfig: WebhookConfiguration | null = null;
+  private statusBasedDisableConfig: StatusBasedDisableConfig = {
+    isEnabled: false,
+    triggerStatuses: [],
+    lastUpdated: new Date()
+  };
   private readonly CONFIG_FILE = 'service-config.json';
   private dbService: DatabaseService;
 
@@ -229,6 +240,62 @@ export class ConfigurationService {
   isServiceActive(serviceId: string): boolean {
     const config = this.configurations.get(serviceId);
     return config ? config.isActive : false;
+  }
+
+  // === STATUS-BASED DISABLE METHODS ===
+
+  // Configurar deshabilitación basada en estados
+  setStatusBasedDisableConfig(isEnabled: boolean, triggerStatuses: string[]): void {
+    this.statusBasedDisableConfig = {
+      isEnabled,
+      triggerStatuses,
+      lastUpdated: new Date()
+    };
+    console.log(`🔧 Status-based disable config updated:`, {
+      isEnabled,
+      triggerStatuses,
+      lastUpdated: this.statusBasedDisableConfig.lastUpdated
+    });
+  }
+
+  // Obtener configuración de deshabilitación basada en estados
+  getStatusBasedDisableConfig(): StatusBasedDisableConfig {
+    return this.statusBasedDisableConfig;
+  }
+
+  // Verificar si un estado debe deshabilitar la IA
+  shouldDisableForStatus(status: string): boolean {
+    if (!this.statusBasedDisableConfig.isEnabled) {
+      return false;
+    }
+    return this.statusBasedDisableConfig.triggerStatuses.includes(status);
+  }
+
+  // Verificar si un ticket debe ser deshabilitado por cambio de estado
+  async checkAndHandleStatusChange(issueKey: string, newStatus: string): Promise<boolean> {
+    const wasDisabled = this.isTicketDisabled(issueKey);
+    const shouldDisable = this.shouldDisableForStatus(newStatus);
+
+    if (shouldDisable && !wasDisabled) {
+      // Deshabilitar por cambio de estado
+      await this.disableAssistantForTicket(
+        issueKey, 
+        `Auto-disabled: Status changed to "${newStatus}"`
+      );
+      console.log(`🚫 Auto-disabled AI for ticket ${issueKey} due to status change to "${newStatus}"`);
+      return true;
+    } else if (!shouldDisable && wasDisabled) {
+      // Verificar si fue deshabilitado por cambio de estado
+      const ticketInfo = this.getDisabledTicketInfo(issueKey);
+      if (ticketInfo?.reason?.includes('Auto-disabled: Status changed to')) {
+        // Reactivar automáticamente
+        await this.enableAssistantForTicket(issueKey);
+        console.log(`✅ Auto-re-enabled AI for ticket ${issueKey} due to status change from "${newStatus}"`);
+        return true;
+      }
+    }
+
+    return false;
   }
 
   // Agregar nuevo servicio

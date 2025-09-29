@@ -29,6 +29,38 @@
             font-size: 16px;
             font-weight: 600;
         }
+
+        .status-disable-config-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .status-checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .status-checkbox {
+            margin-right: 8px;
+        }
+
+        .status-label {
+            font-size: 14px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -251,6 +283,47 @@
                     </div>
                 </div>
 
+                <!-- Status-Based Disable Configuration Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Status-Based AI Control</h2>
+                        <p>Automatically disable AI when tickets change to specific statuses</p>
+                    </div>
+                    <div class="section-content">
+                        <!-- Status-Based Disable Configuration -->
+                        <div class="status-disable-config-form">
+                            <div class="form-group">
+                                <label class="form-checkbox">
+                                    <input type="checkbox" id="statusDisableEnabled">
+                                    <span class="checkmark"></span>
+                                    Enable automatic AI disable based on ticket status
+                                </label>
+                            </div>
+                            <div class="form-group" id="statusSelectionGroup" style="display: none;">
+                                <label for="triggerStatuses" class="form-label">Select Statuses to Trigger AI Disable</label>
+                                <div id="statusCheckboxes" class="status-checkboxes">
+                                    <!-- Status checkboxes will be populated here -->
+                                </div>
+                                <small class="form-help">AI will be automatically disabled when tickets change to any of these statuses</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-primary" onclick="saveStatusDisableConfig()">Save Configuration</button>
+                                <button type="button" class="btn btn-secondary" onclick="loadStatusDisableConfig()">Load Current Config</button>
+                            </div>
+                        </div>
+                        <div class="status-info">
+                            <div class="info-item">
+                                <span class="info-label">Status-Based Disable:</span>
+                                <span id="statusDisableStatus" class="info-value">Not configured</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Trigger Statuses:</span>
+                                <span id="triggerStatusesList" class="info-value">None</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Webhook Configuration Section -->
                 <div class="section-card">
                     <div class="section-header">
@@ -450,6 +523,7 @@
                 await this.loadRemoteProjects();
                 await this.loadDisabledTickets();
                 await this.updateWebhookStatus();
+                await this.loadStatusDisableConfig();
                 this.setupEventListeners();
             }
 
@@ -1345,14 +1419,134 @@
                     console.error('Error updating webhook status:', error);
                 }
             }
+
+            // === STATUS-BASED DISABLE METHODS ===
+
+            async loadStatusDisableConfig() {
+                try {
+                    // Load current configuration
+                    const configResponse = await this.authenticatedFetch('/api/admin/status-disable/config');
+                    if (!configResponse) return;
+                    const configData = await configResponse.json();
+
+                    // Load available statuses
+                    const statusesResponse = await this.authenticatedFetch('/api/admin/statuses/available');
+                    if (!statusesResponse) return;
+                    const statusesData = await statusesResponse.json();
+
+                    if (configData.success && statusesData.success) {
+                        this.populateStatusCheckboxes(statusesData.data);
+                        this.updateStatusDisableUI(configData.data);
+                    }
+                } catch (error) {
+                    console.error('Error loading status disable config:', error);
+                }
+            }
+
+            populateStatusCheckboxes(statuses) {
+                const container = document.getElementById('statusCheckboxes');
+                container.innerHTML = '';
+
+                statuses.forEach(status => {
+                    const checkboxContainer = document.createElement('div');
+                    checkboxContainer.className = 'status-checkbox-item';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `status_${status.id}`;
+                    checkbox.value = status.name;
+                    checkbox.className = 'status-checkbox';
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `status_${status.id}`;
+                    label.textContent = status.name;
+                    label.className = 'status-label';
+                    
+                    checkboxContainer.appendChild(checkbox);
+                    checkboxContainer.appendChild(label);
+                    container.appendChild(checkboxContainer);
+                });
+            }
+
+            updateStatusDisableUI(config) {
+                const enabledCheckbox = document.getElementById('statusDisableEnabled');
+                const statusSelectionGroup = document.getElementById('statusSelectionGroup');
+                const statusDisableStatus = document.getElementById('statusDisableStatus');
+                const triggerStatusesList = document.getElementById('triggerStatusesList');
+
+                enabledCheckbox.checked = config.isEnabled;
+                statusSelectionGroup.style.display = config.isEnabled ? 'block' : 'none';
+                
+                statusDisableStatus.textContent = config.isEnabled ? 'Enabled' : 'Disabled';
+                triggerStatusesList.textContent = config.triggerStatuses.length > 0 
+                    ? config.triggerStatuses.join(', ') 
+                    : 'None';
+
+                // Check the appropriate status checkboxes
+                config.triggerStatuses.forEach(statusName => {
+                    const checkbox = document.querySelector(`input[value="${statusName}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+
+            async saveStatusDisableConfig() {
+                const isEnabled = document.getElementById('statusDisableEnabled').checked;
+                const selectedStatuses = Array.from(document.querySelectorAll('.status-checkbox:checked'))
+                    .map(checkbox => checkbox.value);
+
+                try {
+                    const response = await this.authenticatedFetch('/api/admin/status-disable/configure', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            isEnabled: isEnabled,
+                            triggerStatuses: selectedStatuses
+                        })
+                    });
+                    if (!response) return;
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showStatus('Status-based disable configuration saved successfully', 'success');
+                        this.addActivity('Status-based disable configuration updated', 'success');
+                        this.updateStatusDisableUI(data.data);
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error saving status disable configuration:', error);
+                    this.showStatus(`Error saving configuration: ${error.message}`, 'error');
+                }
+            }
         }
 
                  // Variable global para el dashboard
          let dashboard;
  
+         // Funciones globales para status-based disable
+         async function saveStatusDisableConfig() {
+             if (dashboard) {
+                 await dashboard.saveStatusDisableConfig();
+             }
+         }
+
+         async function loadStatusDisableConfig() {
+             if (dashboard) {
+                 await dashboard.loadStatusDisableConfig();
+             }
+         }
+
          // Inicializar cuando el DOM esté listo
          document.addEventListener('DOMContentLoaded', function() {
              dashboard = new CEODashboard();
+             
+             // Event listener para el checkbox de status disable
+             document.getElementById('statusDisableEnabled').addEventListener('change', function() {
+                 const statusSelectionGroup = document.getElementById('statusSelectionGroup');
+                 statusSelectionGroup.style.display = this.checked ? 'block' : 'none';
+             });
          });
     </script>
 </body>
