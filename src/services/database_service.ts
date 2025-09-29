@@ -166,7 +166,7 @@ export class DatabaseService {
 
   // ===== DISABLED TICKETS =====
   
-  async createOrUpdateDisabledTicket(disabledTicket: { issueKey: string; reason: string; disabledAt: Date; disabledBy: string }): Promise<void> {
+  async createOrUpdateDisabledTicket(disabledTicket: { issueKey: string; reason: string; disabledAt: Date; disabledBy: string; isAuto?: boolean }): Promise<void> {
     // Por ahora usamos una tabla simple, en producción podrías crear una tabla específica
     // Por simplicidad, usamos la tabla de configuraciones con un prefijo especial
     const configId = `disabled_ticket_${disabledTicket.issueKey}`;
@@ -174,7 +174,7 @@ export class DatabaseService {
     await ServiceConfiguration.upsert({
       serviceId: configId,
       serviceName: `Disabled Ticket: ${disabledTicket.issueKey}`,
-      assistantId: 'DISABLED',
+      assistantId: disabledTicket.isAuto ? 'DISABLED_AUTO' : 'DISABLED',
       assistantName: `Disabled - ${disabledTicket.reason}`,
       isActive: false,
       lastUpdated: disabledTicket.disabledAt
@@ -188,7 +188,7 @@ export class DatabaseService {
     });
   }
 
-  async getAllDisabledTickets(): Promise<Array<{ issueKey: string; reason: string; disabledAt: Date; disabledBy: string }>> {
+  async getAllDisabledTickets(): Promise<Array<{ issueKey: string; reason: string; disabledAt: Date; disabledBy: string; isAuto?: boolean }>> {
     const disabledConfigs = await ServiceConfiguration.findAll({
       where: {
         serviceId: {
@@ -201,7 +201,24 @@ export class DatabaseService {
       issueKey: config.serviceId.replace('disabled_ticket_', ''),
       reason: config.assistantName.replace('Disabled - ', ''),
       disabledAt: config.lastUpdated || new Date(),
-      disabledBy: 'CEO Dashboard'
+      disabledBy: 'CEO Dashboard',
+      isAuto: config.assistantId === 'DISABLED_AUTO'
     }));
+  }
+
+  // ===== GENERIC CONFIG STORAGE =====
+  async getConfigById(configId: string): Promise<ServiceConfiguration | null> {
+    return await ServiceConfiguration.findOne({ where: { serviceId: configId } });
+  }
+
+  async setConfigById(configId: string, payload: { serviceName: string; data: any }): Promise<void> {
+    await ServiceConfiguration.upsert({
+      serviceId: configId,
+      serviceName: payload.serviceName,
+      assistantId: JSON.stringify(payload.data),
+      assistantName: payload.serviceName,
+      isActive: true,
+      lastUpdated: new Date()
+    });
   }
 }

@@ -27,6 +27,7 @@ export class ConfigurationService {
   private configurations: Map<string, ServiceConfiguration> = new Map();
   private disabledTickets: Map<string, DisabledTicket> = new Map();
   private webhookConfig: WebhookConfiguration | null = null;
+  private autoDisableStatuses: Set<string> = new Set();
   private readonly CONFIG_FILE = 'service-config.json';
   private dbService: DatabaseService;
 
@@ -34,6 +35,7 @@ export class ConfigurationService {
     this.dbService = DatabaseService.getInstance();
     this.loadConfigurations();
     this.loadConfigurationsFromDatabase();
+    this.loadAutoDisableStatusesFromDB();
   }
 
   public static getInstance(): ConfigurationService {
@@ -355,5 +357,43 @@ export class ConfigurationService {
   // Obtener configuración completa del webhook
   getWebhookConfiguration(): WebhookConfiguration | null {
     return this.webhookConfig;
+  }
+
+  // === AUTO-DISABLE STATUSES METHODS ===
+  private async loadAutoDisableStatusesFromDB(): Promise<void> {
+    try {
+      const config = await this.dbService.getConfigById('auto_disable_statuses');
+      if (config && config.assistantId) {
+        const parsed = JSON.parse(config.assistantId);
+        const list: string[] = Array.isArray(parsed?.statuses) ? parsed.statuses : [];
+        this.autoDisableStatuses = new Set(list.map(s => s.toUpperCase()));
+        console.log(`✅ Estados de auto-desactivación cargados: ${list.join(', ')}`);
+      }
+    } catch (error) {
+      console.error('❌ Error cargando estados de auto-desactivación:', error);
+    }
+  }
+
+  getAutoDisableStatuses(): string[] {
+    return Array.from(this.autoDisableStatuses.values());
+  }
+
+  async setAutoDisableStatuses(statuses: string[]): Promise<void> {
+    const normalized = (statuses || []).filter(Boolean).map(s => s.toUpperCase());
+    this.autoDisableStatuses = new Set(normalized);
+    try {
+      await this.dbService.setConfigById('auto_disable_statuses', {
+        serviceName: 'Auto Disable Statuses',
+        data: { statuses: normalized }
+      });
+      console.log('✅ Estados de auto-desactivación guardados en BD:', normalized);
+    } catch (error) {
+      console.error('❌ Error guardando estados de auto-desactivación:', error);
+    }
+  }
+
+  shouldAutoDisableForStatus(statusName: string): boolean {
+    if (!statusName) return false;
+    return this.autoDisableStatuses.has(statusName.toUpperCase());
   }
 }

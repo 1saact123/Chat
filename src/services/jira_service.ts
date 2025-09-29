@@ -243,6 +243,36 @@ export class JiraService {
   }
 
   /**
+   * List available statuses for the active project (workflow statuses)
+   */
+  async listProjectStatuses(): Promise<Array<{ name: string; id?: string; category?: string }>> {
+    try {
+      console.log(`Listing statuses for project ${this.projectKey}`);
+
+      // Jira Cloud: statuses are not strictly per project, but per workflow; use search as fallback
+      const response = await axios.get(
+        `${this.baseUrl}/rest/api/3/status`,
+        {
+          headers: {
+            'Authorization': `Basic ${this.auth}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      const statuses = Array.isArray(response.data) ? response.data : [];
+      return statuses.map((s: any) => ({
+        name: s.name,
+        id: s.id,
+        category: s.statusCategory?.name
+      }));
+    } catch (error) {
+      console.error('Error listing project statuses:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Search issues by customer email
    */
   async searchIssuesByEmail(email: string): Promise<any> {

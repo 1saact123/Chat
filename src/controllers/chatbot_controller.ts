@@ -410,6 +410,34 @@ export class ChatbotController {
         }
         
         res.json(response);
+      } else if (payload.webhookEvent === 'jira:issue_updated' || payload.webhookEvent === 'issue_updated') {
+        // Detectar cambio de estado del ticket
+        const issueKey = payload.issue.key;
+        const currentStatus = payload.issue.fields.status?.name || '';
+        const configService = ConfigurationService.getInstance();
+
+        console.log(`♻️ ISSUE UPDATED: ${issueKey} - Status: ${currentStatus}`);
+
+        if (configService.shouldAutoDisableForStatus(currentStatus)) {
+          // Si entra a un estado configurado, deshabilitar IA automáticamente
+          const alreadyDisabled = configService.isTicketDisabled(issueKey);
+          if (!alreadyDisabled) {
+            console.log(`🚫 Auto-desactivando IA para ${issueKey} por estado '${currentStatus}'`);
+            await configService.disableAssistantForTicket(issueKey, `Auto: estado '${currentStatus}'`);
+          }
+        } else {
+          // Si sale de un estado configurado y estaba deshabilitado por auto, reactivar
+          if (configService.isTicketDisabled(issueKey)) {
+            const info = configService.getDisabledTicketInfo(issueKey);
+            const wasAuto = (info?.reason || '').startsWith('Auto:');
+            if (wasAuto) {
+              console.log(`✅ Auto-reactivando IA para ${issueKey} (estado actual '${currentStatus}' no es de corte)`);
+              await configService.enableAssistantForTicket(issueKey);
+            }
+          }
+        }
+
+        res.json({ success: true, message: 'Issue status update processed', issueKey, status: currentStatus });
       } else if (payload.webhookEvent === 'jira:issue_created') {
         // Procesar evento de creación de ticket
         console.log(`🎫 NUEVO TICKET CREADO:`);
