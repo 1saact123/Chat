@@ -244,6 +244,15 @@ router.post('/api/admin/webhook/disable', authenticateToken, requireAdmin, admin
 // Obtener estado del webhook
 router.get('/api/admin/webhook/status', authenticateToken, requireAdmin, adminController.getWebhookStatus.bind(adminController));
 
+// Obtener webhooks guardados
+router.get('/api/admin/webhooks/saved', authenticateToken, requireAdmin, adminController.getSavedWebhooks.bind(adminController));
+
+// Guardar nuevo webhook
+router.post('/api/admin/webhooks/save', authenticateToken, requireAdmin, adminController.saveWebhook.bind(adminController));
+
+// Eliminar webhook guardado
+router.delete('/api/admin/webhooks/:id', authenticateToken, requireAdmin, adminController.deleteSavedWebhook.bind(adminController));
+
 // === STATUS-BASED DISABLE ROUTES - PROTECTED ===
 // Configurar deshabilitación basada en estados
 router.post('/api/admin/status-disable/configure', authenticateToken, requireAdmin, adminController.configureStatusBasedDisable.bind(adminController));

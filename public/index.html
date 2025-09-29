@@ -334,11 +334,30 @@
                         <!-- Webhook URL Configuration -->
                         <div class="webhook-config-form">
                             <div class="form-group">
+                                <label for="savedWebhookSelect" class="form-label">Select Saved Webhook</label>
+                                <select id="savedWebhookSelect" class="form-select">
+                                    <option value="">Choose a saved webhook...</option>
+                                </select>
+                                <small class="form-help">Select from previously saved webhook URLs</small>
+                            </div>
+                            <div class="form-group">
                                 <label for="webhookUrl" class="form-label">Jira Automation Webhook URL</label>
                                 <input type="url" id="webhookUrl" class="form-input" 
                                        placeholder="https://api-private.atlassian.com/automation/webhooks/jira/a/..."
                                        value="">
                                 <small class="form-help">URL del webhook de Jira Automation (formato: api-private.atlassian.com/automation/webhooks/...)</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="webhookName" class="form-label">Webhook Name (for saving)</label>
+                                <input type="text" id="webhookName" class="form-input" 
+                                       placeholder="e.g., Jira Production Webhook"
+                                       value="">
+                                <small class="form-help">Give this webhook a name to save it for future use</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="webhookDescription" class="form-label">Description (optional)</label>
+                                <textarea id="webhookDescription" class="form-input" rows="2" 
+                                          placeholder="Brief description of this webhook..."></textarea>
                             </div>
                             <div class="form-group">
                                 <label for="webhookAssistant" class="form-label">Webhook Assistant</label>
@@ -347,6 +366,9 @@
                                 </select>
                             </div>
                             <div class="form-actions">
+                                <button class="btn btn-success" id="saveWebhookBtn">
+                                    <i class="fas fa-bookmark"></i> Save Webhook
+                                </button>
                                 <button class="btn btn-primary" id="saveWebhookConfigBtn">
                                     <i class="fas fa-save"></i> Save Webhook Configuration
                                 </button>
@@ -355,6 +377,9 @@
                                 </button>
                                 <button class="btn btn-warning" id="disableWebhookBtn">
                                     <i class="fas fa-ban"></i> Disable Webhook
+                                </button>
+                                <button class="btn btn-danger" id="deleteWebhookBtn" style="display: none;">
+                                    <i class="fas fa-trash"></i> Delete Saved Webhook
                                 </button>
                             </div>
                         </div>
@@ -522,6 +547,7 @@
                 await this.loadProjects();
                 await this.loadRemoteProjects();
                 await this.loadDisabledTickets();
+                await this.loadSavedWebhooks();
                 await this.updateWebhookStatus();
                 await this.loadStatusDisableConfig();
                 this.setupEventListeners();
@@ -770,6 +796,26 @@
                         landingSelect.value = '';
                     }
                 }
+
+                // Update Webhook Parallel service
+                const webhookService = this.serviceConfigs.find(s => s.serviceId === 'webhook-parallel');
+                if (webhookService) {
+                    console.log('✅ Updating webhook service info:', webhookService);
+                    
+                    // Set selected assistant for webhook
+                    const webhookSelect = document.getElementById('webhookAssistant');
+                    if (webhookSelect) {
+                        webhookSelect.value = webhookService.assistantId || '';
+                        console.log('Set webhook dropdown value to:', webhookService.assistantId);
+                    }
+                } else {
+                    console.log('❌ No webhook service configuration found');
+                    // Si no hay configuración, limpiar el dropdown
+                    const webhookSelect = document.getElementById('webhookAssistant');
+                    if (webhookSelect) {
+                        webhookSelect.value = '';
+                    }
+                }
                 
                 // Mostrar información del asistente activo global
                 this.updateGlobalAssistantInfo();
@@ -1006,6 +1052,30 @@
 
                 document.getElementById('disableWebhookBtn')?.addEventListener('click', () => {
                     this.disableWebhook();
+                });
+
+                // Saved webhooks event listeners
+                document.getElementById('saveWebhookBtn')?.addEventListener('click', () => {
+                    this.saveWebhook();
+                });
+
+                document.getElementById('deleteWebhookBtn')?.addEventListener('click', () => {
+                    this.deleteSavedWebhook();
+                });
+
+                // Event listener for saved webhook selection
+                document.getElementById('savedWebhookSelect')?.addEventListener('change', (e) => {
+                    const selectedOption = e.target.options[e.target.selectedIndex];
+                    if (selectedOption.value) {
+                        // Fill the form with selected webhook data
+                        document.getElementById('webhookUrl').value = selectedOption.dataset.url || '';
+                        document.getElementById('webhookName').value = selectedOption.dataset.name || '';
+                        document.getElementById('webhookDescription').value = selectedOption.dataset.description || '';
+                        document.getElementById('deleteWebhookBtn').style.display = 'inline-block';
+                    } else {
+                        // Clear form and hide delete button
+                        this.clearWebhookForm();
+                    }
                 });
              }
 
@@ -1409,15 +1479,132 @@
                         const hasToken = data.data.webhookUrl?.includes('api-private.atlassian.com');
                         document.getElementById('webhookTokenStatus').textContent = hasToken ? 'Required for Jira Automation' : 'Not required';
                         
-                        // Update assistant dropdown
+                        // Update assistant dropdown only if it's empty or if we're explicitly updating webhook config
                         const webhookAssistantSelect = document.getElementById('webhookAssistant');
                         if (webhookAssistantSelect) {
-                            webhookAssistantSelect.value = data.data.assistantId || '';
+                            // Only update if dropdown is empty or if we have a valid assistantId from webhook config
+                            if (!webhookAssistantSelect.value || data.data.assistantId) {
+                                webhookAssistantSelect.value = data.data.assistantId || '';
+                            }
                         }
                     }
                 } catch (error) {
                     console.error('Error updating webhook status:', error);
                 }
+            }
+
+            // === SAVED WEBHOOKS METHODS ===
+
+            async loadSavedWebhooks() {
+                try {
+                    console.log('🔄 Loading saved webhooks...');
+                    const response = await this.authenticatedFetch('/api/admin/webhooks/saved');
+                    if (!response) return;
+
+                    const data = await response.json();
+                    if (data.success) {
+                        this.populateSavedWebhooksDropdown(data.data);
+                        console.log(`✅ Loaded ${data.data.length} saved webhooks`);
+                    }
+                } catch (error) {
+                    console.error('Error loading saved webhooks:', error);
+                }
+            }
+
+            populateSavedWebhooksDropdown(webhooks) {
+                const select = document.getElementById('savedWebhookSelect');
+                if (!select) return;
+
+                // Clear existing options except the first one
+                select.innerHTML = '<option value="">Choose a saved webhook...</option>';
+
+                webhooks.forEach(webhook => {
+                    const option = document.createElement('option');
+                    option.value = webhook.id;
+                    option.textContent = `${webhook.name} - ${webhook.url.substring(0, 50)}...`;
+                    option.dataset.url = webhook.url;
+                    option.dataset.name = webhook.name;
+                    option.dataset.description = webhook.description || '';
+                    select.appendChild(option);
+                });
+            }
+
+            async saveWebhook() {
+                try {
+                    const name = document.getElementById('webhookName').value.trim();
+                    const url = document.getElementById('webhookUrl').value.trim();
+                    const description = document.getElementById('webhookDescription').value.trim();
+
+                    if (!name || !url) {
+                        this.showStatus('Name and URL are required', 'error');
+                        return;
+                    }
+
+                    console.log('🔄 Saving webhook...');
+                    const response = await this.authenticatedFetch('/api/admin/webhooks/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, url, description })
+                    });
+
+                    if (!response) return;
+
+                    const data = await response.json();
+                    if (data.success) {
+                        this.showStatus('Webhook saved successfully', 'success');
+                        this.addActivity(`Webhook "${name}" saved`, 'success');
+                        await this.loadSavedWebhooks(); // Reload the dropdown
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error saving webhook:', error);
+                    this.showStatus(`Error saving webhook: ${error.message}`, 'error');
+                }
+            }
+
+            async deleteSavedWebhook() {
+                try {
+                    const select = document.getElementById('savedWebhookSelect');
+                    const selectedId = select.value;
+
+                    if (!selectedId) {
+                        this.showStatus('Please select a webhook to delete', 'error');
+                        return;
+                    }
+
+                    if (!confirm('Are you sure you want to delete this saved webhook?')) {
+                        return;
+                    }
+
+                    console.log('🔄 Deleting saved webhook...');
+                    const response = await this.authenticatedFetch(`/api/admin/webhooks/${selectedId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response) return;
+
+                    const data = await response.json();
+                    if (data.success) {
+                        this.showStatus('Webhook deleted successfully', 'success');
+                        this.addActivity(`Webhook deleted`, 'warning');
+                        await this.loadSavedWebhooks(); // Reload the dropdown
+                        this.clearWebhookForm();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error deleting webhook:', error);
+                    this.showStatus(`Error deleting webhook: ${error.message}`, 'error');
+                }
+            }
+
+            clearWebhookForm() {
+                document.getElementById('webhookUrl').value = '';
+                document.getElementById('webhookName').value = '';
+                document.getElementById('webhookDescription').value = '';
+                document.getElementById('savedWebhookSelect').value = '';
+                document.getElementById('deleteWebhookBtn').style.display = 'none';
             }
 
             // === STATUS-BASED DISABLE METHODS ===

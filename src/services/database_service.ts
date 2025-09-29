@@ -1,7 +1,7 @@
 
 
-import { ChatThread, ChatMessage, ServiceConfiguration, WebhookStats } from '../models';
-import { ChatThreadAttributes, ChatMessageAttributes, ServiceConfigurationAttributes } from '../models';
+import { ChatThread, ChatMessage, ServiceConfiguration, WebhookStats, SavedWebhook } from '../models';
+import { ChatThreadAttributes, ChatMessageAttributes, ServiceConfigurationAttributes, SavedWebhookAttributes } from '../models';
 
 export class DatabaseService {
   private static instance: DatabaseService;
@@ -203,5 +203,40 @@ export class DatabaseService {
       disabledAt: config.lastUpdated || new Date(),
       disabledBy: 'CEO Dashboard'
     }));
+  }
+
+  // ===== SAVED WEBHOOKS =====
+
+  async createSavedWebhook(webhookData: SavedWebhookAttributes): Promise<SavedWebhook> {
+    const webhook = await SavedWebhook.create(webhookData);
+    console.log(`✅ Created saved webhook: ${webhook.name}`);
+    return webhook;
+  }
+
+  async getAllSavedWebhooks(): Promise<SavedWebhook[]> {
+    return await SavedWebhook.findAll({
+      where: { isActive: true },
+      order: [['createdAt', 'DESC']]
+    });
+  }
+
+  async getSavedWebhook(id: number): Promise<SavedWebhook | null> {
+    return await SavedWebhook.findOne({ where: { id, isActive: true } });
+  }
+
+  async updateSavedWebhook(id: number, webhookData: Partial<SavedWebhookAttributes>): Promise<SavedWebhook | null> {
+    const [affectedCount] = await SavedWebhook.update(webhookData, { where: { id } });
+    if (affectedCount > 0) {
+      const webhook = await SavedWebhook.findByPk(id);
+      console.log(`🔄 Updated saved webhook: ${webhook?.name}`);
+      return webhook;
+    }
+    return null;
+  }
+
+  async deleteSavedWebhook(id: number): Promise<boolean> {
+    const [affectedCount] = await SavedWebhook.update({ isActive: false }, { where: { id } });
+    console.log(`${affectedCount > 0 ? '🗑️ Deleted' : '❌ Failed to delete'} saved webhook: ${id}`);
+    return affectedCount > 0;
   }
 }

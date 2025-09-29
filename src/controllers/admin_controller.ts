@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { OpenAIService } from '../services/openAI_service';
 import { ConfigurationService } from '../services/configuration_service';
 import { JiraService } from '../services/jira_service';
+import { DatabaseService } from '../services/database_service';
 
 export class AdminController {
   private openaiService: OpenAIService;
@@ -913,6 +914,99 @@ export class AdminController {
       });
     } catch (error) {
       console.error('❌ Error obteniendo estado del webhook:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Obtener webhooks guardados
+  async getSavedWebhooks(req: Request, res: Response): Promise<void> {
+    try {
+      const dbService = DatabaseService.getInstance();
+      const savedWebhooks = await dbService.getAllSavedWebhooks();
+
+      res.json({
+        success: true,
+        data: savedWebhooks,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo webhooks guardados:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Guardar nuevo webhook
+  async saveWebhook(req: Request, res: Response): Promise<void> {
+    try {
+      const { name, url, description } = req.body;
+
+      if (!name || !url) {
+        res.status(400).json({
+          success: false,
+          error: 'Name and URL are required'
+        });
+        return;
+      }
+
+      const dbService = DatabaseService.getInstance();
+      const savedWebhook = await dbService.createSavedWebhook({
+        name,
+        url,
+        description: description || null,
+        isActive: true
+      });
+
+      res.json({
+        success: true,
+        message: 'Webhook saved successfully',
+        data: savedWebhook,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error guardando webhook:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Eliminar webhook guardado
+  async deleteSavedWebhook(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      if (!id || isNaN(Number(id))) {
+        res.status(400).json({
+          success: false,
+          error: 'Valid ID is required'
+        });
+        return;
+      }
+
+      const dbService = DatabaseService.getInstance();
+      const deleted = await dbService.deleteSavedWebhook(Number(id));
+
+      if (deleted) {
+        res.json({
+          success: true,
+          message: 'Webhook deleted successfully',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          error: 'Webhook not found'
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error eliminando webhook:', error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'

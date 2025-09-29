@@ -306,4 +306,57 @@ User.init({
   timestamps: true
 });
 
+// Interface para SavedWebhook
+export interface SavedWebhookAttributes {
+  id?: number;
+  name: string;
+  url: string;
+  description?: string;
+  isActive: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface SavedWebhookCreationAttributes extends Optional<SavedWebhookAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+
+// Modelo SavedWebhook
+export class SavedWebhook extends Model<SavedWebhookAttributes, SavedWebhookCreationAttributes> implements SavedWebhookAttributes {
+  public id!: number;
+  public name!: string;
+  public url!: string;
+  public description?: string;
+  public isActive!: boolean;
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+SavedWebhook.init({
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  name: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  url: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
+  }
+}, {
+  sequelize,
+  tableName: 'saved_webhooks',
+  timestamps: true
+});
+
 // Los modelos ya están exportados arriba, no necesitamos re-exportarlos
