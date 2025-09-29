@@ -111,12 +111,12 @@
         }
 
         /* Section Content */
-        .section-content {
-            display: none;
+        .main-container .section-content {
+            display: none !important;
         }
 
-        .section-content.active {
-            display: block;
+        .main-container .section-content.active {
+            display: block !important;
         }
 
         /* Header Logo Styles */
@@ -825,6 +825,13 @@
                 await this.loadStatusDisableConfig();
                 this.setupEventListeners();
                 this.setupSectionNavigation();
+                
+                // Debug: Check initial section state
+                console.log('🔍 Initial section state:');
+                const sections = document.querySelectorAll('.section-content');
+                sections.forEach(section => {
+                    console.log(`  - ${section.id}: ${section.classList.contains('active') ? 'active' : 'inactive'}`);
+                });
             }
 
             // Método para hacer peticiones autenticadas
@@ -1923,16 +1930,23 @@
             }
 
             showSection(sectionName) {
+                console.log(`🔄 Switching to section: ${sectionName}`);
+                
                 // Hide all sections
                 const sections = document.querySelectorAll('.section-content');
+                console.log(`📋 Found ${sections.length} sections`);
                 sections.forEach(section => {
                     section.classList.remove('active');
+                    console.log(`❌ Hiding section: ${section.id}`);
                 });
 
                 // Show selected section
                 const targetSection = document.getElementById(`${sectionName}-section`);
                 if (targetSection) {
                     targetSection.classList.add('active');
+                    console.log(`✅ Showing section: ${targetSection.id}`);
+                } else {
+                    console.error(`❌ Section not found: ${sectionName}-section`);
                 }
 
                 // Update navigation buttons
@@ -1944,7 +1958,7 @@
                     }
                 });
 
-                console.log(`Switched to ${sectionName} section`);
+                console.log(`✅ Switched to ${sectionName} section`);
             }
 
             // === STATUS-BASED DISABLE METHODS ===
