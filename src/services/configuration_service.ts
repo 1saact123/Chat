@@ -122,6 +122,15 @@ export class ConfigurationService {
         
         // Actualizar configuraciones con datos de BD
         for (const dbConfig of dbConfigs) {
+          // Preservar configuración específica de webhook-parallel si ya está configurada
+          if (dbConfig.serviceId === 'webhook-parallel') {
+            const existingWebhookConfig = this.configurations.get('webhook-parallel');
+            if (existingWebhookConfig && existingWebhookConfig.assistantId !== process.env.OPENAI_ASSISTANT_ID) {
+              console.log(`🔒 Preservando configuración webhook-parallel existente: ${existingWebhookConfig.assistantName}`);
+              continue;
+            }
+          }
+          
           this.configurations.set(dbConfig.serviceId, {
             serviceId: dbConfig.serviceId,
             serviceName: dbConfig.serviceName,
@@ -192,8 +201,13 @@ export class ConfigurationService {
   // Actualizar configuración de un servicio
   async updateServiceConfiguration(serviceId: string, assistantId: string, assistantName: string): Promise<boolean> {
     try {
+      console.log(`🔧 Actualizando configuración para servicio: ${serviceId}`);
+      console.log(`📊 Asistente: ${assistantName} (${assistantId})`);
+      
       const config = this.configurations.get(serviceId);
       if (config) {
+        console.log(`📋 Configuración anterior: ${config.assistantName} (${config.assistantId})`);
+        
         config.assistantId = assistantId;
         config.assistantName = assistantName;
         config.lastUpdated = new Date();
@@ -210,6 +224,13 @@ export class ConfigurationService {
         });
         
         console.log(`✅ Configuración actualizada para ${serviceId}: ${assistantName} - Guardado en BD`);
+        
+        // Log de todas las configuraciones para debug
+        console.log(`🔍 Estado actual de configuraciones:`);
+        for (const [id, cfg] of this.configurations.entries()) {
+          console.log(`  - ${id}: ${cfg.assistantName} (${cfg.assistantId}) - Activo: ${cfg.isActive}`);
+        }
+        
         return true;
       }
       return false;
