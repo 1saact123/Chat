@@ -307,8 +307,8 @@
                                 <small class="form-help">AI will be automatically disabled when tickets change to any of these statuses</small>
                             </div>
                             <div class="form-actions">
-                                <button type="button" class="btn btn-primary" onclick="saveStatusDisableConfig()">Save Configuration</button>
-                                <button type="button" class="btn btn-secondary" onclick="loadStatusDisableConfig()">Load Current Config</button>
+                                <button type="button" class="btn btn-primary" id="saveStatusDisableBtn">Save Configuration</button>
+                                <button type="button" class="btn btn-secondary" id="loadStatusDisableBtn">Load Current Config</button>
                             </div>
                         </div>
                         <div class="status-info">
@@ -1585,18 +1585,6 @@
                  // Variable global para el dashboard
          let dashboard;
  
-         // Funciones globales para status-based disable
-         async function saveStatusDisableConfig() {
-             if (dashboard) {
-                 await dashboard.saveStatusDisableConfig();
-             }
-         }
-
-         async function loadStatusDisableConfig() {
-             if (dashboard) {
-                 await dashboard.loadStatusDisableConfig();
-             }
-         }
 
          // Inicializar cuando el DOM esté listo
          document.addEventListener('DOMContentLoaded', function() {
@@ -1606,6 +1594,19 @@
              document.getElementById('statusDisableEnabled').addEventListener('change', function() {
                  const statusSelectionGroup = document.getElementById('statusSelectionGroup');
                  statusSelectionGroup.style.display = this.checked ? 'block' : 'none';
+             });
+             
+             // Event listeners para los botones de status disable
+             document.getElementById('saveStatusDisableBtn').addEventListener('click', function() {
+                 if (dashboard) {
+                     dashboard.saveStatusDisableConfig();
+                 }
+             });
+             
+             document.getElementById('loadStatusDisableBtn').addEventListener('click', function() {
+                 if (dashboard) {
+                     dashboard.loadStatusDisableConfig();
+                 }
              });
          });
     </script>
