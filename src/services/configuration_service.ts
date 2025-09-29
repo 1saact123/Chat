@@ -246,12 +246,19 @@ export class ConfigurationService {
 
   // Configurar deshabilitación basada en estados
   setStatusBasedDisableConfig(isEnabled: boolean, triggerStatuses: string[]): void {
+    console.log(`🔧 Setting status-based disable config:`, {
+      isEnabled,
+      triggerStatuses,
+      triggerStatusesType: typeof triggerStatuses,
+      isArray: Array.isArray(triggerStatuses)
+    });
+    
     this.statusBasedDisableConfig = {
       isEnabled,
       triggerStatuses,
       lastUpdated: new Date()
     };
-    console.log(`🔧 Status-based disable config updated:`, {
+    console.log(`✅ Status-based disable config updated:`, {
       isEnabled,
       triggerStatuses,
       lastUpdated: this.statusBasedDisableConfig.lastUpdated
@@ -260,6 +267,7 @@ export class ConfigurationService {
 
   // Obtener configuración de deshabilitación basada en estados
   getStatusBasedDisableConfig(): StatusBasedDisableConfig {
+    console.log(`🔍 Getting status-based disable config:`, this.statusBasedDisableConfig);
     return this.statusBasedDisableConfig;
   }
 

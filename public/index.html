@@ -1424,30 +1424,55 @@
 
             async loadStatusDisableConfig() {
                 try {
+                    console.log('🔄 Loading status disable configuration...');
+                    
                     // Load current configuration
                     const configResponse = await this.authenticatedFetch('/api/admin/status-disable/config');
-                    if (!configResponse) return;
+                    if (!configResponse) {
+                        console.error('❌ No config response received');
+                        return;
+                    }
                     const configData = await configResponse.json();
+                    console.log('📊 Config data:', configData);
 
                     // Load available statuses
                     const statusesResponse = await this.authenticatedFetch('/api/admin/statuses/available');
-                    if (!statusesResponse) return;
+                    if (!statusesResponse) {
+                        console.error('❌ No statuses response received');
+                        return;
+                    }
                     const statusesData = await statusesResponse.json();
+                    console.log('📋 Statuses data:', statusesData);
 
                     if (configData.success && statusesData.success) {
+                        console.log('✅ Both requests successful, populating UI...');
                         this.populateStatusCheckboxes(statusesData.data);
                         this.updateStatusDisableUI(configData.data);
+                    } else {
+                        console.error('❌ One or both requests failed:', {
+                            configSuccess: configData.success,
+                            statusesSuccess: statusesData.success
+                        });
                     }
                 } catch (error) {
-                    console.error('Error loading status disable config:', error);
+                    console.error('❌ Error loading status disable config:', error);
                 }
             }
 
             populateStatusCheckboxes(statuses) {
+                console.log('📋 Populating status checkboxes with:', statuses);
+                
                 const container = document.getElementById('statusCheckboxes');
+                if (!container) {
+                    console.error('❌ statusCheckboxes container not found');
+                    return;
+                }
+                
                 container.innerHTML = '';
 
                 statuses.forEach(status => {
+                    console.log('🔲 Creating checkbox for status:', status);
+                    
                     const checkboxContainer = document.createElement('div');
                     checkboxContainer.className = 'status-checkbox-item';
                     
@@ -1466,13 +1491,22 @@
                     checkboxContainer.appendChild(label);
                     container.appendChild(checkboxContainer);
                 });
+                
+                console.log(`✅ Created ${statuses.length} status checkboxes`);
             }
 
             updateStatusDisableUI(config) {
+                console.log('🔄 Updating status disable UI with config:', config);
+                
                 const enabledCheckbox = document.getElementById('statusDisableEnabled');
                 const statusSelectionGroup = document.getElementById('statusSelectionGroup');
                 const statusDisableStatus = document.getElementById('statusDisableStatus');
                 const triggerStatusesList = document.getElementById('triggerStatusesList');
+
+                if (!enabledCheckbox || !statusSelectionGroup || !statusDisableStatus || !triggerStatusesList) {
+                    console.error('❌ One or more UI elements not found');
+                    return;
+                }
 
                 enabledCheckbox.checked = config.isEnabled;
                 statusSelectionGroup.style.display = config.isEnabled ? 'block' : 'none';
@@ -1482,41 +1516,67 @@
                     ? config.triggerStatuses.join(', ') 
                     : 'None';
 
+                console.log('🔲 Checking status checkboxes for:', config.triggerStatuses);
                 // Check the appropriate status checkboxes
                 config.triggerStatuses.forEach(statusName => {
                     const checkbox = document.querySelector(`input[value="${statusName}"]`);
                     if (checkbox) {
                         checkbox.checked = true;
+                        console.log(`✅ Checked checkbox for status: ${statusName}`);
+                    } else {
+                        console.log(`❌ Checkbox not found for status: ${statusName}`);
                     }
                 });
+                
+                console.log('✅ Status disable UI updated');
             }
 
             async saveStatusDisableConfig() {
+                console.log('🔧 Saving status disable configuration...');
+                
                 const isEnabled = document.getElementById('statusDisableEnabled').checked;
                 const selectedStatuses = Array.from(document.querySelectorAll('.status-checkbox:checked'))
                     .map(checkbox => checkbox.value);
 
+                console.log('📊 Configuration data:', {
+                    isEnabled,
+                    selectedStatuses,
+                    totalCheckboxes: document.querySelectorAll('.status-checkbox').length,
+                    checkedCheckboxes: document.querySelectorAll('.status-checkbox:checked').length
+                });
+
                 try {
                     const response = await this.authenticatedFetch('/api/admin/status-disable/configure', {
                         method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
                         body: JSON.stringify({
                             isEnabled: isEnabled,
                             triggerStatuses: selectedStatuses
                         })
                     });
-                    if (!response) return;
+                    
+                    console.log('📡 Response received:', response);
+                    if (!response) {
+                        console.error('❌ No response received');
+                        return;
+                    }
 
                     const data = await response.json();
+                    console.log('📊 Response data:', data);
                     
                     if (data.success) {
+                        console.log('✅ Configuration saved successfully');
                         this.showStatus('Status-based disable configuration saved successfully', 'success');
                         this.addActivity('Status-based disable configuration updated', 'success');
                         this.updateStatusDisableUI(data.data);
                     } else {
+                        console.error('❌ Configuration save failed:', data.error);
                         throw new Error(data.error);
                     }
                 } catch (error) {
-                    console.error('Error saving status disable configuration:', error);
+                    console.error('❌ Error saving status disable configuration:', error);
                     this.showStatus(`Error saving configuration: ${error.message}`, 'error');
                 }
             }

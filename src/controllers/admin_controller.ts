@@ -709,9 +709,16 @@ export class AdminController {
   // Configurar deshabilitación basada en estados
   async configureStatusBasedDisable(req: Request, res: Response): Promise<void> {
     try {
+      console.log('🔧 configureStatusBasedDisable called');
+      console.log('📦 Request body:', req.body);
+      console.log('📋 Request headers:', req.headers);
+      
       const { isEnabled, triggerStatuses } = req.body;
 
+      console.log('🔍 Parsed data:', { isEnabled, triggerStatuses });
+
       if (typeof isEnabled !== 'boolean') {
+        console.error('❌ isEnabled is not boolean:', typeof isEnabled, isEnabled);
         res.status(400).json({
           success: false,
           error: 'isEnabled debe ser un booleano'
@@ -720,6 +727,7 @@ export class AdminController {
       }
 
       if (!Array.isArray(triggerStatuses)) {
+        console.error('❌ triggerStatuses is not array:', typeof triggerStatuses, triggerStatuses);
         res.status(400).json({
           success: false,
           error: 'triggerStatuses debe ser un array'
@@ -734,14 +742,18 @@ export class AdminController {
 
       this.configService.setStatusBasedDisableConfig(isEnabled, triggerStatuses);
 
+      const responseData = {
+        isEnabled,
+        triggerStatuses,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      console.log('✅ Configuration saved, sending response:', responseData);
+      
       res.json({
         success: true,
         message: 'Status-based disable configuration saved successfully',
-        data: {
-          isEnabled,
-          triggerStatuses,
-          lastUpdated: new Date().toISOString()
-        }
+        data: responseData
       });
     } catch (error) {
       console.error('Error configuring status-based disable:', error);
@@ -755,14 +767,16 @@ export class AdminController {
   // Obtener configuración de deshabilitación basada en estados
   async getStatusBasedDisableConfig(req: Request, res: Response): Promise<void> {
     try {
+      console.log('🔍 getStatusBasedDisableConfig called');
       const config = this.configService.getStatusBasedDisableConfig();
+      console.log('📊 Current config:', config);
       
       res.json({
         success: true,
         data: config
       });
     } catch (error) {
-      console.error('Error getting status-based disable config:', error);
+      console.error('❌ Error getting status-based disable config:', error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -773,15 +787,17 @@ export class AdminController {
   // Obtener estados disponibles de Jira
   async getAvailableStatuses(req: Request, res: Response): Promise<void> {
     try {
+      console.log('🔍 getAvailableStatuses called');
       const jiraService = JiraService.getInstance();
       const statuses = await jiraService.getAllPossibleStatuses();
+      console.log('📋 Available statuses:', statuses);
       
       res.json({
         success: true,
         data: statuses
       });
     } catch (error) {
-      console.error('Error getting available statuses:', error);
+      console.error('❌ Error getting available statuses:', error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'

@@ -324,7 +324,7 @@ export class JiraService {
    */
   async getAllPossibleStatuses(): Promise<any[]> {
     try {
-      console.log(`Getting all possible statuses from Jira metadata`);
+      console.log(`🔍 Getting all possible statuses from Jira metadata`);
       
       const response = await axios.get(
         `${this.baseUrl}/rest/api/3/status`,
@@ -336,14 +336,17 @@ export class JiraService {
         }
       );
 
-      return response.data.map((status: any) => ({
+      const statuses = response.data.map((status: any) => ({
         id: status.id,
         name: status.name,
         description: status.description || status.name,
         statusCategory: status.statusCategory
       }));
+      
+      console.log(`📋 Found ${statuses.length} statuses:`, statuses);
+      return statuses;
     } catch (error) {
-      console.error(`Error getting all possible statuses:`, error);
+      console.error(`❌ Error getting all possible statuses:`, error);
       throw error;
     }
   }
