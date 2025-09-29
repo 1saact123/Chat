@@ -928,8 +928,9 @@ Formato el reporte de manera clara y profesional.`;
         return;
       }
 
-      // Crear thread separado para el webhook (usando asistente diferente si está configurado)
-      const webhookThreadId = `webhook_${issueKey}_${Date.now()}`;
+      // Crear thread separado para el webhook (estable por ticket)
+      // Usamos un identificador determinístico para evitar crear múltiples issues en Automation
+      const webhookThreadId = `webhook_${issueKey}`;
       const webhookAssistantId = configService.getActiveAssistantForService('webhook-parallel') || 
                                  configService.getActiveAssistantForService('landing-page');
       
@@ -942,6 +943,7 @@ Formato el reporte de manera clara y profesional.`;
         isWebhookFlow: true,
         originalIssueKey: issueKey,
         webhookThreadId: webhookThreadId,
+        correlationId: webhookThreadId,
         source: 'webhook-parallel'
       };
 
