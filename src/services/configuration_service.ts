@@ -125,7 +125,18 @@ export class ConfigurationService {
           // Preservar configuración específica de webhook-parallel si ya está configurada
           if (dbConfig.serviceId === 'webhook-parallel') {
             const existingWebhookConfig = this.configurations.get('webhook-parallel');
-            if (existingWebhookConfig && existingWebhookConfig.assistantId !== process.env.OPENAI_ASSISTANT_ID) {
+            console.log(`🔍 Verificando webhook-parallel:`, {
+              existingConfig: existingWebhookConfig,
+              dbConfig: dbConfig,
+              envAssistantId: process.env.OPENAI_ASSISTANT_ID,
+              shouldPreserve: existingWebhookConfig && existingWebhookConfig.assistantId !== process.env.OPENAI_ASSISTANT_ID
+            });
+            
+            // Preservar si ya tiene un asistente específico configurado (no el por defecto)
+            if (existingWebhookConfig && 
+                existingWebhookConfig.assistantId !== process.env.OPENAI_ASSISTANT_ID &&
+                existingWebhookConfig.assistantId !== '' &&
+                existingWebhookConfig.isActive) {
               console.log(`🔒 Preservando configuración webhook-parallel existente: ${existingWebhookConfig.assistantName}`);
               continue;
             }
@@ -229,6 +240,17 @@ export class ConfigurationService {
         console.log(`🔍 Estado actual de configuraciones:`);
         for (const [id, cfg] of this.configurations.entries()) {
           console.log(`  - ${id}: ${cfg.assistantName} (${cfg.assistantId}) - Activo: ${cfg.isActive}`);
+        }
+        
+        // Verificar específicamente webhook-parallel después de actualizar landing-page
+        if (serviceId === 'landing-page') {
+          const webhookConfig = this.configurations.get('webhook-parallel');
+          console.log(`🔍 Estado de webhook-parallel después de actualizar landing-page:`, webhookConfig);
+          
+          // Asegurar que webhook-parallel mantenga su configuración si está activo
+          if (webhookConfig && webhookConfig.isActive && webhookConfig.assistantId !== process.env.OPENAI_ASSISTANT_ID) {
+            console.log(`🔒 Manteniendo configuración webhook-parallel independiente: ${webhookConfig.assistantName}`);
+          }
         }
         
         return true;

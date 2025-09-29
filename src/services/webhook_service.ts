@@ -73,7 +73,12 @@ export class WebhookService {
             assistantId: payload.assistantId,
             assistantName: payload.assistantName,
             response: payload.response,
-            context: payload.context
+            context: payload.context,
+            // Campos específicos para controlar el comportamiento
+            originalIssueKey: payload.issueKey,
+            shouldUpdateExisting: true,
+            action: 'add_comment',
+            instruction: 'Add this as a comment to the existing ticket, do not create a new ticket'
           }
         };
         
