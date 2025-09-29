@@ -45,6 +45,7 @@ export class ConfigurationService {
     this.dbService = DatabaseService.getInstance();
     this.loadConfigurations();
     this.loadConfigurationsFromDatabase();
+    this.loadStatusBasedDisableConfig();
   }
 
   public static getInstance(): ConfigurationService {
@@ -245,7 +246,7 @@ export class ConfigurationService {
   // === STATUS-BASED DISABLE METHODS ===
 
   // Configurar deshabilitación basada en estados
-  setStatusBasedDisableConfig(isEnabled: boolean, triggerStatuses: string[]): void {
+  async setStatusBasedDisableConfig(isEnabled: boolean, triggerStatuses: string[]): Promise<void> {
     console.log(`🔧 Setting status-based disable config:`, {
       isEnabled,
       triggerStatuses,
@@ -258,6 +259,21 @@ export class ConfigurationService {
       triggerStatuses,
       lastUpdated: new Date()
     };
+    
+    // Persistir en base de datos
+    try {
+      await this.dbService.createOrUpdateServiceConfig(
+        'status-based-disable',
+        'Status-Based Disable Config',
+        isEnabled ? 'ENABLED' : 'DISABLED',
+        `Trigger Statuses: ${triggerStatuses.join(', ')}`,
+        true
+      );
+      console.log(`✅ Status-based disable config saved to database`);
+    } catch (error) {
+      console.error('❌ Error saving status-based disable config to database:', error);
+    }
+    
     console.log(`✅ Status-based disable config updated:`, {
       isEnabled,
       triggerStatuses,
@@ -269,6 +285,29 @@ export class ConfigurationService {
   getStatusBasedDisableConfig(): StatusBasedDisableConfig {
     console.log(`🔍 Getting status-based disable config:`, this.statusBasedDisableConfig);
     return this.statusBasedDisableConfig;
+  }
+
+  // Cargar configuración de deshabilitación basada en estados desde la base de datos
+  private async loadStatusBasedDisableConfig(): Promise<void> {
+    try {
+      const config = await this.dbService.getServiceConfig('status-based-disable');
+      if (config) {
+        const isEnabled = config.assistantId === 'ENABLED';
+        const triggerStatuses = config.assistantName.includes('Trigger Statuses: ') 
+          ? config.assistantName.replace('Trigger Statuses: ', '').split(', ').filter((s: string) => s.trim())
+          : [];
+        
+        this.statusBasedDisableConfig = {
+          isEnabled,
+          triggerStatuses,
+          lastUpdated: config.lastUpdated
+        };
+        
+        console.log(`✅ Status-based disable config loaded from database:`, this.statusBasedDisableConfig);
+      }
+    } catch (error) {
+      console.error('❌ Error loading status-based disable config from database:', error);
+    }
   }
 
   // Verificar si un estado debe deshabilitar la IA

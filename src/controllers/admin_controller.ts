@@ -740,7 +740,7 @@ export class AdminController {
         triggerStatuses
       });
 
-      this.configService.setStatusBasedDisableConfig(isEnabled, triggerStatuses);
+      await this.configService.setStatusBasedDisableConfig(isEnabled, triggerStatuses);
 
       const responseData = {
         isEnabled,
