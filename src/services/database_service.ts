@@ -239,4 +239,37 @@ export class DatabaseService {
     console.log(`${affectedCount > 0 ? '🗑️ Deleted' : '❌ Failed to delete'} saved webhook: ${id}`);
     return affectedCount > 0;
   }
+
+  // ===== WEBHOOK CONFIGURATION =====
+
+  async getWebhookConfig(): Promise<{ webhookUrl: string | null; isEnabled: boolean; lastUpdated: Date } | null> {
+    const { sequelize } = await import('../config/database');
+    const [results] = await sequelize.query(`
+      SELECT webhook_url as webhookUrl, is_enabled as isEnabled, last_updated as lastUpdated 
+      FROM webhook_config 
+      LIMIT 1
+    `);
+    
+    if (Array.isArray(results) && results.length > 0) {
+      const config = results[0] as any;
+      return {
+        webhookUrl: config.webhookUrl,
+        isEnabled: Boolean(config.isEnabled),
+        lastUpdated: new Date(config.lastUpdated)
+      };
+    }
+    return null;
+  }
+
+  async updateWebhookConfig(webhookUrl: string | null, isEnabled: boolean): Promise<void> {
+    const { sequelize } = await import('../config/database');
+    await sequelize.query(`
+      UPDATE webhook_config 
+      SET webhook_url = ?, is_enabled = ?, last_updated = NOW() 
+      WHERE id = 1
+    `, {
+      replacements: [webhookUrl, isEnabled]
+    });
+    console.log(`✅ Updated webhook config: ${webhookUrl ? 'URL set' : 'URL cleared'}, enabled: ${isEnabled}`);
+  }
 }

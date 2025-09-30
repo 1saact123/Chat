@@ -46,6 +46,7 @@ export class ConfigurationService {
     this.loadConfigurations();
     this.loadConfigurationsFromDatabase();
     this.loadStatusBasedDisableConfig();
+    this.loadWebhookConfig();
   }
 
   public static getInstance(): ConfigurationService {
@@ -487,14 +488,36 @@ export class ConfigurationService {
 
   // === WEBHOOK CONFIGURATION METHODS ===
 
+  // Cargar configuración del webhook desde la base de datos
+  private async loadWebhookConfig(): Promise<void> {
+    try {
+      const config = await this.dbService.getWebhookConfig();
+      if (config) {
+        this.webhookConfig = {
+          webhookUrl: config.webhookUrl || '',
+          isEnabled: config.isEnabled,
+          lastUpdated: config.lastUpdated
+        };
+        console.log(`✅ Webhook config loaded from database: ${config.webhookUrl ? 'URL set' : 'No URL'}, enabled: ${config.isEnabled}`);
+      } else {
+        console.log('⚠️ No webhook config found in database');
+      }
+    } catch (error) {
+      console.error('❌ Error loading webhook config from database:', error);
+    }
+  }
+
   // Configurar webhook URL
-  setWebhookUrl(webhookUrl: string): void {
+  async setWebhookUrl(webhookUrl: string): Promise<void> {
     this.webhookConfig = {
       webhookUrl,
       isEnabled: true,
       lastUpdated: new Date()
     };
-    console.log(`✅ Webhook URL configurada: ${webhookUrl}`);
+    
+    // Persistir en la base de datos
+    await this.dbService.updateWebhookConfig(webhookUrl, true);
+    console.log(`✅ Webhook URL configurada y persistida: ${webhookUrl}`);
   }
 
   // Obtener webhook URL
@@ -503,11 +526,14 @@ export class ConfigurationService {
   }
 
   // Habilitar/deshabilitar webhook
-  setWebhookEnabled(isEnabled: boolean): void {
+  async setWebhookEnabled(isEnabled: boolean): Promise<void> {
     if (this.webhookConfig) {
       this.webhookConfig.isEnabled = isEnabled;
       this.webhookConfig.lastUpdated = new Date();
-      console.log(`✅ Webhook ${isEnabled ? 'habilitado' : 'deshabilitado'}`);
+      
+      // Persistir en la base de datos
+      await this.dbService.updateWebhookConfig(this.webhookConfig.webhookUrl, isEnabled);
+      console.log(`✅ Webhook ${isEnabled ? 'habilitado' : 'deshabilitado'} y persistido`);
     }
   }
 
@@ -519,5 +545,18 @@ export class ConfigurationService {
   // Obtener configuración completa del webhook
   getWebhookConfiguration(): WebhookConfiguration | null {
     return this.webhookConfig;
+  }
+
+  // Deshabilitar webhook (limpiar URL y deshabilitar)
+  async disableWebhook(): Promise<void> {
+    this.webhookConfig = {
+      webhookUrl: '',
+      isEnabled: false,
+      lastUpdated: new Date()
+    };
+    
+    // Persistir en la base de datos
+    await this.dbService.updateWebhookConfig(null, false);
+    console.log(`✅ Webhook deshabilitado y persistido`);
   }
 }

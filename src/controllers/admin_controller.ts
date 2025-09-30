@@ -655,8 +655,8 @@ export class AdminController {
       console.log(`🔧 Configurando webhook: ${webhookUrl}`);
 
       // Configurar webhook URL
-      this.configService.setWebhookUrl(webhookUrl);
-      this.configService.setWebhookEnabled(true);
+      await this.configService.setWebhookUrl(webhookUrl);
+      await this.configService.setWebhookEnabled(true);
 
       // Si se especifica un asistente diferente para webhook, configurarlo
       if (assistantId) {
@@ -876,7 +876,7 @@ export class AdminController {
     try {
       console.log('🚫 Deshabilitando webhook...');
 
-      this.configService.setWebhookEnabled(false);
+      await this.configService.disableWebhook();
 
       res.json({
         success: true,

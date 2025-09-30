@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Assistant Control Panel - Movonte</title>
+    <title>AI Assistant Management Dashboard - Movonte</title>
     <link rel="stylesheet" href="ceo-dashboard.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -175,34 +175,34 @@
             <div class="header-content">
                 <div class="header-title">
                     <img src="favicons/favicon-32x32.png" alt="Movonte Logo" class="header-logo">
-                    <h1>AI Assistant Control Panel</h1>
+                    <h1>AI Assistant Management Dashboard</h1>
                 </div>
-                <p>Manage your AI assistants, configure services, and monitor system activity</p>
+                <p>Configure AI assistants, manage project integrations, and control automated responses</p>
             </div>
         </div>
 
         <!-- Service Navigation -->
         <div class="service-nav">
             <div class="service-nav-container">
-                <button class="service-nav-btn active" data-service="dashboard">
+                <button class="service-nav-btn active" data-service="overview">
                     <i class="fas fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
+                    <span>Overview</span>
                 </button>
-                <button class="service-nav-btn" data-service="assistants">
+                <button class="service-nav-btn" data-service="ai-config">
                     <i class="fas fa-robot"></i>
-                    <span>AI Assistants</span>
+                    <span>AI Configuration</span>
                 </button>
-                <button class="service-nav-btn" data-service="webhooks">
+                <button class="service-nav-btn" data-service="webhook-integration">
                     <i class="fas fa-webhook"></i>
-                    <span>Webhook Config</span>
+                    <span>Webhook Integration</span>
                 </button>
-                <button class="service-nav-btn" data-service="status-control">
+                <button class="service-nav-btn" data-service="auto-disable-rules">
                     <i class="fas fa-toggle-on"></i>
-                    <span>Status Control</span>
+                    <span>Auto-Disable Rules</span>
                 </button>
-                <button class="service-nav-btn" data-service="ticket-control">
+                <button class="service-nav-btn" data-service="manual-ticket-control">
                     <i class="fas fa-ticket-alt"></i>
-                    <span>Ticket Control</span>
+                    <span>Manual Ticket Control</span>
                 </button>
             </div>
         </div>
@@ -254,7 +254,7 @@
                 <!-- AI Assistants Section -->
                 <div class="section-card">
                     <div class="section-header">
-                        <h2>AI Assistants</h2>
+                        <h2>AI Assistant Configuration</h2>
                     </div>
                     <div class="section-content">
                         <!-- Global Active Assistant Info -->
@@ -275,7 +275,7 @@
                 <!-- Project Management Section -->
                 <div class="section-card">
                     <div class="section-header">
-                        <h2>Project Management</h2>
+                        <h2>AI Enabled Projects</h2>
                     </div>
                     <div class="section-content">
                                         <div class="form-group">
@@ -300,7 +300,7 @@
                 <!-- Remote Server Project Management Section -->
                 <div class="section-card">
                     <div class="section-header">
-                        <h2>Remote Server Project</h2>
+                        <h2>Remote Server Integration</h2>
                     </div>
                     <div class="section-content">
                         <div class="form-group">
@@ -336,7 +336,7 @@
                 <!-- Service Configuration Section -->
                 <div class="section-card">
                     <div class="section-header">
-                        <h2>Service Configuration</h2>
+                        <h2>Service Management</h2>
                     </div>
                     <div class="section-content">
                         <!-- Landing Page Service -->
@@ -390,8 +390,8 @@
                 <!-- Status-Based Disable Configuration Section -->
                 <div class="section-card">
                     <div class="section-header">
-                        <h2>Status-Based AI Control</h2>
-                        <p>Automatically disable AI when tickets change to specific statuses</p>
+                        <h2>Automatic AI Disable Rules</h2>
+                        <p>Set up rules to automatically disable AI when tickets change to specific statuses</p>
                     </div>
                     <div class="section-content">
                         <!-- Status-Based Disable Configuration -->
@@ -432,7 +432,7 @@
                 <div class="section-card">
                     <div class="section-header">
                         <h2>Webhook Configuration</h2>
-                        <p>Configure parallel webhook flow for external integrations</p>
+                        <p>Configure webhook integrations to send AI responses to external systems</p>
                     </div>
                     <div class="section-content">
                         <!-- Webhook URL Configuration -->
@@ -520,7 +520,7 @@
                 <div class="section-card ticket-control-section">
                     <div class="section-header">
                         <h2>Ticket Control</h2>
-                        <p>Disable AI assistant for specific Jira tickets</p>
+                        <p>Manually disable AI assistant for specific Jira tickets</p>
                     </div>
                     <div class="section-content">
                         <!-- Disable Assistant Form -->
@@ -1782,16 +1782,16 @@
                     case 'dashboard':
                         targetElement = document.querySelector('.stats-section');
                         break;
-                    case 'assistants':
+                    case 'ai-config':
                         targetElement = document.querySelector('.global-assistant-info');
                         break;
-                    case 'webhooks':
+                    case 'webhook-integration':
                         targetElement = document.querySelector('.webhook-section');
                         break;
-                    case 'status-control':
+                    case 'auto-disable-rules':
                         targetElement = document.querySelector('.status-control-section');
                         break;
-                    case 'ticket-control':
+                    case 'manual-ticket-control':
                         targetElement = document.querySelector('.ticket-control-section');
                         break;
                 }
