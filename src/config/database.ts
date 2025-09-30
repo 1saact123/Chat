@@ -56,10 +56,20 @@ export async function testConnection(): Promise<boolean> {
 // Función para sincronizar modelos
 export async function syncDatabase(): Promise<void> {
   try {
-    await sequelize.sync({ alter: true });
+    // Usar force: false para evitar recrear tablas existentes
+    // y alter: false para evitar conflictos con índices
+    await sequelize.sync({ force: false, alter: false });
     console.log('✅ Base de datos sincronizada correctamente');
   } catch (error) {
     console.error('❌ Error sincronizando base de datos:', error);
-    throw error;
+    // Si hay error con alter, intentar solo con force: false
+    try {
+      console.log('🔄 Intentando sincronización sin alter...');
+      await sequelize.sync({ force: false });
+      console.log('✅ Base de datos sincronizada sin alter');
+    } catch (secondError) {
+      console.error('❌ Error en segunda sincronización:', secondError);
+      throw secondError;
+    }
   }
 }
