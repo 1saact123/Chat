@@ -191,6 +191,38 @@ export class ChatbotController {
         // Obtener el issueKey al inicio
         const issueKey = payload.issue.key;
         
+        // Verificar que el ticket pertenece al proyecto activo
+        const { JiraService } = await import('../services/jira_service');
+        const jiraService = JiraService.getInstance();
+        const activeProject = jiraService.getActiveProject();
+        
+        console.log(`🔍 DEBUG - Validación de proyecto:`);
+        console.log(`   IssueKey: ${issueKey}`);
+        console.log(`   Proyecto activo: ${activeProject || 'NO CONFIGURADO'}`);
+        
+        if (activeProject) {
+          // Extraer el prefijo del proyecto del issueKey (ej: TI-123 -> TI)
+          const issueProjectKey = issueKey.split('-')[0];
+          console.log(`   Proyecto del ticket: ${issueProjectKey}`);
+          
+          if (issueProjectKey !== activeProject) {
+            console.log(`🚫 TICKET IGNORADO: ${issueKey} no pertenece al proyecto activo ${activeProject}`);
+            console.log(`   Proyecto del ticket: ${issueProjectKey}`);
+            console.log(`   Proyecto activo: ${activeProject}`);
+            res.json({ 
+              success: true, 
+              message: `Ticket ${issueKey} ignored - not from active project ${activeProject}`,
+              ignored: true,
+              reason: 'wrong_project'
+            });
+            return;
+          } else {
+            console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece al proyecto activo ${activeProject}`);
+          }
+        } else {
+          console.log(`⚠️  ADVERTENCIA: No hay proyecto activo configurado, procesando todos los tickets`);
+        }
+        
         // Crear un ID único para este comentario (más robusto)
         const commentId = `${issueKey}_${payload.comment.id}_${payload.comment.created}_${payload.comment.author.accountId}`;
         
@@ -419,8 +451,33 @@ export class ChatbotController {
         });
       } else if (payload.webhookEvent === 'jira:issue_created') {
         // Procesar evento de creación de ticket
+        const issueKey = payload.issue.key;
+        
+        // Verificar que el ticket pertenece al proyecto activo
+        const { JiraService } = await import('../services/jira_service');
+        const jiraService = JiraService.getInstance();
+        const activeProject = jiraService.getActiveProject();
+        
+        if (activeProject) {
+          // Extraer el prefijo del proyecto del issueKey (ej: TI-123 -> TI)
+          const issueProjectKey = issueKey.split('-')[0];
+          
+          if (issueProjectKey !== activeProject) {
+            console.log(`🚫 TICKET CREADO IGNORADO: ${issueKey} no pertenece al proyecto activo ${activeProject}`);
+            console.log(`   Proyecto del ticket: ${issueProjectKey}`);
+            console.log(`   Proyecto activo: ${activeProject}`);
+            res.json({ 
+              success: true, 
+              message: `Ticket ${issueKey} creation ignored - not from active project ${activeProject}`,
+              ignored: true,
+              reason: 'wrong_project'
+            });
+            return;
+          }
+        }
+        
         console.log(`🎫 NUEVO TICKET CREADO:`);
-        console.log(`   Issue: ${payload.issue.key}`);
+        console.log(`   Issue: ${issueKey}`);
         console.log(`   Summary: ${payload.issue.fields.summary}`);
         console.log(`   Status: ${payload.issue.fields.status.name}`);
         console.log(`   Creator: ${payload.issue.fields.creator?.displayName || 'N/A'}`);
@@ -1027,6 +1084,24 @@ Formato el reporte de manera clara y profesional.`;
   private async handleStatusChange(payload: JiraWebhookPayload): Promise<void> {
     try {
       const issueKey = payload.issue.key;
+      
+      // Verificar que el ticket pertenece al proyecto activo
+      const { JiraService } = await import('../services/jira_service');
+      const jiraService = JiraService.getInstance();
+      const activeProject = jiraService.getActiveProject();
+      
+      if (activeProject) {
+        // Extraer el prefijo del proyecto del issueKey (ej: TI-123 -> TI)
+        const issueProjectKey = issueKey.split('-')[0];
+        
+        if (issueProjectKey !== activeProject) {
+          console.log(`🚫 CAMBIO DE ESTADO IGNORADO: ${issueKey} no pertenece al proyecto activo ${activeProject}`);
+          console.log(`   Proyecto del ticket: ${issueProjectKey}`);
+          console.log(`   Proyecto activo: ${activeProject}`);
+          return;
+        }
+      }
+      
       const configService = ConfigurationService.getInstance();
       
       console.log(`🔄 Procesando cambio de estado para ticket ${issueKey}`);
