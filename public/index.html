@@ -96,7 +96,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            display: flex;
+            display: none; /* Oculto por defecto, se muestra solo para admins */
             align-items: center;
             gap: 8px;
         }
@@ -2473,12 +2473,16 @@
                         document.getElementById('userRole').textContent = user.role;
                         document.getElementById('userRole').className = `user-role ${user.role}`;
                         
-                        // Mostrar pestaña de gestión de usuarios solo para admins
+                        // Mostrar/ocultar botón de ajustes según el rol
+                        const settingsBtn = document.getElementById('settingsBtn');
                         if (user.role === 'admin') {
-                            console.log('👑 Usuario es admin, mostrando pestaña de gestión');
+                            console.log('👑 Usuario es admin, mostrando botón de ajustes y pestaña de gestión');
+                            settingsBtn.style.display = 'flex';
                             document.getElementById('userManagementTabBtn').style.display = 'flex';
                         } else {
-                            console.log('👤 Usuario no es admin, ocultando pestaña de gestión');
+                            console.log('👤 Usuario no es admin, ocultando botón de ajustes');
+                            settingsBtn.style.display = 'none';
+                            document.getElementById('userManagementTabBtn').style.display = 'none';
                         }
                     } else {
                         console.error('❌ Error en respuesta del perfil:', data);

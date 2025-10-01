@@ -136,8 +136,13 @@ export class ConfigurationService {
               shouldPreserve: existingWebhookConfig && existingWebhookConfig.assistantId !== process.env.OPENAI_ASSISTANT_ID
             });
             
-            // Preservar si ya tiene un asistente específico configurado (no el por defecto)
-            if (existingWebhookConfig && 
+            // Usar configuración de BD si tiene un asistente específico (no el por defecto)
+            if (dbConfig.assistantId !== process.env.OPENAI_ASSISTANT_ID &&
+                dbConfig.assistantId !== '' &&
+                dbConfig.assistantId !== null) {
+              console.log(`🔒 Usando configuración webhook-parallel de BD: ${dbConfig.assistantName} (${dbConfig.assistantId})`);
+              // Continuar con el procesamiento normal para usar la configuración de BD
+            } else if (existingWebhookConfig && 
                 existingWebhookConfig.assistantId !== process.env.OPENAI_ASSISTANT_ID &&
                 existingWebhookConfig.assistantId !== '' &&
                 existingWebhookConfig.isActive) {
