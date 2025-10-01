@@ -8,7 +8,18 @@ import { WidgetIntegrationController } from '../controllers/widget_integration_c
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
-import { login, logout, verifyToken, getProfile, changePassword } from '../controllers/auth_controller';
+import { 
+  login, 
+  logout, 
+  verifyToken, 
+  getProfile, 
+  changePassword,
+  getAllUsers,
+  createUser,
+  updateUser,
+  changeUserPassword,
+  deleteUser
+} from '../controllers/auth_controller';
 import { authenticateToken, requireAdmin, redirectToLoginIfNotAuth } from '../middleware/auth';
 
 // Initialize services
@@ -31,6 +42,13 @@ router.post('/api/auth/logout', logout);
 router.get('/api/auth/verify', authenticateToken, verifyToken);
 router.get('/api/auth/profile', authenticateToken, getProfile);
 router.put('/api/auth/change-password', authenticateToken, changePassword);
+
+// === USER MANAGEMENT ROUTES (ADMIN ONLY) ===
+router.get('/api/admin/users', authenticateToken, requireAdmin, getAllUsers);
+router.post('/api/admin/users', authenticateToken, requireAdmin, createUser);
+router.put('/api/admin/users/:id', authenticateToken, requireAdmin, updateUser);
+router.put('/api/admin/users/:id/password', authenticateToken, requireAdmin, changeUserPassword);
+router.delete('/api/admin/users/:id', authenticateToken, requireAdmin, deleteUser);
 
 // Página de login
 router.get('/login', (req, res) => {
@@ -243,6 +261,9 @@ router.post('/api/admin/webhook/disable', authenticateToken, requireAdmin, admin
 
 // Obtener estado del webhook
 router.get('/api/admin/webhook/status', authenticateToken, requireAdmin, adminController.getWebhookStatus.bind(adminController));
+
+// Configurar filtro del webhook
+router.post('/api/admin/webhook/filter', authenticateToken, requireAdmin, adminController.configureWebhookFilter.bind(adminController));
 
 // Obtener webhooks guardados
 router.get('/api/admin/webhooks/saved', authenticateToken, requireAdmin, adminController.getSavedWebhooks.bind(adminController));

@@ -901,6 +901,8 @@ export class AdminController {
       const webhookConfig = this.configService.getWebhookConfiguration();
       const webhookService = this.configService.getServiceConfiguration('webhook-parallel');
 
+      const filterConfig = this.configService.getWebhookFilterConfig();
+
       res.json({
         success: true,
         data: {
@@ -908,12 +910,53 @@ export class AdminController {
           isEnabled: this.configService.isWebhookEnabled(),
           assistantId: webhookService?.assistantId || null,
           assistantName: webhookService?.assistantName || null,
-          lastUpdated: webhookConfig?.lastUpdated || null
+          lastUpdated: webhookConfig?.lastUpdated || null,
+          filter: filterConfig || {
+            filterEnabled: false,
+            filterCondition: 'response_value',
+            filterValue: 'Yes'
+          }
         },
         timestamp: new Date().toISOString()
       });
     } catch (error) {
       console.error('❌ Error obteniendo estado del webhook:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Configurar filtro del webhook
+  async configureWebhookFilter(req: Request, res: Response): Promise<void> {
+    try {
+      const { filterEnabled, filterCondition, filterValue } = req.body;
+
+      console.log(`🔧 Configurando filtro de webhook:`, {
+        filterEnabled,
+        filterCondition,
+        filterValue
+      });
+
+      await this.configService.setWebhookFilter(
+        filterEnabled,
+        filterCondition || 'response_value',
+        filterValue || 'Yes'
+      );
+
+      res.json({
+        success: true,
+        message: 'Filtro de webhook configurado exitosamente',
+        data: {
+          filterEnabled,
+          filterCondition: filterCondition || 'response_value',
+          filterValue: filterValue || 'Yes',
+          lastUpdated: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error configurando filtro de webhook:', error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'

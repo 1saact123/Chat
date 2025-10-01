@@ -992,6 +992,12 @@ Formato el reporte de manera clara y profesional.`;
         return;
       }
 
+      // Verificar filtro del webhook antes de procesar
+      if (!configService.shouldSendWebhook(aiResponse.response)) {
+        console.log(`🚫 Webhook filtrado: respuesta no cumple con los criterios del filtro`);
+        return;
+      }
+
       // Crear thread separado para el webhook (usando asistente diferente si está configurado)
       const webhookThreadId = `webhook_${issueKey}_${Date.now()}`;
       

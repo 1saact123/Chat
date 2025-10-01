@@ -26,6 +26,9 @@ interface WebhookConfiguration {
   webhookUrl: string;
   isEnabled: boolean;
   lastUpdated: Date;
+  filterEnabled: boolean;
+  filterCondition: string;
+  filterValue: string;
 }
 
 export class ConfigurationService {
@@ -496,9 +499,12 @@ export class ConfigurationService {
         this.webhookConfig = {
           webhookUrl: config.webhookUrl || '',
           isEnabled: config.isEnabled,
-          lastUpdated: config.lastUpdated
+          lastUpdated: config.lastUpdated,
+          filterEnabled: config.filterEnabled,
+          filterCondition: config.filterCondition,
+          filterValue: config.filterValue
         };
-        console.log(`✅ Webhook config loaded from database: ${config.webhookUrl ? 'URL set' : 'No URL'}, enabled: ${config.isEnabled}`);
+        console.log(`✅ Webhook config loaded from database: ${config.webhookUrl ? 'URL set' : 'No URL'}, enabled: ${config.isEnabled}, filter: ${config.filterEnabled ? 'enabled' : 'disabled'}`);
       } else {
         console.log('⚠️ No webhook config found in database');
       }
@@ -512,7 +518,10 @@ export class ConfigurationService {
     this.webhookConfig = {
       webhookUrl,
       isEnabled: true,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      filterEnabled: this.webhookConfig?.filterEnabled || false,
+      filterCondition: this.webhookConfig?.filterCondition || 'response_value',
+      filterValue: this.webhookConfig?.filterValue || 'Yes'
     };
     
     // Persistir en la base de datos
@@ -552,11 +561,96 @@ export class ConfigurationService {
     this.webhookConfig = {
       webhookUrl: '',
       isEnabled: false,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      filterEnabled: this.webhookConfig?.filterEnabled || false,
+      filterCondition: this.webhookConfig?.filterCondition || 'response_value',
+      filterValue: this.webhookConfig?.filterValue || 'Yes'
     };
     
     // Persistir en la base de datos
     await this.dbService.updateWebhookConfig(null, false);
     console.log(`✅ Webhook deshabilitado y persistido`);
+  }
+
+  // === WEBHOOK FILTER METHODS ===
+
+  // Configurar filtro del webhook
+  async setWebhookFilter(filterEnabled: boolean, filterCondition: string = 'response_value', filterValue: string = 'Yes'): Promise<void> {
+    if (this.webhookConfig) {
+      this.webhookConfig.filterEnabled = filterEnabled;
+      this.webhookConfig.filterCondition = filterCondition;
+      this.webhookConfig.filterValue = filterValue;
+      this.webhookConfig.lastUpdated = new Date();
+    }
+    
+    // Persistir en la base de datos
+    await this.dbService.updateWebhookFilter(filterEnabled, filterCondition, filterValue);
+    console.log(`✅ Webhook filter configurado y persistido: enabled=${filterEnabled}, condition=${filterCondition}, value=${filterValue}`);
+  }
+
+  // Verificar si el filtro está habilitado
+  isWebhookFilterEnabled(): boolean {
+    return this.webhookConfig?.filterEnabled || false;
+  }
+
+  // Obtener configuración del filtro
+  getWebhookFilterConfig(): { filterEnabled: boolean; filterCondition: string; filterValue: string } | null {
+    if (!this.webhookConfig) return null;
+    
+    return {
+      filterEnabled: this.webhookConfig.filterEnabled,
+      filterCondition: this.webhookConfig.filterCondition,
+      filterValue: this.webhookConfig.filterValue
+    };
+  }
+
+  // Verificar si la respuesta cumple con el filtro
+  shouldSendWebhook(assistantResponse: any): boolean {
+    if (!this.webhookConfig || !this.webhookConfig.isEnabled) {
+      return false;
+    }
+
+    // Si el filtro está deshabilitado, enviar siempre
+    if (!this.webhookConfig.filterEnabled) {
+      return true;
+    }
+
+    // Verificar condición del filtro
+    if (this.webhookConfig.filterCondition === 'response_value') {
+      try {
+        // Buscar el valor en la respuesta del asistente
+        const responseValue = this.extractResponseValue(assistantResponse);
+        const shouldSend = responseValue === this.webhookConfig.filterValue;
+        
+        console.log(`🔍 Webhook filter check: responseValue="${responseValue}", filterValue="${this.webhookConfig.filterValue}", shouldSend=${shouldSend}`);
+        return shouldSend;
+      } catch (error) {
+        console.error('❌ Error checking webhook filter:', error);
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // Extraer el valor de la respuesta del asistente
+  private extractResponseValue(assistantResponse: any): string | null {
+    try {
+      // Si la respuesta es un string, intentar parsearla como JSON
+      if (typeof assistantResponse === 'string') {
+        const parsed = JSON.parse(assistantResponse);
+        return parsed.value || null;
+      }
+      
+      // Si es un objeto, buscar directamente el valor
+      if (typeof assistantResponse === 'object' && assistantResponse !== null) {
+        return assistantResponse.value || null;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('❌ Error extracting response value:', error);
+      return null;
+    }
   }
 }

@@ -79,6 +79,335 @@
             margin: 0;
         }
 
+        /* Header Actions Styles */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .settings-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .user-role {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .user-role.admin {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            position: relative;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .modal-body {
+            margin-bottom: 24px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        /* User Management Table */
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        .users-table th,
+        .users-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .users-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .users-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        /* Form Styles */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .role-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .role-admin {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .role-user {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        /* Settings Tabs */
+        .settings-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 16px;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            font-weight: 500;
+            color: #6b7280;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn.active {
+            background: #f3f4f6;
+            color: #374151;
+            border-bottom: 2px solid #3b82f6;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: #f9fafb;
+            color: #374151;
+        }
+
+        .settings-tab-content {
+            min-height: 200px;
+        }
+
+        .settings-tab-content h3 {
+            margin: 0 0 16px 0;
+            color: #1f2937;
+            font-size: 18px;
+        }
+
         /* Service Navigation Styles */
         .service-nav {
             background: #f8f9fa;
@@ -177,8 +506,19 @@
                     <img src="favicons/favicon-32x32.png" alt="Movonte Logo" class="header-logo">
                     <h1>AI Assistant Management Dashboard</h1>
                 </div>
-                <p>Configure AI assistants, manage project integrations, and control automated responses</p>
+                <div class="header-actions">
+                    <div class="user-info" id="userInfo">
+                        <i class="fas fa-user"></i>
+                        <span id="userName">Cargando...</span>
+                        <span class="user-role" id="userRole">user</span>
+                    </div>
+                    <button class="settings-btn" id="settingsBtn">
+                        <i class="fas fa-cog"></i>
+                        <span>Ajustes</span>
+                    </button>
+                </div>
             </div>
+            <p>Configure AI assistants, manage project integrations, and control automated responses</p>
         </div>
 
         <!-- Service Navigation -->
@@ -469,6 +809,42 @@
                                     <option value="">Select an assistant for webhook flow...</option>
                                 </select>
                             </div>
+                            
+                            <!-- Webhook Filter Configuration -->
+                            <div class="form-group">
+                                <div class="form-check">
+                                    <input type="checkbox" id="webhookFilterEnabled" class="form-check-input">
+                                    <label for="webhookFilterEnabled" class="form-check-label">
+                                        <strong>Enable Response Filter</strong>
+                                    </label>
+                                </div>
+                                <small class="form-help">Only send webhook when assistant response meets filter criteria</small>
+                            </div>
+                            
+                            <div id="webhookFilterConfig" style="display: none;">
+                                <div class="form-group">
+                                    <label for="webhookFilterCondition" class="form-label">Filter Condition</label>
+                                    <select id="webhookFilterCondition" class="form-select">
+                                        <option value="response_value">Response Value</option>
+                                    </select>
+                                    <small class="form-help">Filter based on the assistant's response value</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="webhookFilterValue" class="form-label">Filter Value</label>
+                                    <select id="webhookFilterValue" class="form-select">
+                                        <option value="Yes">Yes</option>
+                                        <option value="No">No</option>
+                                    </select>
+                                    <small class="form-help">Only send webhook when response value equals this</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <button class="btn btn-warning" id="saveWebhookFilterBtn">
+                                        <i class="fas fa-filter"></i> Save Filter Configuration
+                                    </button>
+                                </div>
+                            </div>
                             <div class="form-actions">
                                 <button class="btn btn-info" id="createNewWebhookBtn">
                                     <i class="fas fa-plus"></i> Create New Webhook
@@ -630,6 +1006,178 @@
         <!-- Status Messages -->
         <div id="statusMessage" class="status-message" style="display: none;"></div>
 
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Configuración del Sistema</h2>
+                    <button class="modal-close" id="closeSettingsModalHeaderBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="settings-tabs">
+                        <button class="tab-btn active" id="changePasswordTabBtn">
+                            <i class="fas fa-key"></i> Cambiar Contraseña
+                        </button>
+                        <button class="tab-btn" id="userManagementTabBtn" style="display: none;">
+                            <i class="fas fa-users"></i> Gestión de Usuarios
+                        </button>
+                    </div>
+                    
+                    <!-- Change Password Tab -->
+                    <div id="changePasswordTab" class="settings-tab-content">
+                        <h3>Cambiar Contraseña</h3>
+                        <form id="changePasswordForm">
+                            <div class="form-group">
+                                <label for="currentPassword" class="form-label">Contraseña Actual</label>
+                                <input type="password" id="currentPassword" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword" class="form-label">Nueva Contraseña</label>
+                                <input type="password" id="newPassword" class="form-input" required minlength="6">
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmPassword" class="form-label">Confirmar Nueva Contraseña</label>
+                                <input type="password" id="confirmPassword" class="form-input" required minlength="6">
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- User Management Tab (Admin Only) -->
+                    <div id="userManagementTab" class="settings-tab-content" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3>Gestión de Usuarios</h3>
+                            <button class="btn btn-primary" id="createUserBtn">
+                                <i class="fas fa-plus"></i> Nuevo Usuario
+                            </button>
+                        </div>
+                        <div id="usersList">
+                            <div style="text-align: center; padding: 20px;">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: #3b82f6; margin-bottom: 10px;"></i>
+                                <p>Cargando usuarios...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="closeSettingsModalBtn">Cerrar</button>
+                    <button class="btn btn-primary" id="savePasswordBtn">Guardar Contraseña</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create User Modal -->
+        <div id="createUserModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Crear Nuevo Usuario</h2>
+                    <button class="modal-close" id="closeCreateUserModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="createUserForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="newUsername" class="form-label">Usuario</label>
+                                <input type="text" id="newUsername" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newUserEmail" class="form-label">Email</label>
+                                <input type="email" id="newUserEmail" class="form-input" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="newUserPassword" class="form-label">Contraseña</label>
+                                <input type="password" id="newUserPassword" class="form-input" required minlength="6">
+                            </div>
+                            <div class="form-group">
+                                <label for="newUserRole" class="form-label">Rol</label>
+                                <select id="newUserRole" class="form-select" required>
+                                    <option value="user">Usuario</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelCreateUserBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="confirmCreateUserBtn">Crear Usuario</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit User Modal -->
+        <div id="editUserModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Editar Usuario</h2>
+                    <button class="modal-close" id="closeEditUserModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="editUserId">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editUsername" class="form-label">Usuario</label>
+                                <input type="text" id="editUsername" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editUserEmail" class="form-label">Email</label>
+                                <input type="email" id="editUserEmail" class="form-input" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editUserRole" class="form-label">Rol</label>
+                                <select id="editUserRole" class="form-select" required>
+                                    <option value="user">Usuario</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="editUserStatus" class="form-label">Estado</label>
+                                <select id="editUserStatus" class="form-select" required>
+                                    <option value="true">Activo</option>
+                                    <option value="false">Inactivo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelEditUserBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="confirmUpdateUserBtn">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Change User Password Modal -->
+        <div id="changeUserPasswordModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Cambiar Contraseña de Usuario</h2>
+                    <button class="modal-close" id="closeChangeUserPasswordModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="changeUserPasswordForm">
+                        <input type="hidden" id="changePasswordUserId">
+                        <div class="form-group">
+                            <label for="newUserPasswordInput" class="form-label">Nueva Contraseña</label>
+                            <input type="password" id="newUserPasswordInput" class="form-input" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmNewUserPassword" class="form-label">Confirmar Nueva Contraseña</label>
+                            <input type="password" id="confirmNewUserPassword" class="form-input" required minlength="6">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelChangeUserPasswordBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="confirmChangeUserPasswordBtn">Cambiar Contraseña</button>
+                </div>
+            </div>
+        </div>
+
     <script>
         class CEODashboard {
             constructor() {
@@ -653,6 +1201,7 @@
                     return;
                 }
                 
+                await this.loadUserProfile();
                 await this.loadDashboard();
                 await this.loadProjects();
                 await this.loadRemoteProjects();
@@ -1135,6 +1684,73 @@
                     this.changeRemoteProject(e.target.value);
                 });
 
+                // === USER MANAGEMENT EVENT LISTENERS ===
+                
+                // Settings modal tabs
+                document.getElementById('changePasswordTabBtn')?.addEventListener('click', () => {
+                    this.showSettingsTab('changePassword');
+                });
+                
+                document.getElementById('userManagementTabBtn')?.addEventListener('click', () => {
+                    this.showSettingsTab('userManagement');
+                });
+                
+                // Settings modal buttons
+                document.getElementById('closeSettingsModalBtn')?.addEventListener('click', () => {
+                    this.closeModal('settingsModal');
+                });
+                
+                document.getElementById('closeSettingsModalHeaderBtn')?.addEventListener('click', () => {
+                    this.closeModal('settingsModal');
+                });
+                
+                document.getElementById('savePasswordBtn')?.addEventListener('click', () => {
+                    this.savePassword();
+                });
+                
+                // Create user modal buttons
+                document.getElementById('createUserBtn')?.addEventListener('click', () => {
+                    this.showCreateUserModal();
+                });
+                
+                document.getElementById('closeCreateUserModalBtn')?.addEventListener('click', () => {
+                    this.closeModal('createUserModal');
+                });
+                
+                document.getElementById('cancelCreateUserBtn')?.addEventListener('click', () => {
+                    this.closeModal('createUserModal');
+                });
+                
+                document.getElementById('confirmCreateUserBtn')?.addEventListener('click', () => {
+                    this.createUser();
+                });
+                
+                // Edit user modal buttons
+                document.getElementById('closeEditUserModalBtn')?.addEventListener('click', () => {
+                    this.closeModal('editUserModal');
+                });
+                
+                document.getElementById('cancelEditUserBtn')?.addEventListener('click', () => {
+                    this.closeModal('editUserModal');
+                });
+                
+                document.getElementById('confirmUpdateUserBtn')?.addEventListener('click', () => {
+                    this.updateUser();
+                });
+                
+                // Change user password modal buttons
+                document.getElementById('closeChangeUserPasswordModalBtn')?.addEventListener('click', () => {
+                    this.closeModal('changeUserPasswordModal');
+                });
+                
+                document.getElementById('cancelChangeUserPasswordBtn')?.addEventListener('click', () => {
+                    this.closeModal('changeUserPasswordModal');
+                });
+                
+                document.getElementById('confirmChangeUserPasswordBtn')?.addEventListener('click', () => {
+                    this.changeUserPassword();
+                });
+
                 // Ticket control event listeners
                 document.getElementById('disableTicketBtn')?.addEventListener('click', () => {
                     this.disableTicketAssistant();
@@ -1163,6 +1779,15 @@
 
                 document.getElementById('disableWebhookBtn')?.addEventListener('click', () => {
                     this.disableWebhook();
+                });
+
+                // Webhook filter event listeners
+                document.getElementById('webhookFilterEnabled')?.addEventListener('change', () => {
+                    this.toggleWebhookFilterConfig();
+                });
+
+                document.getElementById('saveWebhookFilterBtn')?.addEventListener('click', () => {
+                    this.saveWebhookFilter();
                 });
 
                 // Saved webhooks event listeners
@@ -1581,6 +2206,51 @@
                 }
             }
 
+            // Webhook Filter Methods
+            toggleWebhookFilterConfig() {
+                const filterEnabled = document.getElementById('webhookFilterEnabled');
+                const filterConfig = document.getElementById('webhookFilterConfig');
+                
+                if (filterEnabled && filterConfig) {
+                    if (filterEnabled.checked) {
+                        filterConfig.style.display = 'block';
+                    } else {
+                        filterConfig.style.display = 'none';
+                    }
+                }
+            }
+
+            async saveWebhookFilter() {
+                try {
+                    const filterEnabled = document.getElementById('webhookFilterEnabled').checked;
+                    const filterCondition = document.getElementById('webhookFilterCondition').value;
+                    const filterValue = document.getElementById('webhookFilterValue').value;
+
+                    const response = await this.authenticatedFetch('/api/admin/webhook/filter', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            filterEnabled,
+                            filterCondition,
+                            filterValue
+                        })
+                    });
+                    
+                    if (!response) return;
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showStatus('Webhook filter configuration saved successfully', 'success');
+                        this.addActivity('Webhook filter updated', 'info');
+                        this.updateWebhookStatus();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error saving webhook filter:', error);
+                    this.showStatus(`Error saving webhook filter: ${error.message}`, 'error');
+                }
+            }
+
             async updateWebhookStatus() {
                 try {
                     const response = await this.authenticatedFetch('/api/admin/webhook/status');
@@ -1607,6 +2277,27 @@
                             // Only update if dropdown is empty or if we have a valid assistantId from webhook config
                             if (!webhookAssistantSelect.value || data.data.assistantId) {
                                 webhookAssistantSelect.value = data.data.assistantId || '';
+                            }
+                        }
+                        
+                        // Update filter configuration
+                        if (data.data.filter) {
+                            const filterEnabled = document.getElementById('webhookFilterEnabled');
+                            const filterConfig = document.getElementById('webhookFilterConfig');
+                            const filterCondition = document.getElementById('webhookFilterCondition');
+                            const filterValue = document.getElementById('webhookFilterValue');
+                            
+                            if (filterEnabled) {
+                                filterEnabled.checked = data.data.filter.filterEnabled;
+                                this.toggleWebhookFilterConfig();
+                            }
+                            
+                            if (filterCondition) {
+                                filterCondition.value = data.data.filter.filterCondition || 'response_value';
+                            }
+                            
+                            if (filterValue) {
+                                filterValue.value = data.data.filter.filterValue || 'Yes';
                             }
                         }
                     }
@@ -1745,6 +2436,450 @@
                 document.getElementById('saveWebhookBtn').style.display = 'none';
                 document.getElementById('cancelNewWebhookBtn').style.display = 'none';
                 document.getElementById('createNewWebhookBtn').style.display = 'inline-block';
+            }
+
+            // === USER MANAGEMENT METHODS ===
+
+            async loadUserProfile() {
+                try {
+                    const response = await this.authenticatedFetch('/api/auth/profile');
+                    if (!response) return;
+
+                    const data = await response.json();
+                    if (data.success && data.data.user) {
+                        const user = data.data.user;
+                        this.currentUser = user;
+                        
+                        // Actualizar la información del usuario en el header
+                        document.getElementById('userName').textContent = user.username;
+                        document.getElementById('userRole').textContent = user.role;
+                        document.getElementById('userRole').className = `user-role ${user.role}`;
+                        
+                        // Mostrar pestaña de gestión de usuarios solo para admins
+                        if (user.role === 'admin') {
+                            document.getElementById('userManagementTab').style.display = 'flex';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error cargando perfil de usuario:', error);
+                }
+            }
+
+            // === MODAL MANAGEMENT ===
+
+            openModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.add('show');
+                    document.body.style.overflow = 'hidden';
+                }
+            }
+
+            closeModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.remove('show');
+                    document.body.style.overflow = 'auto';
+                }
+            }
+
+            showSettingsTab(tabName) {
+                console.log('🔄 Cambiando a pestaña:', tabName);
+                
+                // Ocultar todas las pestañas
+                document.querySelectorAll('.settings-tab-content').forEach(tab => {
+                    tab.style.display = 'none';
+                });
+                
+                // Remover clase active de todos los botones
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Mostrar pestaña seleccionada
+                const tabContent = document.getElementById(tabName + 'Tab');
+                const tabBtn = document.getElementById(tabName + 'TabBtn');
+                
+                if (tabContent) {
+                    tabContent.style.display = 'block';
+                    console.log('✅ Pestaña mostrada:', tabName);
+                }
+                if (tabBtn) {
+                    tabBtn.classList.add('active');
+                    console.log('✅ Botón activado:', tabName);
+                }
+                
+                // Cargar usuarios si es la pestaña de gestión
+                if (tabName === 'userManagement') {
+                    console.log('🔄 Cargando usuarios para pestaña de gestión...');
+                    this.loadUsers();
+                }
+            }
+
+            // === PASSWORD MANAGEMENT ===
+
+            async savePassword() {
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    this.showStatus('Por favor completa todos los campos', 'error');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    this.showStatus('Las contraseñas no coinciden', 'error');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    this.showStatus('La contraseña debe tener al menos 6 caracteres', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await this.authenticatedFetch('/api/auth/change-password', {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            currentPassword,
+                            newPassword
+                        })
+                    });
+
+                    if (!response) return;
+
+                    const data = await response.json();
+                    if (data.success) {
+                        this.showStatus('Contraseña actualizada exitosamente', 'success');
+                        document.getElementById('changePasswordForm').reset();
+                        this.closeModal('settingsModal');
+                    } else {
+                        this.showStatus(data.error || 'Error al cambiar la contraseña', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error cambiando contraseña:', error);
+                    this.showStatus('Error al cambiar la contraseña', 'error');
+                }
+            }
+
+            // === USER MANAGEMENT (ADMIN ONLY) ===
+
+            async loadUsers() {
+                try {
+                    console.log('🔄 Cargando usuarios...');
+                    const response = await this.authenticatedFetch('/api/admin/users');
+                    
+                    if (!response) {
+                        throw new Error('No se pudo conectar con el servidor');
+                    }
+
+                    const data = await response.json();
+                    console.log('📊 Respuesta de usuarios:', data);
+                    
+                    if (data.success && data.data && data.data.users) {
+                        console.log('✅ Usuarios cargados:', data.data.users.length);
+                        this.renderUsersTable(data.data.users);
+                    } else {
+                        console.error('❌ Error en respuesta:', data);
+                        document.getElementById('usersList').innerHTML = '<p>Error: ' + (data.error || 'Respuesta inválida del servidor') + '</p>';
+                    }
+                } catch (error) {
+                    console.error('❌ Error cargando usuarios:', error);
+                    document.getElementById('usersList').innerHTML = '<p>Error al cargar usuarios: ' + error.message + '</p>';
+                }
+            }
+
+            renderUsersTable(users) {
+                const usersList = document.getElementById('usersList');
+                console.log('🔄 Renderizando tabla de usuarios:', users);
+                
+                if (!users || users.length === 0) {
+                    usersList.innerHTML = '<p>No hay usuarios registrados</p>';
+                    return;
+                }
+
+                const tableHTML = `
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Email</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Último Login</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${users.map(user => `
+                                <tr>
+                                    <td>${user.username}</td>
+                                    <td>${user.email}</td>
+                                    <td><span class="role-badge role-${user.role}">${user.role}</span></td>
+                                    <td><span class="status-badge status-${user.isActive ? 'active' : 'inactive'}">${user.isActive ? 'Activo' : 'Inactivo'}</span></td>
+                                    <td>${user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Nunca'}</td>
+                                    <td class="user-actions">
+                                        <button class="btn btn-sm btn-primary edit-user-btn" data-user-id="${user.id}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary change-password-btn" data-user-id="${user.id}">
+                                            <i class="fas fa-key"></i>
+                                        </button>
+                                        ${user.id !== this.currentUser.id ? `
+                                            <button class="btn btn-sm btn-danger delete-user-btn" data-user-id="${user.id}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        ` : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                usersList.innerHTML = tableHTML;
+                console.log('✅ Tabla de usuarios renderizada');
+                
+                // Agregar event listeners a los botones de la tabla
+                this.setupUserTableEventListeners();
+            }
+
+            setupUserTableEventListeners() {
+                console.log('🔄 Configurando event listeners de la tabla de usuarios...');
+                
+                // Event listeners para botones de editar usuario
+                const editButtons = document.querySelectorAll('.edit-user-btn');
+                console.log('📝 Botones de editar encontrados:', editButtons.length);
+                editButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const userId = parseInt(e.currentTarget.dataset.userId);
+                        console.log('🔄 Editando usuario ID:', userId);
+                        this.editUser(userId);
+                    });
+                });
+                
+                // Event listeners para botones de cambiar contraseña
+                const passwordButtons = document.querySelectorAll('.change-password-btn');
+                console.log('🔑 Botones de cambiar contraseña encontrados:', passwordButtons.length);
+                passwordButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const userId = parseInt(e.currentTarget.dataset.userId);
+                        console.log('🔄 Cambiando contraseña de usuario ID:', userId);
+                        this.changeUserPasswordModal(userId);
+                    });
+                });
+                
+                // Event listeners para botones de eliminar usuario
+                const deleteButtons = document.querySelectorAll('.delete-user-btn');
+                console.log('🗑️ Botones de eliminar encontrados:', deleteButtons.length);
+                deleteButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const userId = parseInt(e.currentTarget.dataset.userId);
+                        console.log('🔄 Eliminando usuario ID:', userId);
+                        this.deleteUser(userId);
+                    });
+                });
+                
+                console.log('✅ Event listeners configurados');
+            }
+
+            showCreateUserModal() {
+                document.getElementById('createUserForm').reset();
+                this.openModal('createUserModal');
+            }
+
+            async createUser() {
+                const username = document.getElementById('newUsername').value;
+                const email = document.getElementById('newUserEmail').value;
+                const password = document.getElementById('newUserPassword').value;
+                const role = document.getElementById('newUserRole').value;
+
+                if (!username || !email || !password) {
+                    this.showStatus('Por favor completa todos los campos', 'error');
+                    return;
+                }
+
+                if (password.length < 6) {
+                    this.showStatus('La contraseña debe tener al menos 6 caracteres', 'error');
+                    return;
+                }
+
+                // Mostrar indicador de carga
+                const createBtn = document.getElementById('confirmCreateUserBtn');
+                const originalText = createBtn.innerHTML;
+                createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
+                createBtn.disabled = true;
+
+                try {
+                    const response = await this.authenticatedFetch('/api/admin/users', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            username,
+                            email,
+                            password,
+                            role
+                        })
+                    });
+
+                    if (!response) {
+                        throw new Error('No se pudo conectar con el servidor');
+                    }
+
+                    const data = await response.json();
+                    if (data.success) {
+                        this.showStatus('Usuario creado exitosamente', 'success');
+                        this.closeModal('createUserModal');
+                        // Recargar la lista de usuarios
+                        await this.loadUsers();
+                    } else {
+                        this.showStatus(data.error || 'Error al crear usuario', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error creando usuario:', error);
+                    this.showStatus('Error al crear usuario: ' + error.message, 'error');
+                } finally {
+                    // Restaurar botón
+                    createBtn.innerHTML = originalText;
+                    createBtn.disabled = false;
+                }
+            }
+
+            async editUser(userId) {
+                try {
+                    const response = await this.authenticatedFetch('/api/admin/users');
+                    if (!response) return;
+
+                    const data = await response.json();
+                    if (data.success && data.data.users) {
+                        const user = data.data.users.find(u => u.id === userId);
+                        if (user) {
+                            document.getElementById('editUserId').value = user.id;
+                            document.getElementById('editUsername').value = user.username;
+                            document.getElementById('editUserEmail').value = user.email;
+                            document.getElementById('editUserRole').value = user.role;
+                            document.getElementById('editUserStatus').value = user.isActive.toString();
+                            
+                            this.openModal('editUserModal');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error cargando usuario:', error);
+                    this.showStatus('Error al cargar usuario', 'error');
+                }
+            }
+
+            async updateUser() {
+                const userId = document.getElementById('editUserId').value;
+                const username = document.getElementById('editUsername').value;
+                const email = document.getElementById('editUserEmail').value;
+                const role = document.getElementById('editUserRole').value;
+                const isActive = document.getElementById('editUserStatus').value === 'true';
+
+                if (!username || !email) {
+                    this.showStatus('Por favor completa todos los campos', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await this.authenticatedFetch(`/api/admin/users/${userId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            username,
+                            email,
+                            role,
+                            isActive
+                        })
+                    });
+
+                    if (!response) return;
+
+                    const data = await response.json();
+                    if (data.success) {
+                        this.showStatus('Usuario actualizado exitosamente', 'success');
+                        this.closeModal('editUserModal');
+                        this.loadUsers();
+                    } else {
+                        this.showStatus(data.error || 'Error al actualizar usuario', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error actualizando usuario:', error);
+                    this.showStatus('Error al actualizar usuario', 'error');
+                }
+            }
+
+            changeUserPasswordModal(userId) {
+                document.getElementById('changePasswordUserId').value = userId;
+                document.getElementById('changeUserPasswordForm').reset();
+                this.openModal('changeUserPasswordModal');
+            }
+
+            async changeUserPassword() {
+                const userId = document.getElementById('changePasswordUserId').value;
+                const newPassword = document.getElementById('newUserPasswordInput').value;
+                const confirmPassword = document.getElementById('confirmNewUserPassword').value;
+
+                if (!newPassword || !confirmPassword) {
+                    this.showStatus('Por favor completa todos los campos', 'error');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    this.showStatus('Las contraseñas no coinciden', 'error');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    this.showStatus('La contraseña debe tener al menos 6 caracteres', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await this.authenticatedFetch(`/api/admin/users/${userId}/password`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            newPassword
+                        })
+                    });
+
+                    if (!response) return;
+
+                    const data = await response.json();
+                    if (data.success) {
+                        this.showStatus('Contraseña actualizada exitosamente', 'success');
+                        this.closeModal('changeUserPasswordModal');
+                    } else {
+                        this.showStatus(data.error || 'Error al cambiar contraseña', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error cambiando contraseña:', error);
+                    this.showStatus('Error al cambiar contraseña', 'error');
+                }
+            }
+
+            async deleteUser(userId) {
+                if (!confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
+                    return;
+                }
+
+                try {
+                    const response = await this.authenticatedFetch(`/api/admin/users/${userId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response) return;
+
+                    const data = await response.json();
+                    if (data.success) {
+                        this.showStatus('Usuario eliminado exitosamente', 'success');
+                        this.loadUsers();
+                    } else {
+                        this.showStatus(data.error || 'Error al eliminar usuario', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error eliminando usuario:', error);
+                    this.showStatus('Error al eliminar usuario', 'error');
+                }
             }
 
             // === SERVICE NAVIGATION METHODS ===
@@ -1978,6 +3113,11 @@
          document.addEventListener('DOMContentLoaded', function() {
              dashboard = new CEODashboard();
              
+             // Event listener para el botón de ajustes
+             document.getElementById('settingsBtn').addEventListener('click', function() {
+                 dashboard.openModal('settingsModal');
+             });
+             
              // Event listener para el checkbox de status disable
              document.getElementById('statusDisableEnabled').addEventListener('change', function() {
                  const statusSelectionGroup = document.getElementById('statusSelectionGroup');
@@ -1997,6 +3137,8 @@
                  }
              });
          });
+
+         // Las funciones globales han sido reemplazadas por event listeners
     </script>
 </body>
 </html>

@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Movonte Admin</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/favicons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
     <style>
         * {
             margin: 0;
@@ -15,23 +19,50 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 25%, #06b6d4 50%, #10b981 75%, #059669 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
         }
 
         .login-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            padding: 40px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(255, 255, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            padding: 48px 40px;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             position: relative;
             overflow: hidden;
+            z-index: 1;
         }
 
         .login-container::before {
@@ -40,54 +71,119 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 5px;
+            background: linear-gradient(90deg, #1e3a8a, #3b82f6, #06b6d4, #10b981, #059669);
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
         }
 
         .login-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
+        }
+
+        .company-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(30, 58, 138, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .company-logo::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .company-logo img {
+            width: 50px;
+            height: 50px;
+            filter: brightness(0) invert(1);
+            z-index: 1;
+            position: relative;
         }
 
         .login-header h1 {
-            color: #333;
-            font-size: 28px;
-            font-weight: 700;
+            color: #1e293b;
+            font-size: 32px;
+            font-weight: 800;
             margin-bottom: 8px;
+            letter-spacing: -0.5px;
         }
 
-        .login-header p {
-            color: #666;
+        .login-header .subtitle {
+            color: #64748b;
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .login-header .description {
+            color: #94a3b8;
             font-size: 14px;
+            font-weight: 400;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .form-label {
             display: block;
-            color: #333;
+            color: #374151;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             margin-bottom: 8px;
+            letter-spacing: 0.025em;
         }
 
         .form-input {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
+            padding: 16px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
             font-size: 16px;
-            transition: all 0.3s ease;
-            background: #f8f9fa;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #f9fafb;
+            color: #111827;
+        }
+
+        .form-input::placeholder {
+            color: #9ca3af;
+            font-weight: 400;
         }
 
         .form-input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #3b82f6;
             background: white;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            box-shadow: 
+                0 0 0 4px rgba(59, 130, 246, 0.1),
+                0 4px 12px rgba(0, 0, 0, 0.05);
+            transform: translateY(-1px);
+        }
+
+        .form-input:hover:not(:focus) {
+            border-color: #d1d5db;
+            background: white;
         }
 
         .input-group {
@@ -96,70 +192,120 @@
 
         .input-icon {
             position: absolute;
-            left: 16px;
+            left: 20px;
             top: 50%;
             transform: translateY(-50%);
-            color: #666;
-            font-size: 16px;
+            color: #6b7280;
+            font-size: 18px;
+            transition: color 0.3s ease;
         }
 
         .form-input.with-icon {
-            padding-left: 48px;
+            padding-left: 56px;
+        }
+
+        .form-input.with-icon:focus + .input-icon {
+            color: #3b82f6;
         }
 
         .login-btn {
             width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 18px 24px;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 16px;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.025em;
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .login-btn:hover::before {
+            left: 100%;
         }
 
         .login-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            box-shadow: 
+                0 12px 30px rgba(30, 58, 138, 0.4),
+                0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
         }
 
         .login-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
+        }
+
+        .login-btn:disabled::before {
+            display: none;
         }
 
         .error-message {
-            background: #fee;
-            color: #c33;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            color: #dc2626;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
             font-size: 14px;
+            font-weight: 500;
             display: none;
+            border: 1px solid #fecaca;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.1);
         }
 
         .success-message {
-            background: #efe;
-            color: #3c3;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            color: #16a34a;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
             font-size: 14px;
+            font-weight: 500;
             display: none;
+            border: 1px solid #bbf7d0;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);
         }
 
         .loading {
             display: none;
             text-align: center;
-            margin-top: 20px;
+            margin-top: 24px;
+            padding: 20px;
         }
 
         .loading i {
             animation: spin 1s linear infinite;
+            color: #3b82f6;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .loading p {
+            color: #6b7280;
+            font-weight: 500;
+            margin: 0;
         }
 
         @keyframes spin {
@@ -169,33 +315,85 @@
 
         .footer {
             text-align: center;
-            margin-top: 30px;
-            color: #666;
-            font-size: 12px;
+            margin-top: 40px;
+            color: #9ca3af;
+            font-size: 13px;
+            font-weight: 500;
+            border-top: 1px solid #f3f4f6;
+            padding-top: 24px;
         }
 
         .password-toggle {
             position: absolute;
-            right: 16px;
+            right: 20px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: #666;
+            color: #6b7280;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
+            transition: color 0.3s ease;
+            padding: 4px;
+            border-radius: 6px;
         }
 
         .password-toggle:hover {
-            color: #333;
+            color: #374151;
+            background: rgba(107, 114, 128, 0.1);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 32px 24px;
+                margin: 16px;
+                border-radius: 20px;
+            }
+
+            .login-header h1 {
+                font-size: 28px;
+            }
+
+            .company-logo {
+                width: 70px;
+                height: 70px;
+            }
+
+            .company-logo img {
+                width: 45px;
+                height: 45px;
+            }
+        }
+
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Focus styles for better accessibility */
+        .form-input:focus,
+        .login-btn:focus,
+        .password-toggle:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1><i class="fas fa-shield-alt"></i> Movonte Admin</h1>
-            <p>Inicia sesión para acceder al panel de control</p>
+            <div class="company-logo">
+                <img src="/favicons/android-chrome-192x192.png" alt="Movonte Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <i class="fas fa-shield-alt" style="display: none; font-size: 32px;"></i>
+            </div>
+            <h1>Movonte Admin</h1>
+            <p class="subtitle">Panel de Administración</p>
+            <p class="description">Inicia sesión para acceder al sistema</p>
         </div>
 
         <div id="errorMessage" class="error-message"></div>
@@ -231,7 +429,7 @@
                         required
                         autocomplete="current-password"
                     >
-                    <button type="button" class="password-toggle" onclick="togglePassword()">
+                    <button type="button" class="password-toggle" onclick="togglePassword()" aria-label="Mostrar/Ocultar contraseña">
                         <i class="fas fa-eye" id="passwordToggleIcon"></i>
                     </button>
                 </div>
@@ -249,6 +447,9 @@
 
         <div class="footer">
             <p>&copy; 2024 Movonte. Todos los derechos reservados.</p>
+            <p style="margin-top: 8px; font-size: 12px; color: #d1d5db;">
+                <i class="fas fa-shield-alt"></i> Acceso seguro y encriptado
+            </p>
         </div>
     </div>
 

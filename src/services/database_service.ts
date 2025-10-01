@@ -242,10 +242,18 @@ export class DatabaseService {
 
   // ===== WEBHOOK CONFIGURATION =====
 
-  async getWebhookConfig(): Promise<{ webhookUrl: string | null; isEnabled: boolean; lastUpdated: Date } | null> {
+  async getWebhookConfig(): Promise<{ 
+    webhookUrl: string | null; 
+    isEnabled: boolean; 
+    lastUpdated: Date;
+    filterEnabled: boolean;
+    filterCondition: string;
+    filterValue: string;
+  } | null> {
     const { sequelize } = await import('../config/database');
     const [results] = await sequelize.query(`
-      SELECT webhook_url as webhookUrl, is_enabled as isEnabled, last_updated as lastUpdated 
+      SELECT webhook_url as webhookUrl, is_enabled as isEnabled, last_updated as lastUpdated,
+             filter_enabled as filterEnabled, filter_condition as filterCondition, filter_value as filterValue
       FROM webhook_config 
       LIMIT 1
     `);
@@ -255,7 +263,10 @@ export class DatabaseService {
       return {
         webhookUrl: config.webhookUrl,
         isEnabled: Boolean(config.isEnabled),
-        lastUpdated: new Date(config.lastUpdated)
+        lastUpdated: new Date(config.lastUpdated),
+        filterEnabled: Boolean(config.filterEnabled),
+        filterCondition: config.filterCondition || 'response_value',
+        filterValue: config.filterValue || 'Yes'
       };
     }
     return null;
@@ -271,5 +282,17 @@ export class DatabaseService {
       replacements: [webhookUrl, isEnabled]
     });
     console.log(`✅ Updated webhook config: ${webhookUrl ? 'URL set' : 'URL cleared'}, enabled: ${isEnabled}`);
+  }
+
+  async updateWebhookFilter(filterEnabled: boolean, filterCondition: string = 'response_value', filterValue: string = 'Yes'): Promise<void> {
+    const { sequelize } = await import('../config/database');
+    await sequelize.query(`
+      UPDATE webhook_config 
+      SET filter_enabled = ?, filter_condition = ?, filter_value = ?, last_updated = NOW() 
+      WHERE id = 1
+    `, {
+      replacements: [filterEnabled, filterCondition, filterValue]
+    });
+    console.log(`✅ Updated webhook filter: enabled=${filterEnabled}, condition=${filterCondition}, value=${filterValue}`);
   }
 }
