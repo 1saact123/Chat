@@ -1046,9 +1046,14 @@
                     <div id="userManagementTab" class="settings-tab-content" style="display: none;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                             <h3>Gestión de Usuarios</h3>
-                            <button class="btn btn-primary" id="createUserBtn">
-                                <i class="fas fa-plus"></i> Nuevo Usuario
-                            </button>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary" id="testLoadUsersBtn" style="font-size: 12px;">
+                                    <i class="fas fa-refresh"></i> Test
+                                </button>
+                                <button class="btn btn-primary" id="createUserBtn">
+                                    <i class="fas fa-plus"></i> Nuevo Usuario
+                                </button>
+                            </div>
                         </div>
                         <div id="usersList">
                             <div style="text-align: center; padding: 20px;">
@@ -1711,6 +1716,12 @@
                 // Create user modal buttons
                 document.getElementById('createUserBtn')?.addEventListener('click', () => {
                     this.showCreateUserModal();
+                });
+                
+                // Test load users button
+                document.getElementById('testLoadUsersBtn')?.addEventListener('click', () => {
+                    console.log('🧪 Test: Cargando usuarios manualmente...');
+                    this.loadUsers();
                 });
                 
                 document.getElementById('closeCreateUserModalBtn')?.addEventListener('click', () => {
@@ -2442,13 +2453,20 @@
 
             async loadUserProfile() {
                 try {
+                    console.log('🔄 Cargando perfil de usuario...');
                     const response = await this.authenticatedFetch('/api/auth/profile');
-                    if (!response) return;
+                    if (!response) {
+                        console.log('❌ No hay respuesta del servidor');
+                        return;
+                    }
 
                     const data = await response.json();
+                    console.log('📊 Perfil de usuario recibido:', data);
+                    
                     if (data.success && data.data.user) {
                         const user = data.data.user;
                         this.currentUser = user;
+                        console.log('✅ Usuario actual cargado:', user);
                         
                         // Actualizar la información del usuario en el header
                         document.getElementById('userName').textContent = user.username;
@@ -2457,11 +2475,16 @@
                         
                         // Mostrar pestaña de gestión de usuarios solo para admins
                         if (user.role === 'admin') {
-                            document.getElementById('userManagementTab').style.display = 'flex';
+                            console.log('👑 Usuario es admin, mostrando pestaña de gestión');
+                            document.getElementById('userManagementTabBtn').style.display = 'flex';
+                        } else {
+                            console.log('👤 Usuario no es admin, ocultando pestaña de gestión');
                         }
+                    } else {
+                        console.error('❌ Error en respuesta del perfil:', data);
                     }
                 } catch (error) {
-                    console.error('Error cargando perfil de usuario:', error);
+                    console.error('❌ Error cargando perfil de usuario:', error);
                 }
             }
 
@@ -2568,7 +2591,15 @@
             async loadUsers() {
                 try {
                     console.log('🔄 Cargando usuarios...');
+                    console.log('🔑 Token de autenticación:', this.authToken ? 'Presente' : 'Ausente');
+                    
+                    // Test directo del endpoint
+                    console.log('🧪 Haciendo petición directa a /api/admin/users...');
                     const response = await this.authenticatedFetch('/api/admin/users');
+                    
+                    console.log('📡 Respuesta recibida:', response);
+                    console.log('📊 Status de respuesta:', response?.status);
+                    console.log('📊 Headers de respuesta:', response?.headers);
                     
                     if (!response) {
                         throw new Error('No se pudo conectar con el servidor');
@@ -2586,6 +2617,7 @@
                     }
                 } catch (error) {
                     console.error('❌ Error cargando usuarios:', error);
+                    console.error('❌ Stack trace:', error.stack);
                     document.getElementById('usersList').innerHTML = '<p>Error al cargar usuarios: ' + error.message + '</p>';
                 }
             }
