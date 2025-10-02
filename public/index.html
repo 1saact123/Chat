@@ -2684,7 +2684,11 @@
                             console.log('👤 Usuario no es admin, aplicando restricciones de permisos');
                             settingsBtn.style.display = 'flex'; // Los usuarios también pueden cambiar contraseña
                             document.getElementById('userManagementTabBtn').style.display = 'none';
-                            this.applyUserPermissions(user.permissions || {});
+                            
+                            // Aplicar permisos con un pequeño delay para asegurar que el DOM esté listo
+                            setTimeout(() => {
+                                this.applyUserPermissions(user.permissions || {});
+                            }, 100);
                         }
                     } else {
                         console.error('❌ Error en respuesta del perfil:', data);
@@ -2721,6 +2725,14 @@
 
             applyUserPermissions(permissions) {
                 console.log('🔐 Aplicando permisos de usuario:', permissions);
+                console.log('🔍 Permisos recibidos:', JSON.stringify(permissions, null, 2));
+                
+                // Verificar que el DOM esté listo
+                if (!document.querySelector('.service-nav')) {
+                    console.log('⚠️ DOM no está listo, reintentando en 200ms...');
+                    setTimeout(() => this.applyUserPermissions(permissions), 200);
+                    return;
+                }
                 
                 // Mapeo de permisos a secciones del dashboard
                 const permissionSectionMap = {
@@ -2749,11 +2761,15 @@
                 };
 
                 // Ocultar todas las secciones primero
+                console.log('❌ Ocultando todas las secciones...');
                 Object.values(permissionSectionMap).forEach(mapping => {
                     if (mapping.navBtn) {
                         const navBtn = document.querySelector(`[data-service="${mapping.navBtn}"]`);
                         if (navBtn) {
                             navBtn.style.display = 'none';
+                            console.log(`❌ Ocultando botón de navegación: ${mapping.navBtn}`);
+                        } else {
+                            console.log(`⚠️ No se encontró botón de navegación: ${mapping.navBtn}`);
                         }
                     }
                     
@@ -2761,20 +2777,28 @@
                         const section = document.getElementById(mapping.section);
                         if (section) {
                             section.style.display = 'none';
+                            console.log(`❌ Ocultando sección: ${mapping.section}`);
+                        } else {
+                            console.log(`⚠️ No se encontró sección: ${mapping.section}`);
                         }
                     }
                 });
 
                 // Mostrar solo las secciones permitidas
+                console.log('✅ Mostrando secciones permitidas...');
                 Object.entries(permissions).forEach(([permission, hasAccess]) => {
+                    console.log(`🔍 Verificando permiso: ${permission} = ${hasAccess}`);
                     if (hasAccess && permissionSectionMap[permission]) {
                         const mapping = permissionSectionMap[permission];
+                        console.log(`✅ Permiso activo encontrado: ${permission}`, mapping);
                         
                         if (mapping.navBtn) {
                             const navBtn = document.querySelector(`[data-service="${mapping.navBtn}"]`);
                             if (navBtn) {
                                 navBtn.style.display = 'flex';
-                                console.log(`✅ Mostrando sección: ${mapping.navBtn}`);
+                                console.log(`✅ Mostrando botón de navegación: ${mapping.navBtn}`);
+                            } else {
+                                console.log(`⚠️ No se encontró botón de navegación para mostrar: ${mapping.navBtn}`);
                             }
                         }
                         
@@ -2782,8 +2806,13 @@
                             const section = document.getElementById(mapping.section);
                             if (section) {
                                 section.style.display = 'block';
+                                console.log(`✅ Mostrando sección: ${mapping.section}`);
+                            } else {
+                                console.log(`⚠️ No se encontró sección para mostrar: ${mapping.section}`);
                             }
                         }
+                    } else {
+                        console.log(`❌ Permiso no activo o no mapeado: ${permission} = ${hasAccess}`);
                     }
                 });
 
@@ -2814,7 +2843,7 @@
                 }
 
                 // Asegurar que la sección Overview esté visible por defecto
-                this.showServiceSection('overview');
+                this.showService('overview');
                 
                 // Actualizar información de permisos en Overview
                 this.updateOverviewPermissionsInfo(permissions);
