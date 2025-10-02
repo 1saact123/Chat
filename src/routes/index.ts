@@ -50,6 +50,11 @@ router.put('/api/admin/users/:id', authenticateToken, requireAdmin, updateUser);
 router.put('/api/admin/users/:id/password', authenticateToken, requireAdmin, changeUserPassword);
 router.delete('/api/admin/users/:id', authenticateToken, requireAdmin, deleteUser);
 
+// Página principal (dashboard)
+router.get('/', redirectToLoginIfNotAuth, (req, res) => {
+  res.sendFile('index.html', { root: 'public' });
+});
+
 // Página de login
 router.get('/login', (req, res) => {
   res.sendFile('login.html', { root: 'public' });
@@ -97,7 +102,7 @@ router.get('/assistant-selector', (req, res) => {
 });
 
 // Redirigir /ceo-dashboard a la raíz
-router.get('/ceo-dashboard', redirectToLoginIfNotAuth, requireAdmin, (req, res) => {
+router.get('/ceo-dashboard', redirectToLoginIfNotAuth, (req, res) => {
   res.redirect('/');
 });
 
