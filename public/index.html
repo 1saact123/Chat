@@ -2645,22 +2645,163 @@
                         document.getElementById('userRole').textContent = user.role;
                         document.getElementById('userRole').className = `user-role ${user.role}`;
                         
-                        // Mostrar/ocultar botón de ajustes según el rol
+                        // Mostrar/ocultar elementos según el rol y permisos
                         const settingsBtn = document.getElementById('settingsBtn');
                         if (user.role === 'admin') {
                             console.log('👑 Usuario es admin, mostrando botón de ajustes y pestaña de gestión');
                             settingsBtn.style.display = 'flex';
                             document.getElementById('userManagementTabBtn').style.display = 'flex';
+                            this.showAllDashboardSections();
                         } else {
-                            console.log('👤 Usuario no es admin, ocultando botón de ajustes');
-                            settingsBtn.style.display = 'none';
+                            console.log('👤 Usuario no es admin, aplicando restricciones de permisos');
+                            settingsBtn.style.display = 'flex'; // Los usuarios también pueden cambiar contraseña
                             document.getElementById('userManagementTabBtn').style.display = 'none';
+                            this.applyUserPermissions(user.permissions || {});
                         }
                     } else {
                         console.error('❌ Error en respuesta del perfil:', data);
                     }
                 } catch (error) {
                     console.error('❌ Error cargando perfil de usuario:', error);
+                }
+            }
+
+            // === PERMISSION MANAGEMENT ===
+
+            showAllDashboardSections() {
+                console.log('👑 Mostrando todas las secciones para admin');
+                // Mostrar todas las secciones de navegación
+                document.querySelectorAll('.service-nav-btn').forEach(btn => {
+                    btn.style.display = 'flex';
+                });
+                
+                // Mostrar todas las secciones de contenido
+                const sections = [
+                    'ai-config-section',
+                    'webhook-integration-section', 
+                    'auto-disable-rules-section',
+                    'manual-ticket-control-section'
+                ];
+                
+                sections.forEach(sectionId => {
+                    const section = document.getElementById(sectionId);
+                    if (section) {
+                        section.style.display = 'block';
+                    }
+                });
+            }
+
+            applyUserPermissions(permissions) {
+                console.log('🔐 Aplicando permisos de usuario:', permissions);
+                
+                // Mapeo de permisos a secciones del dashboard
+                const permissionSectionMap = {
+                    serviceManagement: {
+                        navBtn: 'ai-config',
+                        section: 'ai-config-section'
+                    },
+                    automaticAIDisableRules: {
+                        navBtn: 'auto-disable-rules',
+                        section: 'auto-disable-rules-section'
+                    },
+                    webhookConfiguration: {
+                        navBtn: 'webhook-integration',
+                        section: 'webhook-integration-section'
+                    },
+                    ticketControl: {
+                        navBtn: 'manual-ticket-control',
+                        section: 'manual-ticket-control-section'
+                    },
+                    aiEnabledProjects: {
+                        // Esta funcionalidad está en Overview, siempre visible por ahora
+                    },
+                    remoteServerIntegration: {
+                        // Esta funcionalidad está en Overview, siempre visible por ahora
+                    }
+                };
+
+                // Ocultar todas las secciones primero
+                Object.values(permissionSectionMap).forEach(mapping => {
+                    if (mapping.navBtn) {
+                        const navBtn = document.querySelector(`[data-service="${mapping.navBtn}"]`);
+                        if (navBtn) {
+                            navBtn.style.display = 'none';
+                        }
+                    }
+                    
+                    if (mapping.section) {
+                        const section = document.getElementById(mapping.section);
+                        if (section) {
+                            section.style.display = 'none';
+                        }
+                    }
+                });
+
+                // Mostrar solo las secciones permitidas
+                Object.entries(permissions).forEach(([permission, hasAccess]) => {
+                    if (hasAccess && permissionSectionMap[permission]) {
+                        const mapping = permissionSectionMap[permission];
+                        
+                        if (mapping.navBtn) {
+                            const navBtn = document.querySelector(`[data-service="${mapping.navBtn}"]`);
+                            if (navBtn) {
+                                navBtn.style.display = 'flex';
+                                console.log(`✅ Mostrando sección: ${mapping.navBtn}`);
+                            }
+                        }
+                        
+                        if (mapping.section) {
+                            const section = document.getElementById(mapping.section);
+                            if (section) {
+                                section.style.display = 'block';
+                            }
+                        }
+                    }
+                });
+
+                // Overview siempre visible
+                const overviewBtn = document.querySelector('[data-service="overview"]');
+                if (overviewBtn) {
+                    overviewBtn.style.display = 'flex';
+                }
+
+                // Si no hay permisos, mostrar mensaje informativo
+                const hasAnyPermission = Object.values(permissions).some(p => p === true);
+                if (!hasAnyPermission) {
+                    this.showNoPermissionsMessage();
+                } else {
+                    this.hideNoPermissionsMessage();
+                }
+            }
+
+            showNoPermissionsMessage() {
+                // Crear mensaje si no existe
+                let message = document.getElementById('noPermissionsMessage');
+                if (!message) {
+                    message = document.createElement('div');
+                    message.id = 'noPermissionsMessage';
+                    message.className = 'alert alert-warning';
+                    message.style.cssText = 'margin: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; color: #856404;';
+                    message.innerHTML = `
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Acceso Restringido</strong><br>
+                        No tienes permisos para acceder a las funcionalidades del dashboard. 
+                        Contacta a un administrador para solicitar los permisos necesarios.
+                    `;
+                    
+                    // Insertar después de la navegación
+                    const serviceNav = document.querySelector('.service-nav');
+                    if (serviceNav && serviceNav.nextSibling) {
+                        serviceNav.parentNode.insertBefore(message, serviceNav.nextSibling);
+                    }
+                }
+                message.style.display = 'block';
+            }
+
+            hideNoPermissionsMessage() {
+                const message = document.getElementById('noPermissionsMessage');
+                if (message) {
+                    message.style.display = 'none';
                 }
             }
 

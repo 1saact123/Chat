@@ -157,8 +157,8 @@ router.post('/api/chatbot/assistants/set-active', chatbotController.setActiveAss
 router.get('/api/chatbot/assistants/active', chatbotController.getActiveAssistant.bind(chatbotController));
 
 // === ADMIN ROUTES (CEO Dashboard) - PROTECTED ===
-// Dashboard principal del CEO
-router.get('/api/admin/dashboard', authenticateToken, requireAdmin, adminController.getDashboard.bind(adminController));
+// Dashboard principal - accesible para admin y usuarios con permisos
+router.get('/api/admin/dashboard', authenticateToken, adminController.getDashboard.bind(adminController));
 
 // Gestión de configuraciones de servicios
 router.get('/api/admin/services/:serviceId', authenticateToken, requireAdmin, adminController.getServiceConfiguration.bind(adminController));
