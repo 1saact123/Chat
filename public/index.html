@@ -2684,11 +2684,7 @@
                             console.log('👤 Usuario no es admin, aplicando restricciones de permisos');
                             settingsBtn.style.display = 'flex'; // Los usuarios también pueden cambiar contraseña
                             document.getElementById('userManagementTabBtn').style.display = 'none';
-                            
-                            // Aplicar permisos con un pequeño delay para asegurar que el DOM esté listo
-                            setTimeout(() => {
-                                this.applyUserPermissions(user.permissions || {});
-                            }, 100);
+                            this.applyUserPermissions(user.permissions || {});
                         }
                     } else {
                         console.error('❌ Error en respuesta del perfil:', data);
@@ -2708,111 +2704,96 @@
                 });
                 
                 // Mostrar todas las secciones de contenido
-                const sections = [
-                    'ai-config-section',
-                    'webhook-integration-section', 
-                    'auto-disable-rules-section',
-                    'manual-ticket-control-section'
-                ];
-                
-                sections.forEach(sectionId => {
-                    const section = document.getElementById(sectionId);
-                    if (section) {
-                        section.style.display = 'block';
-                    }
+                document.querySelectorAll('.section-card').forEach(section => {
+                    section.style.display = 'block';
                 });
             }
 
             applyUserPermissions(permissions) {
                 console.log('🔐 Aplicando permisos de usuario:', permissions);
-                console.log('🔍 Permisos recibidos:', JSON.stringify(permissions, null, 2));
-                
-                // Verificar que el DOM esté listo
-                if (!document.querySelector('.service-nav')) {
-                    console.log('⚠️ DOM no está listo, reintentando en 200ms...');
-                    setTimeout(() => this.applyUserPermissions(permissions), 200);
-                    return;
-                }
                 
                 // Mapeo de permisos a secciones del dashboard
                 const permissionSectionMap = {
                     serviceManagement: {
                         navBtn: 'ai-config',
-                        section: 'ai-config-section'
+                        sectionSelector: '.section-card:has(.section-header h2:contains("AI Assistant Configuration"))',
+                        sectionTitle: 'AI Assistant Configuration'
                     },
                     automaticAIDisableRules: {
                         navBtn: 'auto-disable-rules',
-                        section: 'auto-disable-rules-section'
+                        sectionSelector: '.section-card:has(.section-header h2:contains("Automatic AI Disable Rules"))',
+                        sectionTitle: 'Automatic AI Disable Rules'
                     },
                     webhookConfiguration: {
                         navBtn: 'webhook-integration',
-                        section: 'webhook-integration-section'
+                        sectionSelector: '.section-card:has(.section-header h2:contains("Webhook Configuration"))',
+                        sectionTitle: 'Webhook Configuration'
                     },
                     ticketControl: {
                         navBtn: 'manual-ticket-control',
-                        section: 'manual-ticket-control-section'
+                        sectionSelector: '.section-card:has(.section-header h2:contains("Ticket Control"))',
+                        sectionTitle: 'Ticket Control'
                     },
                     aiEnabledProjects: {
-                        // Esta funcionalidad está en Overview, siempre visible por ahora
+                        sectionSelector: '.section-card:has(.section-header h2:contains("AI Enabled Projects"))',
+                        sectionTitle: 'AI Enabled Projects'
                     },
                     remoteServerIntegration: {
-                        // Esta funcionalidad está en Overview, siempre visible por ahora
+                        sectionSelector: '.section-card:has(.section-header h2:contains("Remote Server Integration"))',
+                        sectionTitle: 'Remote Server Integration'
                     }
                 };
 
-                // Ocultar todas las secciones primero
-                console.log('❌ Ocultando todas las secciones...');
+                // Ocultar todas las secciones de navegación primero
                 Object.values(permissionSectionMap).forEach(mapping => {
                     if (mapping.navBtn) {
                         const navBtn = document.querySelector(`[data-service="${mapping.navBtn}"]`);
                         if (navBtn) {
                             navBtn.style.display = 'none';
-                            console.log(`❌ Ocultando botón de navegación: ${mapping.navBtn}`);
-                        } else {
-                            console.log(`⚠️ No se encontró botón de navegación: ${mapping.navBtn}`);
                         }
                     }
-                    
-                    if (mapping.section) {
-                        const section = document.getElementById(mapping.section);
-                        if (section) {
+                });
+
+                // Ocultar todas las secciones de contenido primero
+                document.querySelectorAll('.section-card').forEach(section => {
+                    const header = section.querySelector('.section-header h2');
+                    if (header) {
+                        const sectionTitle = header.textContent.trim();
+                        // Verificar si esta sección está mapeada a algún permiso
+                        const isMappedSection = Object.values(permissionSectionMap).some(mapping => 
+                            mapping.sectionTitle === sectionTitle
+                        );
+                        if (isMappedSection) {
                             section.style.display = 'none';
-                            console.log(`❌ Ocultando sección: ${mapping.section}`);
-                        } else {
-                            console.log(`⚠️ No se encontró sección: ${mapping.section}`);
                         }
                     }
                 });
 
                 // Mostrar solo las secciones permitidas
-                console.log('✅ Mostrando secciones permitidas...');
                 Object.entries(permissions).forEach(([permission, hasAccess]) => {
-                    console.log(`🔍 Verificando permiso: ${permission} = ${hasAccess}`);
                     if (hasAccess && permissionSectionMap[permission]) {
                         const mapping = permissionSectionMap[permission];
-                        console.log(`✅ Permiso activo encontrado: ${permission}`, mapping);
                         
+                        // Mostrar botón de navegación si existe
                         if (mapping.navBtn) {
                             const navBtn = document.querySelector(`[data-service="${mapping.navBtn}"]`);
                             if (navBtn) {
                                 navBtn.style.display = 'flex';
                                 console.log(`✅ Mostrando botón de navegación: ${mapping.navBtn}`);
-                            } else {
-                                console.log(`⚠️ No se encontró botón de navegación para mostrar: ${mapping.navBtn}`);
                             }
                         }
                         
-                        if (mapping.section) {
-                            const section = document.getElementById(mapping.section);
-                            if (section) {
-                                section.style.display = 'block';
-                                console.log(`✅ Mostrando sección: ${mapping.section}`);
-                            } else {
-                                console.log(`⚠️ No se encontró sección para mostrar: ${mapping.section}`);
-                            }
+                        // Mostrar sección de contenido
+                        if (mapping.sectionTitle) {
+                            const sections = document.querySelectorAll('.section-card');
+                            sections.forEach(section => {
+                                const header = section.querySelector('.section-header h2');
+                                if (header && header.textContent.trim() === mapping.sectionTitle) {
+                                    section.style.display = 'block';
+                                    console.log(`✅ Mostrando sección: ${mapping.sectionTitle}`);
+                                }
+                            });
                         }
-                    } else {
-                        console.log(`❌ Permiso no activo o no mapeado: ${permission} = ${hasAccess}`);
                     }
                 });
 
@@ -2822,31 +2803,13 @@
                     overviewBtn.style.display = 'flex';
                 }
 
-                // Verificar si el usuario tiene al menos un permiso
+                // Si no hay permisos, mostrar mensaje informativo
                 const hasAnyPermission = Object.values(permissions).some(p => p === true);
-                
-                // Si no tiene permisos, mostrar mensaje informativo y ocultar navegación
                 if (!hasAnyPermission) {
                     this.showNoPermissionsMessage();
-                    // Ocultar la navegación de servicios si no tiene permisos
-                    const serviceNav = document.querySelector('.service-nav');
-                    if (serviceNav) {
-                        serviceNav.style.display = 'none';
-                    }
                 } else {
                     this.hideNoPermissionsMessage();
-                    // Mostrar la navegación de servicios
-                    const serviceNav = document.querySelector('.service-nav');
-                    if (serviceNav) {
-                        serviceNav.style.display = 'flex';
-                    }
                 }
-
-                // Asegurar que la sección Overview esté visible por defecto
-                this.showService('overview');
-                
-                // Actualizar información de permisos en Overview
-                this.updateOverviewPermissionsInfo(permissions);
             }
 
             showNoPermissionsMessage() {
@@ -2855,41 +2818,19 @@
                 if (!message) {
                     message = document.createElement('div');
                     message.id = 'noPermissionsMessage';
-                    message.className = 'no-permissions-container';
-                    message.style.cssText = `
-                        margin: 40px auto;
-                        max-width: 600px;
-                        padding: 40px;
-                        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-                        border: 2px solid #dee2e6;
-                        border-radius: 12px;
-                        text-align: center;
-                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                    `;
+                    message.className = 'alert alert-warning';
+                    message.style.cssText = 'margin: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; color: #856404;';
                     message.innerHTML = `
-                        <div style="font-size: 48px; color: #6c757d; margin-bottom: 20px;">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <h3 style="color: #495057; margin-bottom: 16px; font-weight: 600;">
-                            Acceso Restringido
-                        </h3>
-                        <p style="color: #6c757d; margin-bottom: 24px; line-height: 1.6;">
-                            No tienes permisos para acceder a las funcionalidades del dashboard. 
-                            Contacta a un administrador para solicitar los permisos necesarios.
-                        </p>
-                        <div style="background: #fff; padding: 16px; border-radius: 8px; border-left: 4px solid #007bff;">
-                            <p style="margin: 0; color: #495057; font-size: 14px;">
-                                <i class="fas fa-info-circle" style="color: #007bff; margin-right: 8px;"></i>
-                                <strong>Permisos disponibles:</strong> Gestión de Servicios, Configuración de Webhooks, 
-                                Control de Tickets, Reglas Automáticas de IA
-                            </p>
-                        </div>
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Acceso Restringido</strong><br>
+                        No tienes permisos para acceder a las funcionalidades del dashboard. 
+                        Contacta a un administrador para solicitar los permisos necesarios.
                     `;
                     
-                    // Insertar en el contenido principal
-                    const mainContent = document.querySelector('.main-content');
-                    if (mainContent) {
-                        mainContent.appendChild(message);
+                    // Insertar después de la navegación
+                    const serviceNav = document.querySelector('.service-nav');
+                    if (serviceNav && serviceNav.nextSibling) {
+                        serviceNav.parentNode.insertBefore(message, serviceNav.nextSibling);
                     }
                 }
                 message.style.display = 'block';
@@ -2899,63 +2840,6 @@
                 const message = document.getElementById('noPermissionsMessage');
                 if (message) {
                     message.style.display = 'none';
-                }
-            }
-
-            updateOverviewPermissionsInfo(permissions) {
-                // Crear o actualizar el contenedor de información de permisos
-                let permissionsInfo = document.getElementById('userPermissionsInfo');
-                if (!permissionsInfo) {
-                    permissionsInfo = document.createElement('div');
-                    permissionsInfo.id = 'userPermissionsInfo';
-                    permissionsInfo.className = 'permissions-info-card';
-                    permissionsInfo.style.cssText = `
-                        background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-                        border: 1px solid #bbdefb;
-                        border-radius: 8px;
-                        padding: 16px;
-                        margin-bottom: 20px;
-                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                    `;
-                    
-                    // Insertar al inicio de la sección overview
-                    const overviewSection = document.getElementById('overview-section');
-                    if (overviewSection) {
-                        overviewSection.insertBefore(permissionsInfo, overviewSection.firstChild);
-                    }
-                }
-
-                // Mapeo de permisos a nombres legibles
-                const permissionNames = {
-                    serviceManagement: 'Gestión de Servicios',
-                    automaticAIDisableRules: 'Reglas Automáticas de IA',
-                    webhookConfiguration: 'Configuración de Webhooks',
-                    ticketControl: 'Control de Tickets',
-                    aiEnabledProjects: 'Proyectos con IA',
-                    remoteServerIntegration: 'Integración de Servidores Remotos'
-                };
-
-                // Obtener permisos activos
-                const activePermissions = Object.entries(permissions)
-                    .filter(([_, hasAccess]) => hasAccess)
-                    .map(([permission, _]) => permissionNames[permission] || permission);
-
-                if (activePermissions.length > 0) {
-                    permissionsInfo.innerHTML = `
-                        <div style="display: flex; align-items: center; margin-bottom: 12px;">
-                            <i class="fas fa-user-shield" style="color: #1976d2; margin-right: 8px; font-size: 18px;"></i>
-                            <h4 style="margin: 0; color: #1976d2; font-weight: 600;">Tus Permisos</h4>
-                        </div>
-                        <p style="margin: 0 0 8px 0; color: #424242; font-size: 14px;">
-                            Tienes acceso a las siguientes funcionalidades:
-                        </p>
-                        <ul style="margin: 0; padding-left: 20px; color: #424242; font-size: 14px;">
-                            ${activePermissions.map(permission => `<li>${permission}</li>`).join('')}
-                        </ul>
-                    `;
-                    permissionsInfo.style.display = 'block';
-                } else {
-                    permissionsInfo.style.display = 'none';
                 }
             }
 
