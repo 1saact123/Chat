@@ -698,12 +698,16 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
               await this.dbService.updateThreadActivity(threadId);
             }
             
-            console.log(`✅ processChatForService returning response:`, {
+            console.log(`✅ processChatForService RESPUESTA FINAL:`, {
               success: true,
+              serviceId: serviceId,
               threadId: threadId || thread.id,
-              responseLength: cleanedResponse.length,
               assistantId: serviceAssistantId,
-              assistantName: assistant.name || 'Unknown Assistant'
+              assistantName: assistant.name || 'Unknown Assistant',
+              responseLength: cleanedResponse.length,
+              responsePreview: cleanedResponse.substring(0, 100) + '...',
+              internalThreadId: threadId,
+              openaiThreadId: thread.id
             });
             
             return {

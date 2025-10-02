@@ -393,9 +393,14 @@ export class ChatbotController {
           enrichedContext
         );
         
-        console.log(`🤖 Respuesta de processChatForService recibida:`, {
+        console.log(`🤖 RESPUESTA DEL FLUJO PRINCIPAL RECIBIDA:`, {
           success: response.success,
           hasResponse: !!response.response,
+          assistantId: response.assistantId,
+          assistantName: response.assistantName,
+          serviceUsed: 'landing-page',
+          threadId: `widget_${issueKey}`,
+          responsePreview: response.response ? response.response.substring(0, 100) + '...' : 'No response',
           error: response.error
         });
         
@@ -958,7 +963,16 @@ Formato el reporte de manera clara y profesional.`;
       console.log(`💬 Chat para servicio ${serviceId}: ${message}`);
       
       const result = await this.openaiService.processChatForService(message, serviceId, threadId);
-      console.log('🟢 handleServiceChat response:', { success: result.success, threadId: result.threadId, assistantId: result.assistantId });
+      
+      console.log('🟢 handleServiceChat RESPUESTA COMPLETA:', { 
+        success: result.success, 
+        serviceId: serviceId,
+        threadId: result.threadId, 
+        assistantId: result.assistantId,
+        assistantName: result.assistantName,
+        responsePreview: result.response ? result.response.substring(0, 100) + '...' : 'No response',
+        error: result.error
+      });
       
       if (result.success) {
         res.json({
@@ -1060,7 +1074,15 @@ Formato el reporte de manera clara y profesional.`;
         );
 
         if (webhookResponse.success && webhookResponse.response) {
-          console.log(`✅ Respuesta de webhook generada: ${webhookResponse.response.substring(0, 100)}...`);
+          console.log(`🎯 RESPUESTA DEL FLUJO PARALELO (WEBHOOK) GENERADA:`, {
+            success: webhookResponse.success,
+            assistantId: webhookResponse.assistantId,
+            assistantName: webhookResponse.assistantName,
+            serviceUsed: 'webhook-parallel',
+            threadId: webhookThreadId,
+            responsePreview: webhookResponse.response.substring(0, 100) + '...',
+            responseLength: webhookResponse.response.length
+          });
           
           // Enviar datos al webhook
           await webhookService.sendAIResponseToWebhook(
@@ -1075,8 +1097,15 @@ Formato el reporte de manera clara y profesional.`;
         }
       } else {
         // Usar la misma respuesta de IA pero enviar al webhook
-        console.log(`📡 Enviando respuesta existente al webhook (mismo asistente)...`);
-        console.log(`🔍 Ambos flujos usan el mismo asistente: ${finalWebhookAssistantId}`);
+        console.log(`📡 REUTILIZANDO RESPUESTA DEL FLUJO PRINCIPAL PARA WEBHOOK:`, {
+          reason: 'Mismo asistente para ambos flujos',
+          assistantId: aiResponse.assistantId || finalWebhookAssistantId || 'default',
+          assistantName: aiResponse.assistantName || 'AI Assistant',
+          serviceUsed: 'landing-page (reutilizado)',
+          threadId: webhookThreadId,
+          responsePreview: aiResponse.response ? aiResponse.response.substring(0, 100) + '...' : 'No response'
+        });
+        
         await webhookService.sendAIResponseToWebhook(
           issueKey,
           originalMessage,
