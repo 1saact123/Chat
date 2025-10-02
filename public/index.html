@@ -1365,14 +1365,36 @@
                     return;
                 }
                 
+                // Cargar perfil de usuario primero para obtener permisos
                 await this.loadUserProfile();
+                
+                // Cargar dashboard (siempre accesible)
                 await this.loadDashboard();
-                await this.loadProjects();
-                await this.loadRemoteProjects();
-                await this.loadDisabledTickets();
-                await this.loadSavedWebhooks();
-                await this.updateWebhookStatus();
-                await this.loadStatusDisableConfig();
+                
+                // Cargar datos solo si el usuario tiene permisos
+                if (this.currentUser) {
+                    if (this.currentUser.role === 'admin' || this.currentUser.permissions?.aiEnabledProjects) {
+                        await this.loadProjects();
+                    }
+                    
+                    if (this.currentUser.role === 'admin' || this.currentUser.permissions?.remoteServerIntegration) {
+                        await this.loadRemoteProjects();
+                    }
+                    
+                    if (this.currentUser.role === 'admin' || this.currentUser.permissions?.ticketControl) {
+                        await this.loadDisabledTickets();
+                    }
+                    
+                    if (this.currentUser.role === 'admin' || this.currentUser.permissions?.webhookConfiguration) {
+                        await this.loadSavedWebhooks();
+                        await this.updateWebhookStatus();
+                    }
+                    
+                    if (this.currentUser.role === 'admin' || this.currentUser.permissions?.automaticAIDisableRules) {
+                        await this.loadStatusDisableConfig();
+                    }
+                }
+                
                 this.setupEventListeners();
                 this.setupServiceNavigation();
             }
@@ -1404,6 +1426,12 @@
                         localStorage.removeItem('authToken');
                         window.location.href = '/login';
                         return null;
+                    }
+                    
+                    // Si la respuesta es 403, es un error de permisos, no redirigir
+                    if (response.status === 403) {
+                        console.log('❌ Acceso denegado - permisos insuficientes para:', url);
+                        return response; // Devolver la respuesta para que el método que la llama pueda manejarla
                     }
                     
                     return response;
