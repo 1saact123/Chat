@@ -419,7 +419,7 @@
                         required
                         autocomplete="current-password"
                     >
-                    <button type="button" class="password-toggle" onclick="togglePassword()" aria-label="Mostrar/Ocultar contraseña">
+                    <button type="button" class="password-toggle" id="passwordToggleBtn" aria-label="Mostrar/Ocultar contraseña">
                         <i class="fas fa-eye" id="passwordToggleIcon"></i>
                     </button>
                 </div>
@@ -469,6 +469,16 @@
                 this.passwordInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') this.handleLogin(e);
                 });
+                
+                // Password toggle button
+                const passwordToggleBtn = document.getElementById('passwordToggleBtn');
+                if (passwordToggleBtn) {
+                    passwordToggleBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        console.log('🖱️ Password toggle button clicked');
+                        togglePassword();
+                    });
+                }
             }
 
             async checkExistingAuth() {
@@ -550,24 +560,39 @@
             }
         }
 
+        // Función global para toggle de contraseña
         function togglePassword() {
+            console.log('🔍 togglePassword called');
             const passwordInput = document.getElementById('password');
             const toggleIcon = document.getElementById('passwordToggleIcon');
+            
+            if (!passwordInput || !toggleIcon) {
+                console.error('❌ Elementos no encontrados:', { passwordInput, toggleIcon });
+                return;
+            }
+            
+            console.log('📝 Estado actual del input:', passwordInput.type);
             
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
                 toggleIcon.classList.remove('fa-eye');
                 toggleIcon.classList.add('fa-eye-slash');
+                console.log('👁️ Contraseña mostrada');
             } else {
                 passwordInput.type = 'password';
                 toggleIcon.classList.remove('fa-eye-slash');
                 toggleIcon.classList.add('fa-eye');
+                console.log('🙈 Contraseña oculta');
             }
         }
 
         // Inicializar cuando el DOM esté listo
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM cargado, inicializando LoginManager');
             new LoginManager();
+            
+            // Verificar que la función toggle esté disponible
+            console.log('🔍 togglePassword function available:', typeof togglePassword);
         });
     </script>
 </body>
