@@ -177,7 +177,7 @@ router.delete('/api/admin/services/:serviceId', authenticateToken, requireAdmin,
 router.get('/api/admin/projects', authenticateToken, requirePermission('aiEnabledProjects'), adminController.listProjects.bind(adminController));
 
 // Cambiar proyecto activo
-router.post('/api/admin/projects/set-active', authenticateToken, requireAdmin, adminController.setActiveProject.bind(adminController));
+router.post('/api/admin/projects/set-active', authenticateToken, requirePermission('aiEnabledProjects'), adminController.setActiveProject.bind(adminController));
 
 // Obtener proyecto activo actual
 router.get('/api/admin/projects/active', authenticateToken, requirePermission('aiEnabledProjects'), adminController.getActiveProject.bind(adminController));

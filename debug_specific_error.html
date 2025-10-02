@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Error Específico - Movonte</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .error-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #dc3545;
+            border-radius: 5px;
+            background: #f8d7da;
+        }
+        .success-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #28a745;
+            border-radius: 5px;
+            background: #d4edda;
+        }
+        .info-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #17a2b8;
+            border-radius: 5px;
+            background: #d1ecf1;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .credentials {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Error Específico - Movonte</h1>
+        
+        <div class="info-section">
+            <h3>📋 Credenciales de Prueba</h3>
+            <div class="credentials">
+                <strong>Usuario Regular:</strong><br>
+                📧 Email: testuser@movonte.com<br>
+                🔐 Password: test123<br>
+                👑 Role: user<br>
+                🔒 Permisos: Service Management, Webhook Configuration, AI Enabled Projects
+            </div>
+        </div>
+
+        <div class="error-section">
+            <h3>❌ Error Actual</h3>
+            <p><strong>Error:</strong> "Acceso denegado. Se requieren permisos de administrador"</p>
+            <p><strong>URL:</strong> https://chat.movonte.com/</p>
+            <p><strong>Descripción:</strong> El usuario regular no puede acceder al dashboard</p>
+        </div>
+
+        <div class="info-section">
+            <h3>🔧 Pasos para Debugging</h3>
+            <ol>
+                <li><strong>Inicia sesión</strong> con las credenciales de arriba</li>
+                <li><strong>Abre la consola del navegador</strong> (F12)</li>
+                <li><strong>Ejecuta el script de debugging</strong> (botón de abajo)</li>
+                <li><strong>Recarga la página</strong> para ver qué endpoints fallan</li>
+                <li><strong>Revisa los logs</strong> para identificar el endpoint problemático</li>
+            </ol>
+        </div>
+
+        <div class="info-section">
+            <h3>🧪 Script de Debugging</h3>
+            <button onclick="setupDebugging()">Configurar Debugging</button>
+            <button onclick="testSpecificEndpoints()">Probar Endpoints Específicos</button>
+            <button onclick="clearLogs()">Limpiar Logs</button>
+            <div id="debugResults"></div>
+        </div>
+
+        <div class="info-section">
+            <h3>📊 Logs de Debugging</h3>
+            <div id="debugLogs" style="max-height: 400px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 5px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://chat.movonte.com';
+        let debugLogs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            debugLogs.push(logEntry);
+            
+            const logsDiv = document.getElementById('debugLogs');
+            logsDiv.innerHTML = debugLogs.join('\n');
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function setupDebugging() {
+            log('🔍 Configurando interceptores de debugging...');
+            
+            // Interceptar fetch
+            const originalFetch = window.fetch;
+            window.fetch = function(...args) {
+                const url = args[0];
+                const options = args[1] || {};
+                const method = options.method || 'GET';
+                
+                log(`🌐 FETCH: ${method} ${url}`, 'info');
+                
+                return originalFetch.apply(this, args)
+                    .then(response => {
+                        if (!response.ok) {
+                            log(`❌ ERROR: ${method} ${url} - ${response.status} ${response.statusText}`, 'error');
+                            
+                            // Leer el contenido del error
+                            response.clone().text().then(text => {
+                                log(`📄 ERROR CONTENT: ${text}`, 'error');
+                            });
+                        } else {
+                            log(`✅ SUCCESS: ${method} ${url} - ${response.status}`, 'success');
+                        }
+                        
+                        return response;
+                    })
+                    .catch(error => {
+                        log(`💥 NETWORK ERROR: ${method} ${url} - ${error.message}`, 'error');
+                        throw error;
+                    });
+            };
+
+            // Interceptar XMLHttpRequest
+            const originalXHROpen = XMLHttpRequest.prototype.open;
+            const originalXHRSend = XMLHttpRequest.prototype.send;
+
+            XMLHttpRequest.prototype.open = function(method, url, ...args) {
+                this._url = url;
+                this._method = method;
+                log(`🌐 XHR: ${method} ${url}`, 'info');
+                return originalXHROpen.apply(this, [method, url, ...args]);
+            };
+
+            XMLHttpRequest.prototype.send = function(...args) {
+                const xhr = this;
+                
+                xhr.addEventListener('load', function() {
+                    if (!xhr.ok) {
+                        log(`❌ XHR ERROR: ${xhr._method} ${xhr._url} - ${xhr.status} ${xhr.statusText}`, 'error');
+                        log(`📄 XHR ERROR CONTENT: ${xhr.responseText}`, 'error');
+                    } else {
+                        log(`✅ XHR SUCCESS: ${xhr._method} ${xhr._url} - ${xhr.status}`, 'success');
+                    }
+                });
+                
+                xhr.addEventListener('error', function() {
+                    log(`💥 XHR NETWORK ERROR: ${xhr._method} ${xhr._url}`, 'error');
+                });
+                
+                return originalXHRSend.apply(this, args);
+            };
+
+            log('✅ Interceptores configurados. Ahora recarga la página para ver qué endpoints fallan.', 'success');
+        }
+
+        async function testSpecificEndpoints() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                log('❌ No hay token de autenticación. Inicia sesión primero.', 'error');
+                return;
+            }
+
+            log('🧪 Probando endpoints específicos...', 'info');
+
+            const endpoints = [
+                '/api/auth/profile',
+                '/api/admin/dashboard',
+                '/api/admin/projects',
+                '/api/admin/projects/active',
+                '/api/admin/tickets/disabled',
+                '/api/admin/webhook/status',
+                '/api/admin/webhooks/saved',
+                '/api/admin/status-disable/config',
+                '/api/admin/users'
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    log(`🔄 Probando: ${endpoint}`, 'info');
+                    const response = await fetch(`${API_BASE}${endpoint}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        log(`❌ FALLO: ${endpoint} - ${response.status} ${response.statusText}`, 'error');
+                        log(`📄 ERROR: ${errorText}`, 'error');
+                    } else {
+                        log(`✅ ÉXITO: ${endpoint} - ${response.status}`, 'success');
+                    }
+                } catch (error) {
+                    log(`💥 ERROR: ${endpoint} - ${error.message}`, 'error');
+                }
+            }
+        }
+
+        function clearLogs() {
+            debugLogs = [];
+            document.getElementById('debugLogs').innerHTML = '';
+            log('🧹 Logs limpiados', 'info');
+        }
+
+        // Auto-configurar debugging al cargar la página
+        window.addEventListener('load', () => {
+            log('🚀 Página cargada. Configurando debugging automático...', 'info');
+            setupDebugging();
+        });
+    </script>
+</body>
+</html>
