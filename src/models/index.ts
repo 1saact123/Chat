@@ -238,6 +238,16 @@ WebhookStats.init({
 ChatThread.hasMany(ChatMessage, { foreignKey: 'threadId', sourceKey: 'threadId' });
 ChatMessage.belongsTo(ChatThread, { foreignKey: 'threadId', targetKey: 'threadId' });
 
+// Interface para permisos específicos
+export interface UserPermissions {
+  serviceManagement: boolean;
+  automaticAIDisableRules: boolean;
+  webhookConfiguration: boolean;
+  ticketControl: boolean;
+  aiEnabledProjects: boolean;
+  remoteServerIntegration: boolean;
+}
+
 // Interface para User
 export interface UserAttributes {
   id?: number;
@@ -246,6 +256,7 @@ export interface UserAttributes {
   password: string;
   role: 'admin' | 'user';
   isActive: boolean;
+  permissions?: UserPermissions;
   lastLogin?: Date;
   createdAt?: Date;
   updatedAt?: Date;
@@ -261,6 +272,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public password!: string;
   public role!: 'admin' | 'user';
   public isActive!: boolean;
+  public permissions?: UserPermissions;
   public lastLogin?: Date;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -295,6 +307,18 @@ User.init({
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: true
+  },
+  permissions: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: {
+      serviceManagement: false,
+      automaticAIDisableRules: false,
+      webhookConfiguration: false,
+      ticketControl: false,
+      aiEnabledProjects: false,
+      remoteServerIntegration: false
+    }
   },
   lastLogin: {
     type: DataTypes.DATE,
@@ -360,3 +384,6 @@ SavedWebhook.init({
 });
 
 // Los modelos ya están exportados arriba, no necesitamos re-exportarlos
+
+// Exportar sequelize para scripts de migración
+export { sequelize };

@@ -284,6 +284,16 @@ router.get('/api/admin/status-disable/config', authenticateToken, requireAdmin, 
 // Obtener estados disponibles de Jira
 router.get('/api/admin/statuses/available', authenticateToken, requireAdmin, adminController.getAvailableStatuses.bind(adminController));
 
+// === USER PERMISSIONS MANAGEMENT ROUTES - PROTECTED ===
+// Listar usuarios con permisos (solo admins)
+router.get('/api/admin/users/permissions', authenticateToken, requireAdmin, adminController.getUsersWithPermissions.bind(adminController));
+
+// Obtener permisos de un usuario específico (solo admins)
+router.get('/api/admin/users/:userId/permissions', authenticateToken, requireAdmin, adminController.getUserPermissions.bind(adminController));
+
+// Actualizar permisos de un usuario (solo admins)
+router.put('/api/admin/users/:userId/permissions', authenticateToken, requireAdmin, adminController.updateUserPermissions.bind(adminController));
+
 // Send email with chat context - COMMENTED OUT FOR TESTING
 // router.post('/api/chatbot/email/send-with-context', chatbotController.sendEmailWithChatContext.bind(chatbotController));
 

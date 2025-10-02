@@ -283,6 +283,79 @@
             background: #4b5563;
         }
 
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
+        /* Permissions Modal Styles */
+        .permissions-info {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .permissions-description {
+            margin: 8px 0 0 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .permissions-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .permission-item {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .permission-item:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+        }
+
+        .permission-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .permission-checkbox {
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            accent-color: #3b82f6;
+        }
+
+        .permission-text {
+            flex: 1;
+        }
+
+        .permission-text strong {
+            display: block;
+            color: #1f2937;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .permission-text small {
+            color: #6b7280;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
         /* Form Styles */
         .form-row {
             display: grid;
@@ -1183,6 +1256,92 @@
             </div>
         </div>
 
+        <!-- User Permissions Modal -->
+        <div id="userPermissionsModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Gestionar Permisos de Usuario</h2>
+                    <button class="modal-close" id="closeUserPermissionsModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="permissions-info">
+                        <p><strong>Usuario:</strong> <span id="permissionsUserName">-</span></p>
+                        <p class="permissions-description">Selecciona los módulos a los que este usuario tendrá acceso:</p>
+                    </div>
+                    
+                    <form id="userPermissionsForm">
+                        <input type="hidden" id="permissionsUserId">
+                        
+                        <div class="permissions-grid">
+                            <div class="permission-item">
+                                <label class="permission-label">
+                                    <input type="checkbox" id="perm_serviceManagement" class="permission-checkbox">
+                                    <span class="permission-text">
+                                        <strong>Service Management</strong>
+                                        <small>Gestión de servicios y asistentes de IA</small>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <div class="permission-item">
+                                <label class="permission-label">
+                                    <input type="checkbox" id="perm_automaticAIDisableRules" class="permission-checkbox">
+                                    <span class="permission-text">
+                                        <strong>Automatic AI Disable Rules</strong>
+                                        <small>Configuración de reglas automáticas de desactivación</small>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <div class="permission-item">
+                                <label class="permission-label">
+                                    <input type="checkbox" id="perm_webhookConfiguration" class="permission-checkbox">
+                                    <span class="permission-text">
+                                        <strong>Webhook Configuration</strong>
+                                        <small>Configuración de webhooks e integraciones</small>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <div class="permission-item">
+                                <label class="permission-label">
+                                    <input type="checkbox" id="perm_ticketControl" class="permission-checkbox">
+                                    <span class="permission-text">
+                                        <strong>Ticket Control</strong>
+                                        <small>Control manual de tickets y asistente de IA</small>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <div class="permission-item">
+                                <label class="permission-label">
+                                    <input type="checkbox" id="perm_aiEnabledProjects" class="permission-checkbox">
+                                    <span class="permission-text">
+                                        <strong>AI Enabled Projects</strong>
+                                        <small>Gestión de proyectos habilitados para IA</small>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <div class="permission-item">
+                                <label class="permission-label">
+                                    <input type="checkbox" id="perm_remoteServerIntegration" class="permission-checkbox">
+                                    <span class="permission-text">
+                                        <strong>Remote Server Integration</strong>
+                                        <small>Integración con servidores remotos</small>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelUserPermissionsBtn">Cancelar</button>
+                    <button class="btn btn-primary" id="saveUserPermissionsBtn">Guardar Permisos</button>
+                </div>
+            </div>
+        </div>
+
     <script>
         class CEODashboard {
             constructor() {
@@ -1760,6 +1919,19 @@
                 
                 document.getElementById('confirmChangeUserPasswordBtn')?.addEventListener('click', () => {
                     this.changeUserPassword();
+                });
+
+                // User permissions modal buttons
+                document.getElementById('closeUserPermissionsModalBtn')?.addEventListener('click', () => {
+                    this.closeModal('userPermissionsModal');
+                });
+                
+                document.getElementById('cancelUserPermissionsBtn')?.addEventListener('click', () => {
+                    this.closeModal('userPermissionsModal');
+                });
+                
+                document.getElementById('saveUserPermissionsBtn')?.addEventListener('click', () => {
+                    this.saveUserPermissions();
                 });
 
                 // Ticket control event listeners
@@ -2662,6 +2834,11 @@
                                         <button class="btn btn-sm btn-secondary change-password-btn" data-user-id="${user.id}">
                                             <i class="fas fa-key"></i>
                                         </button>
+                                        ${user.role === 'user' ? `
+                                            <button class="btn btn-sm btn-warning permissions-btn" data-user-id="${user.id}" data-username="${user.username}" title="Gestionar Permisos">
+                                                <i class="fas fa-shield-alt"></i>
+                                            </button>
+                                        ` : ''}
                                         ${user.id !== this.currentUser.id ? `
                                             <button class="btn btn-sm btn-danger delete-user-btn" data-user-id="${user.id}">
                                                 <i class="fas fa-trash"></i>
@@ -2703,6 +2880,18 @@
                         const userId = parseInt(e.currentTarget.dataset.userId);
                         console.log('🔄 Cambiando contraseña de usuario ID:', userId);
                         this.changeUserPasswordModal(userId);
+                    });
+                });
+                
+                // Event listeners para botones de permisos
+                const permissionsButtons = document.querySelectorAll('.permissions-btn');
+                console.log('🛡️ Botones de permisos encontrados:', permissionsButtons.length);
+                permissionsButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const userId = parseInt(e.currentTarget.dataset.userId);
+                        const username = e.currentTarget.dataset.username;
+                        console.log('🔄 Gestionando permisos de usuario ID:', userId, 'Username:', username);
+                        this.showUserPermissionsModal(userId, username);
                     });
                 });
                 
@@ -3088,6 +3277,89 @@
                 });
                 
                 console.log('✅ Status disable UI updated');
+            }
+
+            // === USER PERMISSIONS MANAGEMENT ===
+
+            async showUserPermissionsModal(userId, username) {
+                try {
+                    console.log('🛡️ Loading permissions for user:', userId, username);
+                    
+                    // Set user info in modal
+                    document.getElementById('permissionsUserId').value = userId;
+                    document.getElementById('permissionsUserName').textContent = username;
+                    
+                    // Load current permissions
+                    const response = await this.authenticatedFetch(`/api/admin/users/${userId}/permissions`);
+                    if (!response) return;
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        const permissions = data.data.permissions;
+                        console.log('✅ Permissions loaded:', permissions);
+                        
+                        // Set checkbox states
+                        Object.keys(permissions).forEach(permission => {
+                            const checkbox = document.getElementById(`perm_${permission}`);
+                            if (checkbox) {
+                                checkbox.checked = permissions[permission];
+                            }
+                        });
+                        
+                        this.openModal('userPermissionsModal');
+                    } else {
+                        this.showStatus(data.error || 'Error loading permissions', 'error');
+                    }
+                } catch (error) {
+                    console.error('❌ Error loading user permissions:', error);
+                    this.showStatus('Error loading user permissions', 'error');
+                }
+            }
+
+            async saveUserPermissions() {
+                try {
+                    const userId = document.getElementById('permissionsUserId').value;
+                    const username = document.getElementById('permissionsUserName').textContent;
+                    
+                    console.log('🛡️ Saving permissions for user:', userId, username);
+                    
+                    // Collect permission states
+                    const permissions = {
+                        serviceManagement: document.getElementById('perm_serviceManagement').checked,
+                        automaticAIDisableRules: document.getElementById('perm_automaticAIDisableRules').checked,
+                        webhookConfiguration: document.getElementById('perm_webhookConfiguration').checked,
+                        ticketControl: document.getElementById('perm_ticketControl').checked,
+                        aiEnabledProjects: document.getElementById('perm_aiEnabledProjects').checked,
+                        remoteServerIntegration: document.getElementById('perm_remoteServerIntegration').checked
+                    };
+                    
+                    console.log('📊 Permissions to save:', permissions);
+                    
+                    const response = await this.authenticatedFetch(`/api/admin/users/${userId}/permissions`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ permissions })
+                    });
+                    
+                    if (!response) return;
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        console.log('✅ Permissions saved successfully');
+                        this.showStatus(`Permisos actualizados para ${username}`, 'success');
+                        this.closeModal('userPermissionsModal');
+                        
+                        // Refresh users table to show updated info
+                        this.loadUsers();
+                    } else {
+                        this.showStatus(data.error || 'Error saving permissions', 'error');
+                    }
+                } catch (error) {
+                    console.error('❌ Error saving user permissions:', error);
+                    this.showStatus('Error saving user permissions', 'error');
+                }
             }
 
             async saveStatusDisableConfig() {

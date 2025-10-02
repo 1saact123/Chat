@@ -3,6 +3,7 @@ import { OpenAIService } from '../services/openAI_service';
 import { ConfigurationService } from '../services/configuration_service';
 import { JiraService } from '../services/jira_service';
 import { DatabaseService } from '../services/database_service';
+import { User } from '../models';
 
 export class AdminController {
   private openaiService: OpenAIService;
@@ -1050,6 +1051,153 @@ export class AdminController {
       }
     } catch (error) {
       console.error('❌ Error eliminando webhook:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // === USER PERMISSIONS MANAGEMENT ===
+
+  // Obtener permisos de un usuario
+  async getUserPermissions(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+
+      const user = await User.findByPk(userId);
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: 'Usuario no encontrado'
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: {
+          userId: user.id,
+          username: user.username,
+          role: user.role,
+          permissions: user.permissions || {
+            serviceManagement: false,
+            automaticAIDisableRules: false,
+            webhookConfiguration: false,
+            ticketControl: false,
+            aiEnabledProjects: false,
+            remoteServerIntegration: false
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo permisos de usuario:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Actualizar permisos de un usuario
+  async updateUserPermissions(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const { permissions } = req.body;
+
+      if (!permissions || typeof permissions !== 'object') {
+        res.status(400).json({
+          success: false,
+          error: 'Se requieren los permisos válidos'
+        });
+        return;
+      }
+
+      const user = await User.findByPk(userId);
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: 'Usuario no encontrado'
+        });
+        return;
+      }
+
+      // Validar que solo se actualicen permisos de usuarios con rol 'user'
+      if (user.role === 'admin') {
+        res.status(400).json({
+          success: false,
+          error: 'No se pueden modificar permisos de administradores'
+        });
+        return;
+      }
+
+      // Validar estructura de permisos
+      const validPermissions = {
+        serviceManagement: Boolean(permissions.serviceManagement),
+        automaticAIDisableRules: Boolean(permissions.automaticAIDisableRules),
+        webhookConfiguration: Boolean(permissions.webhookConfiguration),
+        ticketControl: Boolean(permissions.ticketControl),
+        aiEnabledProjects: Boolean(permissions.aiEnabledProjects),
+        remoteServerIntegration: Boolean(permissions.remoteServerIntegration)
+      };
+
+      await user.update({ permissions: validPermissions });
+
+      console.log(`✅ Permisos actualizados para usuario ${user.username}:`, validPermissions);
+
+      res.json({
+        success: true,
+        data: {
+          userId: user.id,
+          username: user.username,
+          permissions: validPermissions
+        },
+        message: 'Permisos actualizados exitosamente',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error actualizando permisos de usuario:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Listar todos los usuarios con sus permisos (solo usuarios, no admins)
+  async getUsersWithPermissions(req: Request, res: Response): Promise<void> {
+    try {
+      const users = await User.findAll({
+        where: { role: 'user' },
+        attributes: ['id', 'username', 'email', 'isActive', 'permissions', 'lastLogin'],
+        order: [['username', 'ASC']]
+      });
+
+      const usersWithPermissions = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        isActive: user.isActive,
+        lastLogin: user.lastLogin,
+        permissions: user.permissions || {
+          serviceManagement: false,
+          automaticAIDisableRules: false,
+          webhookConfiguration: false,
+          ticketControl: false,
+          aiEnabledProjects: false,
+          remoteServerIntegration: false
+        }
+      }));
+
+      res.json({
+        success: true,
+        data: usersWithPermissions,
+        count: usersWithPermissions.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo usuarios con permisos:', error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'

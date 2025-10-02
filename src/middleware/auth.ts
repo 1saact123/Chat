@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { User } from '../models';
+import { User, UserPermissions } from '../models';
 
 // Extender la interfaz Request para incluir user
 declare global {
@@ -11,6 +11,7 @@ declare global {
         username: string;
         email: string;
         role: 'admin' | 'user';
+        permissions?: UserPermissions;
       };
     }
   }
@@ -49,7 +50,8 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       id: user.id,
       username: user.username,
       email: user.email,
-      role: user.role
+      role: user.role,
+      permissions: user.permissions
     };
 
     next();
@@ -102,7 +104,8 @@ export const redirectToLoginIfNotAuth = async (req: Request, res: Response, next
       id: user.id,
       username: user.username,
       email: user.email,
-      role: user.role
+      role: user.role,
+      permissions: user.permissions
     };
 
     next();
@@ -132,6 +135,36 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction): v
   }
 
   next();
+};
+
+// Middleware para verificar permisos específicos
+export const requirePermission = (permission: keyof UserPermissions) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ 
+        success: false, 
+        error: 'Autenticación requerida' 
+      });
+      return;
+    }
+
+    // Los admins tienen todos los permisos
+    if (req.user.role === 'admin') {
+      next();
+      return;
+    }
+
+    // Verificar si el usuario tiene el permiso específico
+    if (!req.user.permissions || !req.user.permissions[permission]) {
+      res.status(403).json({ 
+        success: false, 
+        error: `Acceso denegado. Se requiere el permiso: ${permission}` 
+      });
+      return;
+    }
+
+    next();
+  };
 };
 
 // Middleware para verificar si el usuario está autenticado (sin requerir token)
