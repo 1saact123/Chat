@@ -123,7 +123,8 @@ class MovonteAPI {
 
   private setupRoutes(): void {
     // Middleware personalizado para interceptar la ruta raíz ANTES de los archivos estáticos
-    this.app.get('/', redirectToLoginIfNotAuth, requireAdmin, (req: Request, res: Response) => {
+    // Permitir acceso a usuarios autenticados (admin o usuarios con permisos)
+    this.app.get('/', redirectToLoginIfNotAuth, (req: Request, res: Response) => {
       res.sendFile('index.html', { root: 'public' });
     });
 
