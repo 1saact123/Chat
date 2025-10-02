@@ -50,11 +50,6 @@ router.put('/api/admin/users/:id', authenticateToken, requireAdmin, updateUser);
 router.put('/api/admin/users/:id/password', authenticateToken, requireAdmin, changeUserPassword);
 router.delete('/api/admin/users/:id', authenticateToken, requireAdmin, deleteUser);
 
-// Página principal (dashboard)
-router.get('/', redirectToLoginIfNotAuth, (req, res) => {
-  res.sendFile('index.html', { root: 'public' });
-});
-
 // Página de login
 router.get('/login', (req, res) => {
   res.sendFile('login.html', { root: 'public' });
@@ -166,11 +161,11 @@ router.get('/api/chatbot/assistants/active', chatbotController.getActiveAssistan
 router.get('/api/admin/dashboard', authenticateToken, adminController.getDashboard.bind(adminController));
 
 // Gestión de configuraciones de servicios
-router.get('/api/admin/services/:serviceId', authenticateToken, requireAdmin, adminController.getServiceConfiguration.bind(adminController));
-router.put('/api/admin/services/:serviceId', authenticateToken, requireAdmin, adminController.updateServiceConfiguration.bind(adminController));
-router.patch('/api/admin/services/:serviceId/toggle', authenticateToken, requireAdmin, adminController.toggleService.bind(adminController));
-router.post('/api/admin/services', authenticateToken, requireAdmin, adminController.addService.bind(adminController));
-router.delete('/api/admin/services/:serviceId', authenticateToken, requireAdmin, adminController.removeService.bind(adminController));
+router.get('/api/admin/services/:serviceId', authenticateToken, requirePermission('serviceManagement'), adminController.getServiceConfiguration.bind(adminController));
+router.put('/api/admin/services/:serviceId', authenticateToken, requirePermission('serviceManagement'), adminController.updateServiceConfiguration.bind(adminController));
+router.patch('/api/admin/services/:serviceId/toggle', authenticateToken, requirePermission('serviceManagement'), adminController.toggleService.bind(adminController));
+router.post('/api/admin/services', authenticateToken, requirePermission('serviceManagement'), adminController.addService.bind(adminController));
+router.delete('/api/admin/services/:serviceId', authenticateToken, requirePermission('serviceManagement'), adminController.removeService.bind(adminController));
 
 // === PROJECT MANAGEMENT ROUTES - PROTECTED ===
 // Listar proyectos disponibles
@@ -183,26 +178,26 @@ router.post('/api/admin/projects/set-active', authenticateToken, requirePermissi
 router.get('/api/admin/projects/active', authenticateToken, requirePermission('aiEnabledProjects'), adminController.getActiveProject.bind(adminController));
 
 // Obtener detalles de un proyecto específico
-router.get('/api/admin/projects/:projectKey', authenticateToken, requireAdmin, adminController.getProjectDetails.bind(adminController));
+router.get('/api/admin/projects/:projectKey', authenticateToken, requirePermission('aiEnabledProjects'), adminController.getProjectDetails.bind(adminController));
 
 // Probar conexión con Jira
-router.get('/api/admin/jira/test-connection', authenticateToken, requireAdmin, adminController.testJiraConnection.bind(adminController));
+router.get('/api/admin/jira/test-connection', authenticateToken, requirePermission('aiEnabledProjects'), adminController.testJiraConnection.bind(adminController));
 
 // Endpoint público para obtener asistente activo de un servicio
 router.get('/api/services/:serviceId/assistant', adminController.getActiveAssistantForService.bind(adminController));
 
 // === TICKET CONTROL ROUTES - PROTECTED ===
 // Desactivar asistente en un ticket específico
-router.post('/api/admin/tickets/:issueKey/disable', authenticateToken, requireAdmin, adminController.disableAssistantForTicket.bind(adminController));
+router.post('/api/admin/tickets/:issueKey/disable', authenticateToken, requirePermission('ticketControl'), adminController.disableAssistantForTicket.bind(adminController));
 
 // Reactivar asistente en un ticket específico
-router.post('/api/admin/tickets/:issueKey/enable', authenticateToken, requireAdmin, adminController.enableAssistantForTicket.bind(adminController));
+router.post('/api/admin/tickets/:issueKey/enable', authenticateToken, requirePermission('ticketControl'), adminController.enableAssistantForTicket.bind(adminController));
 
 // Obtener lista de tickets con asistente desactivado
 router.get('/api/admin/tickets/disabled', authenticateToken, requirePermission('ticketControl'), adminController.getDisabledTickets.bind(adminController));
 
 // Verificar estado del asistente en un ticket
-router.get('/api/admin/tickets/:issueKey/status', authenticateToken, requireAdmin, adminController.checkTicketAssistantStatus.bind(adminController));
+router.get('/api/admin/tickets/:issueKey/status', authenticateToken, requirePermission('ticketControl'), adminController.checkTicketAssistantStatus.bind(adminController));
 
 // Chat específico por servicio
 router.post('/api/services/:serviceId/chat', chatbotController.handleServiceChat.bind(chatbotController));
@@ -256,38 +251,38 @@ router.get('/api/widget/assistant-status', widgetIntegrationController.checkAssi
 
 // === WEBHOOK CONFIGURATION ROUTES - PROTECTED ===
 // Configurar webhook
-router.post('/api/admin/webhook/configure', authenticateToken, requireAdmin, adminController.configureWebhook.bind(adminController));
+router.post('/api/admin/webhook/configure', authenticateToken, requirePermission('webhookConfiguration'), adminController.configureWebhook.bind(adminController));
 
 // Probar webhook
-router.post('/api/admin/webhook/test', authenticateToken, requireAdmin, adminController.testWebhook.bind(adminController));
+router.post('/api/admin/webhook/test', authenticateToken, requirePermission('webhookConfiguration'), adminController.testWebhook.bind(adminController));
 
 // Deshabilitar webhook
-router.post('/api/admin/webhook/disable', authenticateToken, requireAdmin, adminController.disableWebhook.bind(adminController));
+router.post('/api/admin/webhook/disable', authenticateToken, requirePermission('webhookConfiguration'), adminController.disableWebhook.bind(adminController));
 
 // Obtener estado del webhook
 router.get('/api/admin/webhook/status', authenticateToken, requirePermission('webhookConfiguration'), adminController.getWebhookStatus.bind(adminController));
 
 // Configurar filtro del webhook
-router.post('/api/admin/webhook/filter', authenticateToken, requireAdmin, adminController.configureWebhookFilter.bind(adminController));
+router.post('/api/admin/webhook/filter', authenticateToken, requirePermission('webhookConfiguration'), adminController.configureWebhookFilter.bind(adminController));
 
 // Obtener webhooks guardados
 router.get('/api/admin/webhooks/saved', authenticateToken, requirePermission('webhookConfiguration'), adminController.getSavedWebhooks.bind(adminController));
 
 // Guardar nuevo webhook
-router.post('/api/admin/webhooks/save', authenticateToken, requireAdmin, adminController.saveWebhook.bind(adminController));
+router.post('/api/admin/webhooks/save', authenticateToken, requirePermission('webhookConfiguration'), adminController.saveWebhook.bind(adminController));
 
 // Eliminar webhook guardado
-router.delete('/api/admin/webhooks/:id', authenticateToken, requireAdmin, adminController.deleteSavedWebhook.bind(adminController));
+router.delete('/api/admin/webhooks/:id', authenticateToken, requirePermission('webhookConfiguration'), adminController.deleteSavedWebhook.bind(adminController));
 
 // === STATUS-BASED DISABLE ROUTES - PROTECTED ===
 // Configurar deshabilitación basada en estados
-router.post('/api/admin/status-disable/configure', authenticateToken, requireAdmin, adminController.configureStatusBasedDisable.bind(adminController));
+router.post('/api/admin/status-disable/configure', authenticateToken, requirePermission('automaticAIDisableRules'), adminController.configureStatusBasedDisable.bind(adminController));
 
 // Obtener configuración de deshabilitación basada en estados
 router.get('/api/admin/status-disable/config', authenticateToken, requirePermission('automaticAIDisableRules'), adminController.getStatusBasedDisableConfig.bind(adminController));
 
 // Obtener estados disponibles de Jira
-router.get('/api/admin/statuses/available', authenticateToken, requireAdmin, adminController.getAvailableStatuses.bind(adminController));
+router.get('/api/admin/statuses/available', authenticateToken, requirePermission('automaticAIDisableRules'), adminController.getAvailableStatuses.bind(adminController));
 
 // === USER PERMISSIONS MANAGEMENT ROUTES - PROTECTED ===
 // Listar usuarios con permisos (solo admins)
