@@ -20,7 +20,7 @@ import {
   changeUserPassword,
   deleteUser
 } from '../controllers/auth_controller';
-import { authenticateToken, requireAdmin, redirectToLoginIfNotAuth } from '../middleware/auth';
+import { authenticateToken, requireAdmin, requirePermission, redirectToLoginIfNotAuth } from '../middleware/auth';
 
 // Initialize services
 // const emailService = new EmailService();
@@ -169,13 +169,13 @@ router.delete('/api/admin/services/:serviceId', authenticateToken, requireAdmin,
 
 // === PROJECT MANAGEMENT ROUTES - PROTECTED ===
 // Listar proyectos disponibles
-router.get('/api/admin/projects', authenticateToken, requireAdmin, adminController.listProjects.bind(adminController));
+router.get('/api/admin/projects', authenticateToken, requirePermission('aiEnabledProjects'), adminController.listProjects.bind(adminController));
 
 // Cambiar proyecto activo
 router.post('/api/admin/projects/set-active', authenticateToken, requireAdmin, adminController.setActiveProject.bind(adminController));
 
 // Obtener proyecto activo actual
-router.get('/api/admin/projects/active', authenticateToken, requireAdmin, adminController.getActiveProject.bind(adminController));
+router.get('/api/admin/projects/active', authenticateToken, requirePermission('aiEnabledProjects'), adminController.getActiveProject.bind(adminController));
 
 // Obtener detalles de un proyecto específico
 router.get('/api/admin/projects/:projectKey', authenticateToken, requireAdmin, adminController.getProjectDetails.bind(adminController));
@@ -194,7 +194,7 @@ router.post('/api/admin/tickets/:issueKey/disable', authenticateToken, requireAd
 router.post('/api/admin/tickets/:issueKey/enable', authenticateToken, requireAdmin, adminController.enableAssistantForTicket.bind(adminController));
 
 // Obtener lista de tickets con asistente desactivado
-router.get('/api/admin/tickets/disabled', authenticateToken, requireAdmin, adminController.getDisabledTickets.bind(adminController));
+router.get('/api/admin/tickets/disabled', authenticateToken, requirePermission('ticketControl'), adminController.getDisabledTickets.bind(adminController));
 
 // Verificar estado del asistente en un ticket
 router.get('/api/admin/tickets/:issueKey/status', authenticateToken, requireAdmin, adminController.checkTicketAssistantStatus.bind(adminController));
@@ -260,13 +260,13 @@ router.post('/api/admin/webhook/test', authenticateToken, requireAdmin, adminCon
 router.post('/api/admin/webhook/disable', authenticateToken, requireAdmin, adminController.disableWebhook.bind(adminController));
 
 // Obtener estado del webhook
-router.get('/api/admin/webhook/status', authenticateToken, requireAdmin, adminController.getWebhookStatus.bind(adminController));
+router.get('/api/admin/webhook/status', authenticateToken, requirePermission('webhookConfiguration'), adminController.getWebhookStatus.bind(adminController));
 
 // Configurar filtro del webhook
 router.post('/api/admin/webhook/filter', authenticateToken, requireAdmin, adminController.configureWebhookFilter.bind(adminController));
 
 // Obtener webhooks guardados
-router.get('/api/admin/webhooks/saved', authenticateToken, requireAdmin, adminController.getSavedWebhooks.bind(adminController));
+router.get('/api/admin/webhooks/saved', authenticateToken, requirePermission('webhookConfiguration'), adminController.getSavedWebhooks.bind(adminController));
 
 // Guardar nuevo webhook
 router.post('/api/admin/webhooks/save', authenticateToken, requireAdmin, adminController.saveWebhook.bind(adminController));
@@ -279,7 +279,7 @@ router.delete('/api/admin/webhooks/:id', authenticateToken, requireAdmin, adminC
 router.post('/api/admin/status-disable/configure', authenticateToken, requireAdmin, adminController.configureStatusBasedDisable.bind(adminController));
 
 // Obtener configuración de deshabilitación basada en estados
-router.get('/api/admin/status-disable/config', authenticateToken, requireAdmin, adminController.getStatusBasedDisableConfig.bind(adminController));
+router.get('/api/admin/status-disable/config', authenticateToken, requirePermission('automaticAIDisableRules'), adminController.getStatusBasedDisableConfig.bind(adminController));
 
 // Obtener estados disponibles de Jira
 router.get('/api/admin/statuses/available', authenticateToken, requireAdmin, adminController.getAvailableStatuses.bind(adminController));

@@ -1367,12 +1367,25 @@
                 
                 await this.loadUserProfile();
                 await this.loadDashboard();
-                await this.loadProjects();
-                await this.loadRemoteProjects();
-                await this.loadDisabledTickets();
-                await this.loadSavedWebhooks();
-                await this.updateWebhookStatus();
-                await this.loadStatusDisableConfig();
+                
+                // Cargar datos según permisos del usuario
+                if (this.currentUser) {
+                    if (this.currentUser.role === 'admin' || this.currentUser.permissions?.aiEnabledProjects) {
+                        await this.loadProjects();
+                    }
+                    if (this.currentUser.role === 'admin' || this.currentUser.permissions?.ticketControl) {
+                        await this.loadDisabledTickets();
+                    }
+                    if (this.currentUser.role === 'admin' || this.currentUser.permissions?.webhookConfiguration) {
+                        await this.loadSavedWebhooks();
+                        await this.updateWebhookStatus();
+                    }
+                    if (this.currentUser.role === 'admin' || this.currentUser.permissions?.automaticAIDisableRules) {
+                        await this.loadStatusDisableConfig();
+                    }
+                }
+                
+                await this.loadRemoteProjects(); // Este es público
                 this.setupEventListeners();
                 this.setupServiceNavigation();
             }
