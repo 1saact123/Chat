@@ -2793,13 +2793,31 @@
                     overviewBtn.style.display = 'flex';
                 }
 
-                // Si no hay permisos, mostrar mensaje informativo
+                // Verificar si el usuario tiene al menos un permiso
                 const hasAnyPermission = Object.values(permissions).some(p => p === true);
+                
+                // Si no tiene permisos, mostrar mensaje informativo y ocultar navegación
                 if (!hasAnyPermission) {
                     this.showNoPermissionsMessage();
+                    // Ocultar la navegación de servicios si no tiene permisos
+                    const serviceNav = document.querySelector('.service-nav');
+                    if (serviceNav) {
+                        serviceNav.style.display = 'none';
+                    }
                 } else {
                     this.hideNoPermissionsMessage();
+                    // Mostrar la navegación de servicios
+                    const serviceNav = document.querySelector('.service-nav');
+                    if (serviceNav) {
+                        serviceNav.style.display = 'flex';
+                    }
                 }
+
+                // Asegurar que la sección Overview esté visible por defecto
+                this.showServiceSection('overview');
+                
+                // Actualizar información de permisos en Overview
+                this.updateOverviewPermissionsInfo(permissions);
             }
 
             showNoPermissionsMessage() {
@@ -2808,19 +2826,41 @@
                 if (!message) {
                     message = document.createElement('div');
                     message.id = 'noPermissionsMessage';
-                    message.className = 'alert alert-warning';
-                    message.style.cssText = 'margin: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; color: #856404;';
+                    message.className = 'no-permissions-container';
+                    message.style.cssText = `
+                        margin: 40px auto;
+                        max-width: 600px;
+                        padding: 40px;
+                        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                        border: 2px solid #dee2e6;
+                        border-radius: 12px;
+                        text-align: center;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    `;
                     message.innerHTML = `
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Acceso Restringido</strong><br>
-                        No tienes permisos para acceder a las funcionalidades del dashboard. 
-                        Contacta a un administrador para solicitar los permisos necesarios.
+                        <div style="font-size: 48px; color: #6c757d; margin-bottom: 20px;">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3 style="color: #495057; margin-bottom: 16px; font-weight: 600;">
+                            Acceso Restringido
+                        </h3>
+                        <p style="color: #6c757d; margin-bottom: 24px; line-height: 1.6;">
+                            No tienes permisos para acceder a las funcionalidades del dashboard. 
+                            Contacta a un administrador para solicitar los permisos necesarios.
+                        </p>
+                        <div style="background: #fff; padding: 16px; border-radius: 8px; border-left: 4px solid #007bff;">
+                            <p style="margin: 0; color: #495057; font-size: 14px;">
+                                <i class="fas fa-info-circle" style="color: #007bff; margin-right: 8px;"></i>
+                                <strong>Permisos disponibles:</strong> Gestión de Servicios, Configuración de Webhooks, 
+                                Control de Tickets, Reglas Automáticas de IA
+                            </p>
+                        </div>
                     `;
                     
-                    // Insertar después de la navegación
-                    const serviceNav = document.querySelector('.service-nav');
-                    if (serviceNav && serviceNav.nextSibling) {
-                        serviceNav.parentNode.insertBefore(message, serviceNav.nextSibling);
+                    // Insertar en el contenido principal
+                    const mainContent = document.querySelector('.main-content');
+                    if (mainContent) {
+                        mainContent.appendChild(message);
                     }
                 }
                 message.style.display = 'block';
@@ -2830,6 +2870,63 @@
                 const message = document.getElementById('noPermissionsMessage');
                 if (message) {
                     message.style.display = 'none';
+                }
+            }
+
+            updateOverviewPermissionsInfo(permissions) {
+                // Crear o actualizar el contenedor de información de permisos
+                let permissionsInfo = document.getElementById('userPermissionsInfo');
+                if (!permissionsInfo) {
+                    permissionsInfo = document.createElement('div');
+                    permissionsInfo.id = 'userPermissionsInfo';
+                    permissionsInfo.className = 'permissions-info-card';
+                    permissionsInfo.style.cssText = `
+                        background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+                        border: 1px solid #bbdefb;
+                        border-radius: 8px;
+                        padding: 16px;
+                        margin-bottom: 20px;
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    `;
+                    
+                    // Insertar al inicio de la sección overview
+                    const overviewSection = document.getElementById('overview-section');
+                    if (overviewSection) {
+                        overviewSection.insertBefore(permissionsInfo, overviewSection.firstChild);
+                    }
+                }
+
+                // Mapeo de permisos a nombres legibles
+                const permissionNames = {
+                    serviceManagement: 'Gestión de Servicios',
+                    automaticAIDisableRules: 'Reglas Automáticas de IA',
+                    webhookConfiguration: 'Configuración de Webhooks',
+                    ticketControl: 'Control de Tickets',
+                    aiEnabledProjects: 'Proyectos con IA',
+                    remoteServerIntegration: 'Integración de Servidores Remotos'
+                };
+
+                // Obtener permisos activos
+                const activePermissions = Object.entries(permissions)
+                    .filter(([_, hasAccess]) => hasAccess)
+                    .map(([permission, _]) => permissionNames[permission] || permission);
+
+                if (activePermissions.length > 0) {
+                    permissionsInfo.innerHTML = `
+                        <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                            <i class="fas fa-user-shield" style="color: #1976d2; margin-right: 8px; font-size: 18px;"></i>
+                            <h4 style="margin: 0; color: #1976d2; font-weight: 600;">Tus Permisos</h4>
+                        </div>
+                        <p style="margin: 0 0 8px 0; color: #424242; font-size: 14px;">
+                            Tienes acceso a las siguientes funcionalidades:
+                        </p>
+                        <ul style="margin: 0; padding-left: 20px; color: #424242; font-size: 14px;">
+                            ${activePermissions.map(permission => `<li>${permission}</li>`).join('')}
+                        </ul>
+                    `;
+                    permissionsInfo.style.display = 'block';
+                } else {
+                    permissionsInfo.style.display = 'none';
                 }
             }
 
