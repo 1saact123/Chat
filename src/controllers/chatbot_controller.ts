@@ -375,6 +375,16 @@ export class ChatbotController {
         console.log(`🔧 Contexto enriquecido creado para ${issueKey}`);
         console.log(`📤 Llamando a processChatForService con mensaje: "${payload.comment.body}"`);
         
+        // Obtener el asistente configurado para landing-page
+        const landingPageConfig = configService.getServiceConfiguration('landing-page');
+        console.log(`🔍 Landing Page Configuration:`, {
+          serviceId: 'landing-page',
+          assistantId: landingPageConfig?.assistantId,
+          assistantName: landingPageConfig?.assistantName,
+          isActive: landingPageConfig?.isActive,
+          lastUpdated: landingPageConfig?.lastUpdated
+        });
+        
         // Usar el mismo asistente que el widget (landing-page) para mantener consistencia
         const response = await this.openaiService.processChatForService(
           payload.comment.body, 

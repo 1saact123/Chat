@@ -588,11 +588,15 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
 
       // Get the assistant configured for this service
       const serviceAssistantId = this.configService.getActiveAssistantForService(serviceId);
+      const serviceConfig = this.configService.getServiceConfiguration(serviceId);
       
       console.log(`🔍 Service ${serviceId} assistant lookup:`, {
         serviceId,
         assistantId: serviceAssistantId,
-        hasAssistant: !!serviceAssistantId
+        assistantName: serviceConfig?.assistantName,
+        isActive: serviceConfig?.isActive,
+        hasAssistant: !!serviceAssistantId,
+        fullConfig: serviceConfig
       });
       
       if (!serviceAssistantId) {

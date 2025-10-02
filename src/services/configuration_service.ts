@@ -126,31 +126,15 @@ export class ConfigurationService {
         
         // Actualizar configuraciones con datos de BD
         for (const dbConfig of dbConfigs) {
-          // Preservar configuración específica de webhook-parallel si ya está configurada
-          if (dbConfig.serviceId === 'webhook-parallel') {
-            const existingWebhookConfig = this.configurations.get('webhook-parallel');
-            console.log(`🔍 Verificando webhook-parallel:`, {
-              existingConfig: existingWebhookConfig,
-              dbConfig: dbConfig,
-              envAssistantId: process.env.OPENAI_ASSISTANT_ID,
-              shouldPreserve: existingWebhookConfig && existingWebhookConfig.assistantId !== process.env.OPENAI_ASSISTANT_ID
-            });
-            
-            // Usar configuración de BD si tiene un asistente específico (no el por defecto)
-            if (dbConfig.assistantId !== process.env.OPENAI_ASSISTANT_ID &&
-                dbConfig.assistantId !== '' &&
-                dbConfig.assistantId !== null) {
-              console.log(`🔒 Usando configuración webhook-parallel de BD: ${dbConfig.assistantName} (${dbConfig.assistantId})`);
-              // Continuar con el procesamiento normal para usar la configuración de BD
-            } else if (existingWebhookConfig && 
-                existingWebhookConfig.assistantId !== process.env.OPENAI_ASSISTANT_ID &&
-                existingWebhookConfig.assistantId !== '' &&
-                existingWebhookConfig.isActive) {
-              console.log(`🔒 Preservando configuración webhook-parallel existente: ${existingWebhookConfig.assistantName}`);
-              continue;
-            }
+          // Filtrar configuraciones especiales que no son servicios reales
+          if (dbConfig.serviceId.startsWith('disabled_ticket_') || 
+              dbConfig.serviceId === 'status-based-disable') {
+            continue;
           }
           
+          console.log(`🔍 Procesando configuración de BD: ${dbConfig.serviceId} -> ${dbConfig.assistantName} (${dbConfig.assistantId})`);
+          
+          // SIEMPRE usar la configuración de BD si existe (excepto para configuraciones especiales)
           this.configurations.set(dbConfig.serviceId, {
             serviceId: dbConfig.serviceId,
             serviceName: dbConfig.serviceName,
@@ -159,11 +143,15 @@ export class ConfigurationService {
             isActive: dbConfig.isActive,
             lastUpdated: dbConfig.lastUpdated || new Date()
           });
-          console.log(`✅ Cargada configuración: ${dbConfig.serviceName} -> ${dbConfig.assistantName}`);
+          
+          console.log(`✅ Configuración actualizada desde BD: ${dbConfig.serviceName} -> ${dbConfig.assistantName} (Activo: ${dbConfig.isActive})`);
         }
         
-        // Guardar configuraciones actualizadas en archivo
-        // this.saveConfigurations(); // TODO: Implementar si es necesario
+        // Log del estado final de configuraciones
+        console.log(`🔍 Estado final de configuraciones después de cargar BD:`);
+        for (const [id, cfg] of this.configurations.entries()) {
+          console.log(`  - ${id}: ${cfg.assistantName} (${cfg.assistantId}) - Activo: ${cfg.isActive}`);
+        }
       } else {
         console.log('⚠️ No se encontraron configuraciones en BD, usando configuraciones por defecto');
       }
