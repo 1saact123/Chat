@@ -934,7 +934,8 @@ export class AdminController {
     try {
       const { filterEnabled, filterCondition, filterValue } = req.body;
 
-      console.log(`🔧 Configurando filtro de webhook:`, {
+      console.log(`🔧 === CONFIGURING WEBHOOK FILTER ===`);
+      console.log(`📋 Input parameters:`, {
         filterEnabled,
         filterCondition,
         filterValue
@@ -946,6 +947,10 @@ export class AdminController {
         filterValue || 'Yes'
       );
 
+      // Obtener la configuración actual para verificar
+      const currentConfig = this.configService.getWebhookFilterConfig();
+      console.log(`📋 Current filter config:`, currentConfig);
+
       res.json({
         success: true,
         message: 'Filtro de webhook configurado exitosamente',
@@ -953,11 +958,51 @@ export class AdminController {
           filterEnabled,
           filterCondition: filterCondition || 'response_value',
           filterValue: filterValue || 'Yes',
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
+          currentConfig
         }
       });
+      
+      console.log(`✅ === WEBHOOK FILTER CONFIGURED ===`);
     } catch (error) {
       console.error('❌ Error configurando filtro de webhook:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Probar el filtro de webhook con una respuesta de ejemplo
+  async testWebhookFilter(req: Request, res: Response): Promise<void> {
+    try {
+      const { testResponse } = req.body;
+
+      console.log(`🧪 === TESTING WEBHOOK FILTER ===`);
+      console.log(`📝 Test response:`, testResponse);
+
+      const shouldSend = this.configService.shouldSendWebhook(testResponse);
+      const filterConfig = this.configService.getWebhookFilterConfig();
+
+      console.log(`📊 Test result:`, {
+        shouldSend,
+        filterConfig,
+        testResponse
+      });
+
+      res.json({
+        success: true,
+        data: {
+          shouldSend,
+          filterConfig,
+          testResponse,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      console.log(`✅ === WEBHOOK FILTER TEST COMPLETED ===`);
+    } catch (error) {
+      console.error('❌ Error testing webhook filter:', error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'

@@ -100,11 +100,14 @@ export class WebhookService {
         timeout: 10000 // 10 segundos timeout
       });
 
-      console.log(`✅ Webhook enviado exitosamente:`, {
-        status: response.status,
-        statusText: response.statusText,
-        webhookType: isJiraAutomation ? 'Jira Automation' : 'REST'
-      });
+      console.log(`✅ === WEBHOOK RESPONSE RECEIVED ===`);
+      console.log(`📊 Status:`, response.status);
+      console.log(`📊 Status Text:`, response.statusText);
+      console.log(`📊 Headers:`, response.headers);
+      console.log(`📊 Data:`, response.data);
+      console.log(`📊 Webhook Type:`, isJiraAutomation ? 'Jira Automation' : 'REST');
+      console.log(`📊 Request Payload Sent:`, JSON.stringify(requestPayload, null, 2));
+      console.log(`✅ === WEBHOOK RESPONSE END ===`);
 
       return { success: true };
 

@@ -1017,10 +1017,18 @@ Formato el reporte de manera clara y profesional.`;
       }
 
       // Verificar filtro del webhook antes de procesar
-      if (!configService.shouldSendWebhook(aiResponse.response)) {
+      console.log(`🔍 === WEBHOOK FILTER CHECK IN PARALLEL FLOW ===`);
+      console.log(`📝 AI Response for filter check:`, aiResponse.response);
+      const shouldSend = configService.shouldSendWebhook(aiResponse.response);
+      console.log(`🔍 Should send webhook:`, shouldSend);
+      
+      if (!shouldSend) {
         console.log(`🚫 Webhook filtrado: respuesta no cumple con los criterios del filtro`);
+        console.log(`🔍 === WEBHOOK FILTER CHECK END (FILTERED) ===`);
         return;
       }
+      console.log(`✅ Webhook filter passed, proceeding with parallel flow`);
+      console.log(`🔍 === WEBHOOK FILTER CHECK END (PASSED) ===`);
 
       // Crear thread separado para el webhook (usando asistente diferente si está configurado)
       const webhookThreadId = `webhook_${issueKey}_${Date.now()}`;

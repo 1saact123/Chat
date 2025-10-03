@@ -265,6 +265,9 @@ router.get('/api/admin/webhook/status', authenticateToken, requirePermission('we
 // Configurar filtro del webhook
 router.post('/api/admin/webhook/filter', authenticateToken, requirePermission('webhookConfiguration'), adminController.configureWebhookFilter.bind(adminController));
 
+// Probar filtro del webhook
+router.post('/api/admin/webhook/test-filter', authenticateToken, requirePermission('webhookConfiguration'), adminController.testWebhookFilter.bind(adminController));
+
 // Obtener webhooks guardados
 router.get('/api/admin/webhooks/saved', authenticateToken, requirePermission('webhookConfiguration'), adminController.getSavedWebhooks.bind(adminController));
 
