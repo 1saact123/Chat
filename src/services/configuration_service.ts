@@ -623,6 +623,13 @@ export class ConfigurationService {
     // Verificar condición del filtro
     if (this.webhookConfig.filterCondition === 'response_value') {
       try {
+        // Si el filtro está configurado en "No", nunca enviar webhook
+        if (this.webhookConfig.filterValue === 'No') {
+          console.log(`🚫 Filter configured to "No" - always filtering webhook`);
+          console.log(`🔍 === WEBHOOK FILTER CHECK END (FILTERED - NO CONFIGURED) ===`);
+          return false;
+        }
+        
         // Buscar el valor en la respuesta del asistente
         const responseValue = this.extractResponseValue(assistantResponse);
         const shouldSend = responseValue === this.webhookConfig.filterValue;
