@@ -674,25 +674,25 @@ export class ConfigurationService {
       
       // Buscar patrones comunes de "Yes" en la respuesta
       const yesPatterns = [
-        /yes/i,
+        /\byes\b/i,
+        /\bsi\b/i,
         /sí/i,
-        /si/i,
-        /yep/i,
-        /yeah/i,
-        /affirmative/i,
-        /confirm/i,
-        /agree/i,
-        /accept/i
+        /\byep\b/i,
+        /\byeah\b/i,
+        /\baffirmative\b/i,
+        /\bconfirm\b/i,
+        /\bagree\b/i,
+        /\baccept\b/i
       ];
       
       const noPatterns = [
-        /no/i,
-        /nope/i,
-        /negative/i,
-        /deny/i,
-        /reject/i,
-        /decline/i,
-        /disagree/i
+        /\bno\b/i,
+        /\bnope\b/i,
+        /\bnegative\b/i,
+        /\bdeny\b/i,
+        /\breject\b/i,
+        /\bdecline\b/i,
+        /\bdisagree\b/i
       ];
       
       // Verificar si contiene "Yes" o "No"
