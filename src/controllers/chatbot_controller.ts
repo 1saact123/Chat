@@ -410,9 +410,32 @@ export class ChatbotController {
         // Actualizar estadísticas en base de datos
         await this.updateWebhookStats(true);
         
-        // Si la IA respondió exitosamente, agregar el comentario a Jira
+        // Si la IA respondió exitosamente, verificar filtro ANTES de procesar
         if (response.success && response.response) {
-          console.log(`✅ Respuesta exitosa recibida, agregando a Jira...`);
+          console.log(`✅ Respuesta exitosa recibida, verificando filtro...`);
+          
+          // 🔍 VERIFICAR FILTRO DEL WEBHOOK ANTES DE PROCESAR
+          const configService = ConfigurationService.getInstance();
+          console.log(`🔍 === WEBHOOK FILTER CHECK IN MAIN FLOW ===`);
+          console.log(`📝 AI Response for filter check:`, response.response);
+          const shouldProcess = configService.shouldSendWebhook(response.response);
+          console.log(`🔍 Should process webhook:`, shouldProcess);
+          
+          if (!shouldProcess) {
+            console.log(`🚫 Webhook filtrado: respuesta no cumple con los criterios del filtro`);
+            console.log(`🔍 === WEBHOOK FILTER CHECK END (FILTERED) ===`);
+            // Responder sin procesar
+            res.json({
+              success: true,
+              message: 'Response filtered by webhook filter',
+              filtered: true,
+              reason: 'Response does not meet filter criteria'
+            });
+            return;
+          }
+          console.log(`✅ Webhook filter passed, proceeding with processing`);
+          console.log(`🔍 === WEBHOOK FILTER CHECK END (PASSED) ===`);
+          
           try {
             // Importar JiraService dinámicamente para evitar dependencias circulares
             const { JiraService } = await import('../services/jira_service');
