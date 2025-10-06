@@ -1,5 +1,3 @@
 /node_modules
 /dist
 .env
-test-conversation-fix.sh
-test-conversation-fix.ts
