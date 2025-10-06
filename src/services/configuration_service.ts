@@ -603,11 +603,8 @@ export class ConfigurationService {
     console.log(`📋 Webhook config:`, {
       isEnabled: this.webhookConfig?.isEnabled,
       filterEnabled: this.webhookConfig?.filterEnabled,
-      filterCondition: this.webhookConfig?.filterCondition,
       filterValue: this.webhookConfig?.filterValue
     });
-    console.log(`📝 Assistant response type:`, typeof assistantResponse);
-    console.log(`📝 Assistant response:`, assistantResponse);
 
     if (!this.webhookConfig || !this.webhookConfig.isEnabled) {
       console.log(`❌ Webhook not enabled or not configured`);
@@ -620,113 +617,13 @@ export class ConfigurationService {
       return true;
     }
 
-    // Verificar condición del filtro
-    if (this.webhookConfig.filterCondition === 'response_value') {
-      try {
-        // Si el filtro está configurado en "No", nunca enviar webhook
-        if (this.webhookConfig.filterValue === 'No') {
-          console.log(`🚫 Filter configured to "No" - always filtering webhook`);
-          console.log(`🔍 === WEBHOOK FILTER CHECK END (FILTERED - NO CONFIGURED) ===`);
-          return false;
-        }
-        
-        // Buscar el valor en la respuesta del asistente
-        const responseValue = this.extractResponseValue(assistantResponse);
-        const shouldSend = responseValue === this.webhookConfig.filterValue;
-        
-        console.log(`🔍 Webhook filter check: responseValue="${responseValue}", filterValue="${this.webhookConfig.filterValue}", shouldSend=${shouldSend}`);
-        console.log(`🔍 === WEBHOOK FILTER CHECK END ===`);
-        return shouldSend;
-      } catch (error) {
-        console.error('❌ Error checking webhook filter:', error);
-        console.log(`🔍 === WEBHOOK FILTER CHECK END (ERROR) ===`);
-        return false;
-      }
-    }
-
-    console.log(`✅ Default case: sending webhook`);
-    console.log(`🔍 === WEBHOOK FILTER CHECK END ===`);
-    return true;
-  }
-
-  // Extraer el valor de la respuesta del asistente
-  private extractResponseValue(assistantResponse: any): string | null {
-    console.log(`🔍 === EXTRACTING RESPONSE VALUE START ===`);
-    console.log(`📝 Input type:`, typeof assistantResponse);
-    console.log(`📝 Input value:`, assistantResponse);
+    // LÓGICA SIMPLE: Si filterValue = "Yes" → enviar, si filterValue = "No" → no enviar
+    const shouldSend = this.webhookConfig.filterValue === 'Yes';
     
-    try {
-      let responseText = '';
-      
-      // Si la respuesta es un string, intentar parsearla como JSON
-      if (typeof assistantResponse === 'string') {
-        console.log(`📝 Processing string response`);
-        try {
-          const parsed = JSON.parse(assistantResponse);
-          console.log(`📝 Parsed JSON:`, parsed);
-          responseText = parsed.value || parsed.response || parsed.message || assistantResponse;
-        } catch (parseError) {
-          console.log(`📝 Not JSON, using raw string`);
-          responseText = assistantResponse;
-        }
-      } else if (typeof assistantResponse === 'object' && assistantResponse !== null) {
-        console.log(`📝 Processing object response`);
-        responseText = assistantResponse.value || assistantResponse.response || assistantResponse.message || JSON.stringify(assistantResponse);
-      } else {
-        console.log(`📝 Processing other type, converting to string`);
-        responseText = String(assistantResponse);
-      }
-      
-      console.log(`📝 Final response text:`, responseText);
-      
-      // Buscar patrones comunes de "Yes" en la respuesta
-      const yesPatterns = [
-        /yes/i,
-        /sí/i,
-        /si/i,
-        /yep/i,
-        /yeah/i,
-        /affirmative/i,
-        /confirm/i,
-        /agree/i,
-        /accept/i
-      ];
-      
-      const noPatterns = [
-        /no/i,
-        /nope/i,
-        /negative/i,
-        /deny/i,
-        /reject/i,
-        /decline/i,
-        /disagree/i
-      ];
-      
-      // Verificar si contiene "Yes" o "No"
-      for (const pattern of yesPatterns) {
-        if (pattern.test(responseText)) {
-          console.log(`✅ Found YES pattern:`, pattern);
-          console.log(`🔍 === EXTRACTING RESPONSE VALUE END (YES) ===`);
-          return 'Yes';
-        }
-      }
-      
-      for (const pattern of noPatterns) {
-        if (pattern.test(responseText)) {
-          console.log(`❌ Found NO pattern:`, pattern);
-          console.log(`🔍 === EXTRACTING RESPONSE VALUE END (NO) ===`);
-          return 'No';
-        }
-      }
-      
-      console.log(`⚠️ No clear Yes/No pattern found`);
-      console.log(`🔍 === EXTRACTING RESPONSE VALUE END (UNKNOWN) ===`);
-      return null;
-      
-    } catch (error) {
-      console.error('❌ Error extracting response value:', error);
-      console.log(`🔍 === EXTRACTING RESPONSE VALUE END (ERROR) ===`);
-      return null;
-    }
+    console.log(`🔍 Simple filter logic: filterValue="${this.webhookConfig.filterValue}", shouldSend=${shouldSend}`);
+    console.log(`🔍 === WEBHOOK FILTER CHECK END ===`);
+    
+    return shouldSend;
   }
+
 }
