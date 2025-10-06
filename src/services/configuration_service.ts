@@ -605,7 +605,6 @@ export class ConfigurationService {
       filterEnabled: this.webhookConfig?.filterEnabled,
       filterValue: this.webhookConfig?.filterValue
     });
-    console.log(`📝 Assistant response:`, assistantResponse);
 
     if (!this.webhookConfig || !this.webhookConfig.isEnabled) {
       console.log(`❌ Webhook not enabled or not configured`);
@@ -618,25 +617,10 @@ export class ConfigurationService {
       return true;
     }
 
-    // Extraer el valor del JSON de respuesta del asistente
-    let responseValue = null;
-    try {
-      if (typeof assistantResponse === 'string') {
-        const parsed = JSON.parse(assistantResponse);
-        responseValue = parsed.value;
-      } else if (typeof assistantResponse === 'object' && assistantResponse?.value) {
-        responseValue = assistantResponse.value;
-      }
-    } catch (error) {
-      console.log(`⚠️ Could not parse assistant response as JSON`);
-    }
-
-    console.log(`📝 Extracted response value: "${responseValue}"`);
+    // LÓGICA SIMPLE: Si filterValue = "Yes" → enviar, si filterValue = "No" → no enviar
+    const shouldSend = this.webhookConfig.filterValue === 'Yes';
     
-    // LÓGICA: Solo enviar si el valor de la respuesta coincide con el filtro configurado
-    const shouldSend = responseValue === this.webhookConfig.filterValue;
-    
-    console.log(`🔍 Filter logic: responseValue="${responseValue}", filterValue="${this.webhookConfig.filterValue}", shouldSend=${shouldSend}`);
+    console.log(`🔍 Simple filter logic: filterValue="${this.webhookConfig.filterValue}", shouldSend=${shouldSend}`);
     console.log(`🔍 === WEBHOOK FILTER CHECK END ===`);
     
     return shouldSend;
