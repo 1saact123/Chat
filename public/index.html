@@ -888,28 +888,39 @@
                                 <div class="form-check">
                                     <input type="checkbox" id="webhookFilterEnabled" class="form-check-input">
                                     <label for="webhookFilterEnabled" class="form-check-label">
-                                        <strong>Enable Response Filter</strong>
+                                        <strong>Enable Webhook Filter</strong>
                                     </label>
                                 </div>
-                                <small class="form-help">Only send webhook when assistant response meets filter criteria</small>
+                                <small class="form-help">Enable/disable the webhook filtering function. The actual filtering logic is handled by the parallel assistant (Escalate agent).</small>
                             </div>
                             
                             <div id="webhookFilterConfig" style="display: none;">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>Filter Information:</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <li>The <strong>Escalate agent</strong> analyzes each conversation and responds with JSON: <code>{"value": "Yes/No", "reason": "...", "confidence": 0.95}</code></li>
+                                        <li>If <strong>value = "Yes"</strong>: Webhook is sent (human intervention needed)</li>
+                                        <li>If <strong>value = "No"</strong>: Webhook is blocked (AI can handle it)</li>
+                                        <li>This filter only enables/disables the filtering function</li>
+                                    </ul>
+                                </div>
+                                
                                 <div class="form-group">
                                     <label for="webhookFilterCondition" class="form-label">Filter Condition</label>
-                                    <select id="webhookFilterCondition" class="form-select">
-                                        <option value="response_value">Response Value</option>
+                                    <select id="webhookFilterCondition" class="form-select" disabled>
+                                        <option value="response_value">Response Value (Auto-detected)</option>
                                     </select>
-                                    <small class="form-help">Filter based on the assistant's response value</small>
+                                    <small class="form-help">Automatically detects Yes/No from Escalate agent response</small>
                                 </div>
                                 
                                 <div class="form-group">
                                     <label for="webhookFilterValue" class="form-label">Filter Value</label>
-                                    <select id="webhookFilterValue" class="form-select">
-                                        <option value="Yes">Yes</option>
-                                        <option value="No">No</option>
+                                    <select id="webhookFilterValue" class="form-select" disabled>
+                                        <option value="Yes">Yes (Send webhook when escalation needed)</option>
+                                        <option value="No">No (Never send webhook)</option>
                                     </select>
-                                    <small class="form-help">Only send webhook when response value equals this</small>
+                                    <small class="form-help">Currently set to "Yes" - only sends webhook when Escalate agent determines human intervention is needed</small>
                                 </div>
                                 
                                 <div class="form-group">
@@ -2421,10 +2432,15 @@
             toggleWebhookFilterConfig() {
                 const filterEnabled = document.getElementById('webhookFilterEnabled');
                 const filterConfig = document.getElementById('webhookFilterConfig');
+                const filterCondition = document.getElementById('webhookFilterCondition');
+                const filterValue = document.getElementById('webhookFilterValue');
                 
                 if (filterEnabled && filterConfig) {
                     if (filterEnabled.checked) {
                         filterConfig.style.display = 'block';
+                        // Los campos están deshabilitados por diseño - solo muestran información
+                        if (filterCondition) filterCondition.disabled = true;
+                        if (filterValue) filterValue.disabled = true;
                     } else {
                         filterConfig.style.display = 'none';
                     }
@@ -2434,8 +2450,9 @@
             async saveWebhookFilter() {
                 try {
                     const filterEnabled = document.getElementById('webhookFilterEnabled').checked;
-                    const filterCondition = document.getElementById('webhookFilterCondition').value;
-                    const filterValue = document.getElementById('webhookFilterValue').value;
+                    // Los valores están fijos por diseño - solo se puede habilitar/deshabilitar
+                    const filterCondition = 'response_value';
+                    const filterValue = 'Yes'; // Siempre "Yes" - solo envía webhook cuando Escalate agent dice "Yes"
 
                     const response = await this.authenticatedFetch('/api/admin/webhook/filter', {
                         method: 'POST',
@@ -2450,8 +2467,11 @@
                     const data = await response.json();
                     
                     if (data.success) {
-                        this.showStatus('Webhook filter configuration saved successfully', 'success');
-                        this.addActivity('Webhook filter updated', 'info');
+                        const statusMessage = filterEnabled 
+                            ? 'Webhook filter enabled - only sends webhook when Escalate agent determines human intervention is needed'
+                            : 'Webhook filter disabled - all webhooks will be sent';
+                        this.showStatus(statusMessage, 'success');
+                        this.addActivity(`Webhook filter ${filterEnabled ? 'enabled' : 'disabled'}`, 'info');
                         this.updateWebhookStatus();
                     } else {
                         throw new Error(data.error);
