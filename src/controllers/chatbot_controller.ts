@@ -1017,19 +1017,7 @@ Formato el reporte de manera clara y profesional.`;
         return;
       }
 
-      // Verificar filtro del webhook antes de procesar
-      console.log(`🔍 === WEBHOOK FILTER CHECK IN PARALLEL FLOW ===`);
-      console.log(`📝 AI Response for filter check:`, aiResponse.response);
-      const shouldSend = configService.shouldSendWebhook(aiResponse.response);
-      console.log(`🔍 Should send webhook:`, shouldSend);
-      
-      if (!shouldSend) {
-        console.log(`🚫 Webhook filtrado: respuesta no cumple con los criterios del filtro`);
-        console.log(`🔍 === WEBHOOK FILTER CHECK END (FILTERED) ===`);
-        return;
-      }
-      console.log(`✅ Webhook filter passed, proceeding with parallel flow`);
-      console.log(`🔍 === WEBHOOK FILTER CHECK END (PASSED) ===`);
+      // El filtro se aplicará después de generar la respuesta del asistente paralelo
 
       // Crear thread separado para el webhook (usando asistente diferente si está configurado)
       const webhookThreadId = `webhook_${issueKey}_${Date.now()}`;
@@ -1093,6 +1081,20 @@ Formato el reporte de manera clara y profesional.`;
             responseLength: webhookResponse.response.length
           });
           
+          // Verificar filtro del webhook con la respuesta del asistente paralelo
+          console.log(`🔍 === WEBHOOK FILTER CHECK IN PARALLEL FLOW ===`);
+          console.log(`📝 Parallel AI Response for filter check:`, webhookResponse.response);
+          const shouldSend = configService.shouldSendWebhook(webhookResponse.response);
+          console.log(`🔍 Should send webhook:`, shouldSend);
+          
+          if (!shouldSend) {
+            console.log(`🚫 Webhook filtrado: respuesta no cumple con los criterios del filtro`);
+            console.log(`🔍 === WEBHOOK FILTER CHECK END (FILTERED) ===`);
+            return;
+          }
+          console.log(`✅ Webhook filter passed, proceeding with webhook send`);
+          console.log(`🔍 === WEBHOOK FILTER CHECK END (PASSED) ===`);
+          
           // Enviar datos al webhook
           await webhookService.sendAIResponseToWebhook(
             issueKey,
@@ -1114,6 +1116,20 @@ Formato el reporte de manera clara y profesional.`;
           threadId: webhookThreadId,
           responsePreview: aiResponse.response ? aiResponse.response.substring(0, 100) + '...' : 'No response'
         });
+        
+        // Verificar filtro del webhook con la respuesta reutilizada
+        console.log(`🔍 === WEBHOOK FILTER CHECK IN PARALLEL FLOW (REUSED) ===`);
+        console.log(`📝 Reused AI Response for filter check:`, aiResponse.response);
+        const shouldSend = configService.shouldSendWebhook(aiResponse.response);
+        console.log(`🔍 Should send webhook:`, shouldSend);
+        
+        if (!shouldSend) {
+          console.log(`🚫 Webhook filtrado: respuesta no cumple con los criterios del filtro`);
+          console.log(`🔍 === WEBHOOK FILTER CHECK END (FILTERED) ===`);
+          return;
+        }
+        console.log(`✅ Webhook filter passed, proceeding with webhook send`);
+        console.log(`🔍 === WEBHOOK FILTER CHECK END (PASSED) ===`);
         
         await webhookService.sendAIResponseToWebhook(
           issueKey,
