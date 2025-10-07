@@ -5,6 +5,7 @@ import { HealthController } from '../controllers/health_controller';
 import { LandingController } from '../controllers/landing_controller';
 import { AdminController } from '../controllers/admin_controller';
 import { WidgetIntegrationController } from '../controllers/widget_integration_controller';
+import { UserController } from '../controllers/user_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
@@ -33,6 +34,7 @@ const healthController = new HealthController();
 const landingController = new LandingController();
 const adminController = new AdminController();
 const widgetIntegrationController = new WidgetIntegrationController();
+const userController = new UserController();
 
 const router = Router();
 
@@ -49,6 +51,31 @@ router.post('/api/admin/users', authenticateToken, requireAdmin, createUser);
 router.put('/api/admin/users/:id', authenticateToken, requireAdmin, updateUser);
 router.put('/api/admin/users/:id/password', authenticateToken, requireAdmin, changeUserPassword);
 router.delete('/api/admin/users/:id', authenticateToken, requireAdmin, deleteUser);
+
+// === USER SYSTEM ROUTES ===
+// Login de usuario
+router.post('/api/user/login', userController.login.bind(userController));
+
+// Perfil del usuario
+router.get('/api/user/profile', authenticateToken, userController.getProfile.bind(userController));
+
+// Gestión de instancias del usuario
+router.get('/api/user/instances', authenticateToken, userController.getUserInstances.bind(userController));
+router.post('/api/user/instances', authenticateToken, userController.createInstance.bind(userController));
+router.put('/api/user/instances/:id', authenticateToken, userController.updateInstance.bind(userController));
+router.delete('/api/user/instances/:id', authenticateToken, userController.deleteInstance.bind(userController));
+
+// Configuraciones de servicios del usuario
+router.get('/api/user/services', authenticateToken, userController.getUserServiceConfigurations.bind(userController));
+router.post('/api/user/services', authenticateToken, userController.setUserServiceConfiguration.bind(userController));
+
+// Configuración de webhook del usuario
+router.get('/api/user/webhook', authenticateToken, userController.getUserWebhookConfiguration.bind(userController));
+router.post('/api/user/webhook', authenticateToken, userController.setUserWebhookConfiguration.bind(userController));
+router.post('/api/user/webhook/filter', authenticateToken, userController.setUserWebhookFilter.bind(userController));
+
+// Registro de usuario (solo admin)
+router.post('/api/user/register', authenticateToken, requireAdmin, userController.registerUser.bind(userController));
 
 // Página de login
 router.get('/login', (req, res) => {

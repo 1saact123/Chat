@@ -383,6 +383,248 @@ SavedWebhook.init({
   timestamps: true
 });
 
+// Interface para UserConfiguration
+export interface UserConfigurationAttributes {
+  id?: number;
+  userId: number;
+  serviceId: string;
+  serviceName: string;
+  assistantId: string;
+  assistantName: string;
+  isActive: boolean;
+  configuration?: any; // JSON para configuraciones específicas
+  createdAt?: Date;
+  updatedAt?: Date;
+  lastUpdated?: Date;
+}
+
+export interface UserConfigurationCreationAttributes extends Optional<UserConfigurationAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+
+// Modelo UserConfiguration
+export class UserConfiguration extends Model<UserConfigurationAttributes, UserConfigurationCreationAttributes> implements UserConfigurationAttributes {
+  public id!: number;
+  public userId!: number;
+  public serviceId!: string;
+  public serviceName!: string;
+  public assistantId!: string;
+  public assistantName!: string;
+  public isActive!: boolean;
+  public configuration?: any;
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+  public lastUpdated?: Date;
+}
+
+UserConfiguration.init({
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  serviceId: {
+    type: DataTypes.STRING(100),
+    allowNull: false
+  },
+  serviceName: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  assistantId: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  assistantName: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
+  },
+  configuration: {
+    type: DataTypes.JSON,
+    allowNull: true
+  },
+  lastUpdated: {
+    type: DataTypes.DATE,
+    allowNull: true
+  }
+}, {
+  sequelize,
+  tableName: 'user_configurations',
+  timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['user_id', 'service_id']
+    }
+  ]
+});
+
+// Interface para UserWebhook
+export interface UserWebhookAttributes {
+  id?: number;
+  userId: number;
+  name: string;
+  url: string;
+  description?: string;
+  isEnabled: boolean;
+  filterEnabled: boolean;
+  filterCondition?: string;
+  filterValue?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface UserWebhookCreationAttributes extends Optional<UserWebhookAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+
+// Modelo UserWebhook
+export class UserWebhook extends Model<UserWebhookAttributes, UserWebhookCreationAttributes> implements UserWebhookAttributes {
+  public id!: number;
+  public userId!: number;
+  public name!: string;
+  public url!: string;
+  public description?: string;
+  public isEnabled!: boolean;
+  public filterEnabled!: boolean;
+  public filterCondition?: string;
+  public filterValue?: string;
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+UserWebhook.init({
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  name: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  url: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  isEnabled: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
+  },
+  filterEnabled: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  filterCondition: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
+  filterValue: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  }
+}, {
+  sequelize,
+  tableName: 'user_webhooks',
+  timestamps: true
+});
+
+// Interface para UserInstance
+export interface UserInstanceAttributes {
+  id?: number;
+  userId: number;
+  instanceName: string;
+  instanceDescription?: string;
+  isActive: boolean;
+  settings?: any; // JSON para configuraciones específicas de la instancia
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface UserInstanceCreationAttributes extends Optional<UserInstanceAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+
+// Modelo UserInstance
+export class UserInstance extends Model<UserInstanceAttributes, UserInstanceCreationAttributes> implements UserInstanceAttributes {
+  public id!: number;
+  public userId!: number;
+  public instanceName!: string;
+  public instanceDescription?: string;
+  public isActive!: boolean;
+  public settings?: any;
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+UserInstance.init({
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  instanceName: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  instanceDescription: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
+  },
+  settings: {
+    type: DataTypes.JSON,
+    allowNull: true
+  }
+}, {
+  sequelize,
+  tableName: 'user_instances',
+  timestamps: true
+});
+
+// Definir relaciones adicionales
+User.hasMany(UserConfiguration, { foreignKey: 'userId' });
+UserConfiguration.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(UserWebhook, { foreignKey: 'userId' });
+UserWebhook.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(UserInstance, { foreignKey: 'userId' });
+UserInstance.belongsTo(User, { foreignKey: 'userId' });
+
 // Los modelos ya están exportados arriba, no necesitamos re-exportarlos
 
 // Exportar sequelize para scripts de migración
