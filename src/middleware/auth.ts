@@ -12,6 +12,9 @@ declare global {
         email: string;
         role: 'admin' | 'user';
         permissions?: UserPermissions;
+        jiraToken?: string;
+        openaiToken?: string;
+        isInitialSetupComplete?: boolean;
       };
     }
   }
@@ -51,7 +54,10 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       username: user.username,
       email: user.email,
       role: user.role,
-      permissions: user.permissions
+      permissions: user.permissions,
+      jiraToken: user.jiraToken,
+      openaiToken: user.openaiToken,
+      isInitialSetupComplete: user.isInitialSetupComplete
     };
 
     next();
@@ -105,7 +111,10 @@ export const redirectToLoginIfNotAuth = async (req: Request, res: Response, next
       username: user.username,
       email: user.email,
       role: user.role,
-      permissions: user.permissions
+      permissions: user.permissions,
+      jiraToken: user.jiraToken,
+      openaiToken: user.openaiToken,
+      isInitialSetupComplete: user.isInitialSetupComplete
     };
 
     next();

@@ -1,0 +1,171 @@
+import axios from 'axios';
+import { Buffer } from 'buffer';
+
+export class UserJiraService {
+  private baseUrl: string;
+  private auth: string;
+  private userId: number;
+
+  constructor(userId: number, jiraToken: string, jiraUrl: string) {
+    this.userId = userId;
+    this.baseUrl = jiraUrl;
+    
+    // Para tokens de Jira, asumimos que el token ya incluye la autenticación
+    // Si necesitas email + token, ajusta esta lógica
+    this.auth = Buffer.from(`${jiraToken}`).toString('base64');
+  }
+
+  // Listar proyectos del usuario
+  async listProjects(): Promise<any[]> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/rest/api/3/project`, {
+        headers: {
+          'Authorization': `Basic ${this.auth}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      return response.data.map((project: any) => ({
+        id: project.id,
+        key: project.key,
+        name: project.name,
+        description: project.description
+      }));
+    } catch (error) {
+      console.error(`Error listing projects for user ${this.userId}:`, error);
+      throw error;
+    }
+  }
+
+  // Obtener issue por key
+  async getIssueByKey(issueKey: string): Promise<any> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/rest/api/3/issue/${issueKey}`, {
+        headers: {
+          'Authorization': `Basic ${this.auth}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting issue ${issueKey} for user ${this.userId}:`, error);
+      throw error;
+    }
+  }
+
+  // Agregar comentario
+  async addCommentToIssue(issueKey: string, commentText: string): Promise<any> {
+    try {
+      const commentData = {
+        body: {
+          version: 1,
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  type: 'text',
+                  text: commentText
+                }
+              ]
+            }
+          ]
+        }
+      };
+
+      const response = await axios.post(
+        `${this.baseUrl}/rest/api/3/issue/${issueKey}/comment`,
+        commentData,
+        {
+          headers: {
+            'Authorization': `Basic ${this.auth}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error adding comment to ${issueKey} for user ${this.userId}:`, error);
+      throw error;
+    }
+  }
+
+  // Probar conexión
+  async testConnection(): Promise<boolean> {
+    try {
+      await axios.get(`${this.baseUrl}/rest/api/3/myself`, {
+        headers: {
+          'Authorization': `Basic ${this.auth}`,
+          'Accept': 'application/json'
+        }
+      });
+      return true;
+    } catch (error) {
+      console.error(`Connection test failed for user ${this.userId}:`, error);
+      return false;
+    }
+  }
+
+  // Obtener comentarios de un issue
+  async getIssueComments(issueKey: string): Promise<any[]> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/rest/api/3/issue/${issueKey}/comment`, {
+        headers: {
+          'Authorization': `Basic ${this.auth}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      return response.data.comments || [];
+    } catch (error) {
+      console.error(`Error getting comments for issue ${issueKey} for user ${this.userId}:`, error);
+      throw error;
+    }
+  }
+
+  // Actualizar estado de issue
+  async updateIssueStatus(issueKey: string, statusName: string): Promise<any> {
+    try {
+      // Primero obtener las transiciones disponibles
+      const transitionsResponse = await axios.get(`${this.baseUrl}/rest/api/3/issue/${issueKey}/transitions`, {
+        headers: {
+          'Authorization': `Basic ${this.auth}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      const transitions = transitionsResponse.data.transitions;
+      const targetTransition = transitions.find((t: any) => t.name === statusName);
+
+      if (!targetTransition) {
+        throw new Error(`Status transition '${statusName}' not found`);
+      }
+
+      // Ejecutar la transición
+      const response = await axios.post(
+        `${this.baseUrl}/rest/api/3/issue/${issueKey}/transitions`,
+        {
+          transition: {
+            id: targetTransition.id
+          }
+        },
+        {
+          headers: {
+            'Authorization': `Basic ${this.auth}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating status for issue ${issueKey} for user ${this.userId}:`, error);
+      throw error;
+    }
+  }
+}

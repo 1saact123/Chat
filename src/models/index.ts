@@ -258,6 +258,10 @@ export interface UserAttributes {
   isActive: boolean;
   permissions?: UserPermissions;
   lastLogin?: Date;
+  jiraToken?: string;
+  jiraUrl?: string;
+  openaiToken?: string;
+  isInitialSetupComplete?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -274,6 +278,9 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public isActive!: boolean;
   public permissions?: UserPermissions;
   public lastLogin?: Date;
+  public jiraToken?: string;
+  public openaiToken?: string;
+  public isInitialSetupComplete?: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -323,6 +330,23 @@ User.init({
   lastLogin: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  jiraToken: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  jiraUrl: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  openaiToken: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  isInitialSetupComplete: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
   }
 }, {
   sequelize,

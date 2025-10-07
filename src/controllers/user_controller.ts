@@ -57,8 +57,10 @@ export class UserController {
             username: user.username,
             email: user.email,
             role: user.role,
-            permissions: user.permissions
-          }
+            permissions: user.permissions,
+            isInitialSetupComplete: user.isInitialSetupComplete
+          },
+          requiresInitialSetup: !user.isInitialSetupComplete
         }
       });
     } catch (error) {
@@ -525,6 +527,156 @@ export class UserController {
       });
     } catch (error) {
       console.error('Error registrando usuario:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Completar configuración inicial
+  public async completeInitialSetup(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: 'Usuario no autenticado'
+        });
+        return;
+      }
+
+      const { jiraToken, jiraUrl, openaiToken } = req.body;
+
+      if (!jiraToken || !jiraUrl || !openaiToken) {
+        res.status(400).json({
+          success: false,
+          error: 'Jira token, Jira URL y OpenAI token son requeridos'
+        });
+        return;
+      }
+
+      // Validar tokens (opcional - puedes agregar validaciones específicas)
+      if (jiraToken.length < 10 || openaiToken.length < 10) {
+        res.status(400).json({
+          success: false,
+          error: 'Los tokens proporcionados no parecen válidos'
+        });
+        return;
+      }
+
+      // Actualizar usuario con los tokens
+      await User.update({
+        jiraToken,
+        jiraUrl,
+        openaiToken,
+        isInitialSetupComplete: true
+      }, {
+        where: { id: req.user.id }
+      });
+
+      res.json({
+        success: true,
+        message: 'Configuración inicial completada correctamente',
+        data: {
+          isInitialSetupComplete: true
+        }
+      });
+    } catch (error) {
+      console.error('Error completando configuración inicial:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Obtener estado de configuración inicial
+  public async getInitialSetupStatus(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: 'Usuario no autenticado'
+        });
+        return;
+      }
+
+      const user = await User.findByPk(req.user.id, {
+        attributes: ['isInitialSetupComplete', 'jiraToken', 'openaiToken']
+      });
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: 'Usuario no encontrado'
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: {
+          isInitialSetupComplete: user.isInitialSetupComplete,
+          hasJiraToken: !!user.jiraToken,
+          hasOpenaiToken: !!user.openaiToken,
+          requiresInitialSetup: !user.isInitialSetupComplete
+        }
+      });
+    } catch (error) {
+      console.error('Error obteniendo estado de configuración:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Validar tokens
+  public async validateTokens(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: 'Usuario no autenticado'
+        });
+        return;
+      }
+
+      const { jiraToken, openaiToken } = req.body;
+
+      if (!jiraToken || !openaiToken) {
+        res.status(400).json({
+          success: false,
+          error: 'Jira token y OpenAI token son requeridos'
+        });
+        return;
+      }
+
+      // Aquí puedes agregar validaciones reales de los tokens
+      // Por ejemplo, hacer una llamada a la API de Jira y OpenAI para verificar
+      
+      const validationResults = {
+        jiraToken: {
+          isValid: jiraToken.length > 10, // Validación básica
+          message: jiraToken.length > 10 ? 'Token válido' : 'Token inválido'
+        },
+        openaiToken: {
+          isValid: openaiToken.startsWith('sk-'), // Validación básica para OpenAI
+          message: openaiToken.startsWith('sk-') ? 'Token válido' : 'Token inválido'
+        }
+      };
+
+      const allValid = validationResults.jiraToken.isValid && validationResults.openaiToken.isValid;
+
+      res.json({
+        success: allValid,
+        data: {
+          validation: validationResults,
+          allTokensValid: allValid
+        }
+      });
+    } catch (error) {
+      console.error('Error validando tokens:', error);
       res.status(500).json({
         success: false,
         error: 'Error interno del servidor'

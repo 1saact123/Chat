@@ -88,8 +88,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           username: user.username,
           email: user.email,
           role: user.role,
-          lastLogin: user.lastLogin
-        }
+          lastLogin: user.lastLogin,
+          isInitialSetupComplete: user.isInitialSetupComplete
+        },
+        requiresInitialSetup: !user.isInitialSetupComplete
       },
       message: 'Login exitoso'
     });

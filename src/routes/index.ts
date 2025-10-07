@@ -6,6 +6,7 @@ import { LandingController } from '../controllers/landing_controller';
 import { AdminController } from '../controllers/admin_controller';
 import { WidgetIntegrationController } from '../controllers/widget_integration_controller';
 import { UserController } from '../controllers/user_controller';
+import { UserServiceController } from '../controllers/user_service_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
@@ -35,6 +36,7 @@ const landingController = new LandingController();
 const adminController = new AdminController();
 const widgetIntegrationController = new WidgetIntegrationController();
 const userController = new UserController();
+const userServiceController = new UserServiceController();
 
 const router = Router();
 
@@ -65,9 +67,31 @@ router.post('/api/user/instances', authenticateToken, userController.createInsta
 router.put('/api/user/instances/:id', authenticateToken, userController.updateInstance.bind(userController));
 router.delete('/api/user/instances/:id', authenticateToken, userController.deleteInstance.bind(userController));
 
-// Configuraciones de servicios del usuario
+// Configuraciones de servicios del usuario (legacy)
 router.get('/api/user/services', authenticateToken, userController.getUserServiceConfigurations.bind(userController));
 router.post('/api/user/services', authenticateToken, userController.setUserServiceConfiguration.bind(userController));
+
+// === USER SERVICE MANAGEMENT ROUTES ===
+// Dashboard del usuario
+router.get('/api/user/dashboard', authenticateToken, userServiceController.getUserDashboard.bind(userServiceController));
+
+// Gestión de servicios del usuario
+router.post('/api/user/services/create', authenticateToken, userServiceController.createUserService.bind(userServiceController));
+router.get('/api/user/services/list', authenticateToken, userServiceController.getUserServices.bind(userServiceController));
+router.put('/api/user/services/:serviceId', authenticateToken, userServiceController.updateUserService.bind(userServiceController));
+router.delete('/api/user/services/:serviceId', authenticateToken, userServiceController.deleteUserService.bind(userServiceController));
+
+// Chat con servicios del usuario
+router.post('/api/user/services/:serviceId/chat', authenticateToken, userServiceController.chatWithUserService.bind(userServiceController));
+
+// Asistentes del usuario
+router.get('/api/user/assistants', authenticateToken, userServiceController.getUserAssistants.bind(userServiceController));
+
+// Proyectos Jira del usuario
+router.get('/api/user/projects', authenticateToken, userServiceController.getUserProjects.bind(userServiceController));
+
+// Endpoint público para obtener asistente activo de un servicio del usuario
+router.get('/api/user/services/:serviceId/assistant', userServiceController.getActiveAssistantForUserService.bind(userServiceController));
 
 // Configuración de webhook del usuario
 router.get('/api/user/webhook', authenticateToken, userController.getUserWebhookConfiguration.bind(userController));
@@ -77,9 +101,19 @@ router.post('/api/user/webhook/filter', authenticateToken, userController.setUse
 // Registro de usuario (solo admin)
 router.post('/api/user/register', authenticateToken, requireAdmin, userController.registerUser.bind(userController));
 
+// Configuración inicial
+router.get('/api/user/setup/status', authenticateToken, userController.getInitialSetupStatus.bind(userController));
+router.post('/api/user/setup/complete', authenticateToken, userController.completeInitialSetup.bind(userController));
+router.post('/api/user/setup/validate-tokens', authenticateToken, userController.validateTokens.bind(userController));
+
 // Página de login
 router.get('/login', (req, res) => {
   res.sendFile('login.html', { root: 'public' });
+});
+
+// Página de configuración inicial
+router.get('/initial-setup', redirectToLoginIfNotAuth, (req, res) => {
+  res.sendFile('initial-setup.html', { root: 'public' });
 });
 
 // === HEALTH ROUTES ===
