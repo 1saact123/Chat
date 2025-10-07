@@ -58,7 +58,7 @@ async function debugOpenAIIssue() {
       console.log(`   Thread ID: ${response.threadId}`);
       
       // Verificar si es una respuesta de fallback
-      if (response.threadId.includes('fallback')) {
+      if (response.threadId && response.threadId.includes('fallback')) {
         console.log('⚠️  ADVERTENCIA: Se está usando respuesta de fallback');
       } else {
         console.log('✅ Se está usando OpenAI correctamente');
