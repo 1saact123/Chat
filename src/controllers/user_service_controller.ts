@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { User, UserConfiguration } from '../models';
 import { UserOpenAIService } from '../services/user_openai_service';
 import { UserJiraService } from '../services/user_jira_service';
+import '../middleware/auth'; // Importar para cargar las definiciones de tipos
 
 export class UserServiceController {
 
