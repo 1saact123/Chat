@@ -51,15 +51,7 @@ export class ChatKitController {
           workflow: {
             id: process.env.OPENAI_CHATKIT_WORKFLOW_ID
           },
-          user: {
-            id: userId.toString(),
-            name: username,
-            email: email || '',
-            metadata: {
-              role: role || 'user',
-              ...userContext
-            }
-          }
+          user: userId.toString()  // ChatKit espera user como string, no como objeto
         })
       });
 
