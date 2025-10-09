@@ -7,6 +7,7 @@ import { AdminController } from '../controllers/admin_controller';
 import { WidgetIntegrationController } from '../controllers/widget_integration_controller';
 import { UserController } from '../controllers/user_controller';
 import { UserServiceController } from '../controllers/user_service_controller';
+import { ChatKitController } from '../controllers/chatkit_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
@@ -37,6 +38,7 @@ const adminController = new AdminController();
 const widgetIntegrationController = new WidgetIntegrationController();
 const userController = new UserController();
 const userServiceController = new UserServiceController();
+const chatKitController = new ChatKitController();
 
 const router = Router();
 
@@ -46,6 +48,13 @@ router.post('/api/auth/logout', logout);
 router.get('/api/auth/verify', authenticateToken, verifyToken);
 router.get('/api/auth/profile', authenticateToken, getProfile);
 router.put('/api/auth/change-password', authenticateToken, changePassword);
+
+// === CHATKIT ROUTES ===
+router.post('/api/chatkit/session', authenticateToken, chatKitController.createSession.bind(chatKitController));
+router.post('/api/chatkit/refresh', authenticateToken, chatKitController.refreshSession.bind(chatKitController));
+router.get('/api/chatkit/session/:sessionId', authenticateToken, chatKitController.getSessionInfo.bind(chatKitController));
+router.delete('/api/chatkit/session/:sessionId', authenticateToken, chatKitController.deleteSession.bind(chatKitController));
+router.get('/api/chatkit/stats', authenticateToken, chatKitController.getUsageStats.bind(chatKitController));
 
 // === USER MANAGEMENT ROUTES (ADMIN ONLY) ===
 router.get('/api/admin/users', authenticateToken, requireAdmin, getAllUsers);
