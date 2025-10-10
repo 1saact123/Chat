@@ -11,6 +11,7 @@ import { ChatKitController } from '../controllers/chatkit_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
+import chatkitRoutes from './chatkit_routes';
 import { 
   login, 
   logout, 
@@ -55,6 +56,9 @@ router.post('/api/chatkit/refresh', authenticateToken, chatKitController.refresh
 router.get('/api/chatkit/session/:sessionId', authenticateToken, chatKitController.getSessionInfo.bind(chatKitController));
 router.delete('/api/chatkit/session/:sessionId', authenticateToken, chatKitController.deleteSession.bind(chatKitController));
 router.get('/api/chatkit/stats', authenticateToken, chatKitController.getUsageStats.bind(chatKitController));
+
+// === CHATKIT WIDGET & WEBHOOK ROUTES ===
+router.use('/', chatkitRoutes);
 
 // === USER MANAGEMENT ROUTES (ADMIN ONLY) ===
 router.get('/api/admin/users', authenticateToken, requireAdmin, getAllUsers);
