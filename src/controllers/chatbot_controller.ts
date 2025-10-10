@@ -4,6 +4,7 @@ import { EmailService } from '../services/email_service';
 import { DatabaseService } from '../services/database_service';
 import { ConfigurationService } from '../services/configuration_service';
 import { WebhookService } from '../services/webhook_service';
+import { ChatKitJiraService } from '../services/chatkit_jira_service';
 import { JiraWebhookPayload } from '../types';
 
 export class ChatbotController {
@@ -27,6 +28,11 @@ export class ChatbotController {
     private emailService: EmailService | null
   ) {
     this.dbService = DatabaseService.getInstance();
+  }
+
+  // Instancia del servicio ChatKit
+  private getChatKitService(): ChatKitJiraService {
+    return new ChatKitJiraService();
   }
 
   // Método para establecer la referencia del WebSocket
@@ -373,34 +379,25 @@ export class ChatbotController {
         };
         
         console.log(`🔧 Contexto enriquecido creado para ${issueKey}`);
-        console.log(`📤 Llamando a processChatForService con mensaje: "${payload.comment.body}"`);
+        console.log(`📤 Procesando con ChatKit: "${payload.comment.body}"`);
         
-        // Obtener el asistente configurado para landing-page
-        const landingPageConfig = configService.getServiceConfiguration('landing-page');
-        console.log(`🔍 Landing Page Configuration:`, {
-          serviceId: 'landing-page',
-          assistantId: landingPageConfig?.assistantId,
-          assistantName: landingPageConfig?.assistantName,
-          isActive: landingPageConfig?.isActive,
-          lastUpdated: landingPageConfig?.lastUpdated
-        });
+        // Usar ChatKit en lugar del sistema de asistentes tradicional
+        const chatKitService = this.getChatKitService();
+        const authorInfo = {
+          displayName: payload.comment.author.displayName,
+          emailAddress: payload.comment.author.emailAddress
+        };
         
-        // Usar el mismo asistente que el widget (landing-page) para mantener consistencia
-        const response = await this.openaiService.processChatForService(
-          payload.comment.body, 
-          'landing-page', 
-          `widget_${issueKey}`, // Usar el mismo thread que el widget
-          enrichedContext
+        const response = await chatKitService.processJiraComment(
+          issueKey,
+          payload.comment.body,
+          authorInfo
         );
         
-        console.log(`🤖 RESPUESTA DEL FLUJO PRINCIPAL RECIBIDA:`, {
+        console.log(`🤖 RESPUESTA DE CHATKIT RECIBIDA:`, {
           success: response.success,
-          hasResponse: !!response.response,
-          assistantId: response.assistantId,
-          assistantName: response.assistantName,
-          serviceUsed: 'landing-page',
-          threadId: `widget_${issueKey}`,
-          responsePreview: response.response ? response.response.substring(0, 100) + '...' : 'No response',
+          sessionId: response.sessionId,
+          message: response.message,
           error: response.error
         });
         
@@ -410,49 +407,26 @@ export class ChatbotController {
         // Actualizar estadísticas en base de datos
         await this.updateWebhookStats(true);
         
-        // Si la IA respondió exitosamente, procesar normalmente
-        if (response.success && response.response) {
-          console.log(`✅ Respuesta exitosa recibida, procesando...`);
+        // ChatKit maneja las respuestas en el frontend, solo confirmamos que se procesó
+        if (response.success) {
+          console.log(`✅ ChatKit procesó el comentario exitosamente`);
+          console.log(`   Session ID: ${response.sessionId}`);
+          console.log(`   Mensaje: ${response.message}`);
+          this.webhookStats.successfulResponses++;
           
-          try {
-            // Importar JiraService dinámicamente para evitar dependencias circulares
-            const { JiraService } = await import('../services/jira_service');
-            const jiraService = JiraService.getInstance();
-            
-            console.log(`📤 Agregando comentario a Jira: "${response.response.substring(0, 50)}..."`);
-            
-            // Agregar comentario de la IA a Jira
-            const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, response.response);
-            this.webhookStats.successfulResponses++;
-            
-            console.log(`✅ Comentario agregado exitosamente a Jira`);
-            
-            // Agregar la respuesta de la IA al historial
-            this.addToConversationHistory(issueKey, 'assistant', response.response);
-            
-            // Guardar el account ID de la IA para futuras detecciones
-            if (jiraResponse && jiraResponse.author && jiraResponse.author.accountId) {
-              console.log(`📝 Account ID de la IA detectado: ${jiraResponse.author.accountId}`);
-            }
-            
-            console.log(`🎯 RESPUESTA DE IA AGREGADA A JIRA:`);
-            console.log(`   Issue: ${payload.issue.key}`);
-            console.log(`   Respuesta: ${response.response.substring(0, 100)}...`);
-            console.log(`   Estadísticas: ${this.webhookStats.successfulResponses} respuestas exitosas`);
-            
-            // 🔌 RESPUESTA DE IA PROCESADA - SE ENVIARÁ VIA WEBHOOK DE JIRA
-            console.log(`✅ Respuesta de IA procesada, se enviará via webhook de Jira`);
-          } catch (jiraError) {
-            console.error('❌ Error adding AI response to Jira:', jiraError);
-            // No fallar el webhook si no se puede agregar el comentario
-          }
-
-          // 🚀 FLUJO PARALELO: ENVIAR DATOS AL WEBHOOK CONFIGURADO
+          // Agregar el comentario al historial
+          this.addToConversationHistory(issueKey, 'user', payload.comment.body);
+          
+          console.log(`🎯 COMENTARIO PROCESADO POR CHATKIT:`);
+          console.log(`   Issue: ${payload.issue.key}`);
+          console.log(`   Session ID: ${response.sessionId}`);
+          console.log(`   Estadísticas: ${this.webhookStats.successfulResponses} comentarios procesados`);
+          
+          // 🚀 FLUJO PARALELO: ENVIAR DATOS AL WEBHOOK CONFIGURADO (si está habilitado)
           this.sendToWebhookInParallel(issueKey, payload.comment.body, payload.comment.author.displayName, payload.comment.created, response, enrichedContext);
         } else {
-          console.log(`❌ Respuesta fallida o vacía:`, {
+          console.log(`❌ Error procesando con ChatKit:`, {
             success: response.success,
-            hasResponse: !!response.response,
             error: response.error
           });
         }
