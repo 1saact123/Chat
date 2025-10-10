@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { authenticateToken } from '../middleware/auth';
+import { ChatKitJiraService } from '../services/chatkit_jira_service';
 
 // Interfaces para las respuestas de la API de ChatKit
 interface ChatKitSessionResponse {
@@ -16,8 +17,10 @@ interface ChatKitErrorResponse {
 }
 
 export class ChatKitController {
+  private chatKitJiraService: ChatKitJiraService;
+
   constructor() {
-    // No necesitamos instanciar OpenAI aquí para la integración recomendada
+    this.chatKitJiraService = new ChatKitJiraService();
   }
 
   /**
@@ -156,15 +159,25 @@ export class ChatKitController {
 
       console.log('🔄 Obteniendo información de sesión:', sessionId);
 
-      // Para la integración recomendada, la información de sesión se maneja en el frontend
-      res.json({
-        success: true,
-        data: {
-          id: sessionId,
-          status: 'active',
-          message: 'Sesión manejada por OpenAI backend'
-        }
-      });
+      // Buscar la sesión en el servicio de ChatKit
+      const session = this.chatKitJiraService.getSessionById(sessionId);
+      
+      if (session) {
+        console.log(`✅ Sesión encontrada: ${sessionId}`);
+        res.json({
+          success: true,
+          sessionId: session.id,
+          client_secret: session.client_secret,
+          expires_at: session.expires_at,
+          status: 'active'
+        });
+      } else {
+        console.log(`❌ Sesión no encontrada: ${sessionId}`);
+        res.status(404).json({
+          success: false,
+          error: 'Sesión no encontrada o expirada'
+        });
+      }
 
     } catch (error) {
       console.error('❌ Error obteniendo información de sesión:', error);
