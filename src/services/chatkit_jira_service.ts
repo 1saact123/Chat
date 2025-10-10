@@ -47,12 +47,7 @@ export class ChatKitJiraService {
           workflow: {
             id: process.env.OPENAI_CHATKIT_WORKFLOW_ID
           },
-          user: `jira_${issueKey}`,
-          metadata: {
-            issueKey,
-            userInfo,
-            source: 'jira-integration'
-          }
+          user: `jira_${issueKey}`
         })
       });
 
