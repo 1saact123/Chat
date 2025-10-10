@@ -379,25 +379,27 @@ export class ChatbotController {
         };
         
         console.log(`🔧 Contexto enriquecido creado para ${issueKey}`);
-        console.log(`📤 Procesando con ChatKit: "${payload.comment.body}"`);
+        console.log(`📤 Procesando mensaje con ChatKit: "${payload.comment.body}"`);
         
-        // Usar ChatKit en lugar del sistema de asistentes tradicional
+        // Usar ChatKit en lugar del asistente tradicional
         const chatKitService = this.getChatKitService();
-        const authorInfo = {
-          displayName: payload.comment.author.displayName,
-          emailAddress: payload.comment.author.emailAddress
-        };
-        
         const response = await chatKitService.processJiraComment(
           issueKey,
           payload.comment.body,
-          authorInfo
+          {
+            displayName: payload.comment.author.displayName,
+            accountId: payload.comment.author.accountId,
+            emailAddress: payload.comment.author.emailAddress
+          }
         );
         
         console.log(`🤖 RESPUESTA DE CHATKIT RECIBIDA:`, {
           success: response.success,
+          hasResponse: !!response.message,
           sessionId: response.sessionId,
-          message: response.message,
+          serviceUsed: 'chatkit',
+          threadId: `chatkit_${issueKey}`,
+          responsePreview: response.message ? response.message.substring(0, 100) + '...' : 'No response',
           error: response.error
         });
         
@@ -407,26 +409,49 @@ export class ChatbotController {
         // Actualizar estadísticas en base de datos
         await this.updateWebhookStats(true);
         
-        // ChatKit maneja las respuestas en el frontend, solo confirmamos que se procesó
-        if (response.success) {
-          console.log(`✅ ChatKit procesó el comentario exitosamente`);
-          console.log(`   Session ID: ${response.sessionId}`);
-          console.log(`   Mensaje: ${response.message}`);
-          this.webhookStats.successfulResponses++;
+        // Si ChatKit respondió exitosamente, procesar normalmente
+        if (response.success && response.message) {
+          console.log(`✅ Respuesta exitosa recibida, procesando...`);
           
-          // Agregar el comentario al historial
-          this.addToConversationHistory(issueKey, 'user', payload.comment.body);
-          
-          console.log(`🎯 COMENTARIO PROCESADO POR CHATKIT:`);
-          console.log(`   Issue: ${payload.issue.key}`);
-          console.log(`   Session ID: ${response.sessionId}`);
-          console.log(`   Estadísticas: ${this.webhookStats.successfulResponses} comentarios procesados`);
-          
-          // 🚀 FLUJO PARALELO: ENVIAR DATOS AL WEBHOOK CONFIGURADO (si está habilitado)
+          try {
+            // Importar JiraService dinámicamente para evitar dependencias circulares
+            const { JiraService } = await import('../services/jira_service');
+            const jiraService = JiraService.getInstance();
+            
+            console.log(`📤 Agregando comentario a Jira: "${response.message.substring(0, 50)}..."`);
+            
+            // Agregar comentario de la IA a Jira
+            const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, response.message);
+            this.webhookStats.successfulResponses++;
+            
+            console.log(`✅ Comentario agregado exitosamente a Jira`);
+            
+            // Agregar la respuesta de la IA al historial
+            this.addToConversationHistory(issueKey, 'assistant', response.message);
+            
+            // Guardar el account ID de la IA para futuras detecciones
+            if (jiraResponse && jiraResponse.author && jiraResponse.author.accountId) {
+              console.log(`📝 Account ID de la IA detectado: ${jiraResponse.author.accountId}`);
+            }
+            
+            console.log(`🎯 RESPUESTA DE CHATKIT AGREGADA A JIRA:`);
+            console.log(`   Issue: ${payload.issue.key}`);
+            console.log(`   Respuesta: ${response.message.substring(0, 100)}...`);
+            console.log(`   Estadísticas: ${this.webhookStats.successfulResponses} respuestas exitosas`);
+            
+            // 🔌 RESPUESTA DE IA PROCESADA - SE ENVIARÁ VIA WEBHOOK DE JIRA
+            console.log(`✅ Respuesta de IA procesada, se enviará via webhook de Jira`);
+          } catch (jiraError) {
+            console.error('❌ Error adding AI response to Jira:', jiraError);
+            // No fallar el webhook si no se puede agregar el comentario
+          }
+
+          // 🚀 FLUJO PARALELO: ENVIAR DATOS AL WEBHOOK CONFIGURADO
           this.sendToWebhookInParallel(issueKey, payload.comment.body, payload.comment.author.displayName, payload.comment.created, response, enrichedContext);
         } else {
-          console.log(`❌ Error procesando con ChatKit:`, {
+          console.log(`❌ Respuesta de ChatKit fallida o vacía:`, {
             success: response.success,
+            hasResponse: !!response.message,
             error: response.error
           });
         }

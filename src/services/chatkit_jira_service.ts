@@ -258,21 +258,4 @@ export class ChatKitJiraService {
       }
     }
   }
-
-  /**
-   * Obtener sesión por ID (para el controlador)
-   */
-  getSessionById(sessionId: string): ChatKitSession | null {
-    for (const [issueKey, session] of this.activeSessions) {
-      if (session.id === sessionId) {
-        const now = Date.now() / 1000;
-        if (session.expires_at <= now) {
-          this.activeSessions.delete(issueKey);
-          return null;
-        }
-        return session;
-      }
-    }
-    return null;
-  }
 }
