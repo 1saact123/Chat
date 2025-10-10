@@ -150,3 +150,4 @@ headers: {
 - ✅ **Métodos simplificados**: Optimizados para integración recomendada
 
 ¡La integración de ChatKit está lista para usar! 🎉
+
