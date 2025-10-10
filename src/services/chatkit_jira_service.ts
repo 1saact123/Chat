@@ -107,28 +107,13 @@ export class ChatKitJiraService {
         session = await this.createSessionForTicket(issueKey, customerInfo);
       }
 
-      // 4. Procesar mensaje con ChatKit
-      const aiResponse = await this.processMessageWithChatKit(session, message, {
-        issueKey,
-        customerInfo,
-        source: 'widget'
-      });
-
-      // 5. Agregar respuesta de IA a Jira
-      if (aiResponse.success && aiResponse.message) {
-        await this.jiraService.addCommentToIssue(issueKey, aiResponse.message, {
-          name: 'AI Assistant',
-          email: 'ai@movonte.com',
-          source: 'jira'
-        });
-
-        // 6. Notificar via WebSocket
-        this.notifyWebSocket(issueKey, aiResponse.message);
-      }
+      // 4. Para ChatKit, el procesamiento de mensajes se hace en el frontend
+      // El backend solo proporciona la sesión y maneja la integración con Jira
+      console.log(`✅ Sesión ChatKit disponible para ${issueKey}: ${session.id}`);
 
       return {
         success: true,
-        message: 'Mensaje procesado y respuesta enviada a Jira',
+        message: 'Mensaje enviado a Jira. Usa la sesión ChatKit en el frontend para obtener respuesta de IA.',
         sessionId: session.id
       };
 
@@ -154,28 +139,13 @@ export class ChatKitJiraService {
         session = await this.createSessionForTicket(issueKey, authorInfo);
       }
 
-      // 2. Procesar mensaje con ChatKit
-      const aiResponse = await this.processMessageWithChatKit(session, comment, {
-        issueKey,
-        authorInfo,
-        source: 'jira-comment'
-      });
-
-      // 3. Agregar respuesta de IA a Jira
-      if (aiResponse.success && aiResponse.message) {
-        await this.jiraService.addCommentToIssue(issueKey, aiResponse.message, {
-          name: 'AI Assistant',
-          email: 'ai@movonte.com',
-          source: 'jira'
-        });
-
-        // 4. Notificar via WebSocket
-        this.notifyWebSocket(issueKey, aiResponse.message);
-      }
+      // 2. Para ChatKit, el procesamiento de mensajes se hace en el frontend
+      // El backend solo proporciona la sesión y maneja la integración con Jira
+      console.log(`✅ Sesión ChatKit disponible para ${issueKey}: ${session.id}`);
 
       return {
         success: true,
-        message: 'Comentario procesado y respuesta enviada',
+        message: 'Comentario de Jira recibido. Usa la sesión ChatKit en el frontend para obtener respuesta de IA.',
         sessionId: session.id
       };
 
@@ -189,64 +159,11 @@ export class ChatKitJiraService {
   }
 
   /**
-   * Procesar mensaje con ChatKit usando el client_secret
+   * NOTA: El procesamiento de mensajes con ChatKit se hace en el frontend
+   * usando el SDK de ChatKit y el client_secret proporcionado por este servicio.
+   * Este método se mantiene para referencia futura si se necesita procesamiento
+   * directo desde el backend.
    */
-  private async processMessageWithChatKit(session: ChatKitSession, message: string, context: any): Promise<ChatKitResponse> {
-    try {
-      console.log(`🤖 Procesando mensaje con ChatKit: ${message}`);
-
-      // Crear mensaje con contexto enriquecido
-      const enrichedMessage = this.createEnrichedMessage(message, context);
-
-      // Enviar mensaje a ChatKit usando el client_secret
-      const response = await fetch(`https://api.openai.com/v1/chatkit/sessions/${session.id}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.client_secret}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          content: enrichedMessage,
-          role: 'user',
-          metadata: {
-            context,
-            timestamp: new Date().toISOString()
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Error enviando mensaje a ChatKit: ${error}`);
-      }
-
-      const result = await response.json() as any;
-      console.log(`✅ Respuesta de ChatKit recibida`);
-
-      // Extraer respuesta del asistente
-      if (result.messages && result.messages.length > 0) {
-        const assistantMessage = result.messages.find((msg: any) => msg.role === 'assistant');
-        if (assistantMessage) {
-          return {
-            success: true,
-            message: assistantMessage.content
-          };
-        }
-      }
-
-      return {
-        success: false,
-        error: 'No se recibió respuesta del asistente'
-      };
-
-    } catch (error) {
-      console.error(`❌ Error procesando mensaje con ChatKit:`, error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Error desconocido'
-      };
-    }
-  }
 
   /**
    * Crear mensaje enriquecido con contexto
