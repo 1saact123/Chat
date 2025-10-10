@@ -1,5 +1,5 @@
 import { JiraService } from './jira_service';
-import { ConfigService } from './config_service';
+import { ConfigurationService } from './configuration_service';
 
 interface ChatKitSession {
   id: string;
@@ -21,12 +21,12 @@ interface ChatKitResponse {
 
 export class ChatKitJiraService {
   private jiraService: JiraService;
-  private configService: ConfigService;
+  private configService: ConfigurationService;
   private activeSessions: Map<string, ChatKitSession> = new Map();
 
   constructor() {
     this.jiraService = JiraService.getInstance();
-    this.configService = ConfigService.getInstance();
+    this.configService = ConfigurationService.getInstance();
   }
 
   /**
@@ -298,6 +298,39 @@ export class ChatKitJiraService {
     } catch (error) {
       console.error(`❌ Error enviando notificación WebSocket:`, error);
     }
+  }
+
+  /**
+   * Verificar si hay una sesión activa para un ticket
+   */
+  hasActiveSession(issueKey: string): boolean {
+    const session = this.activeSessions.get(issueKey);
+    if (!session) {
+      return false;
+    }
+    
+    // Verificar si la sesión no ha expirado
+    const now = Date.now() / 1000;
+    return session.expires_at > now;
+  }
+
+  /**
+   * Obtener sesión activa para un ticket
+   */
+  getActiveSession(issueKey: string): ChatKitSession | null {
+    const session = this.activeSessions.get(issueKey);
+    if (!session) {
+      return null;
+    }
+    
+    // Verificar si la sesión no ha expirado
+    const now = Date.now() / 1000;
+    if (session.expires_at <= now) {
+      this.activeSessions.delete(issueKey);
+      return null;
+    }
+    
+    return session;
   }
 
   /**
