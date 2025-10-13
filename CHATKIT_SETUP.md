@@ -71,3 +71,4 @@ El componente `ChatKitWidget` ya está integrado en el Dashboard y se conectará
 - Verifica que el workflow ID sea correcto
 - Asegúrate de que el workflow esté publicado y activo en Agent Builder
 
+
