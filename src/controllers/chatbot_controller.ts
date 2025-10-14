@@ -324,19 +324,23 @@ export class ChatbotController {
         console.log(`🔍 DEBUG - Account ID: ${payload.comment.author.accountId}`);
         console.log(`🔍 DEBUG - Contenido: ${payload.comment.body.substring(0, 100)}...`);
         
-        // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET (ANTES DE CUALQUIER VERIFICACIÓN)
-        const webSocketServer = this.getWebSocketServer();
-        if (webSocketServer) {
-          console.log(`📡 Enviando comentario de agente via WebSocket al ticket ${issueKey}...`);
-          webSocketServer.to(`ticket_${issueKey}`).emit('jira-comment', {
-            message: payload.comment.body,
-            author: payload.comment.author.displayName,
-            timestamp: payload.comment.created,
-            source: 'jira-agent',
-            issueKey: issueKey,
-            isAI: false
-          });
-          console.log(`✅ Comentario de agente enviado via WebSocket al ticket ${issueKey}`);
+        // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET (SOLO SI NO ES DE IA)
+        if (!this.isAIComment(payload.comment)) {
+          const webSocketServer = this.getWebSocketServer();
+          if (webSocketServer) {
+            console.log(`📡 Enviando comentario de agente via WebSocket al ticket ${issueKey}...`);
+            webSocketServer.to(`ticket_${issueKey}`).emit('jira-comment', {
+              message: payload.comment.body,
+              author: payload.comment.author.displayName,
+              timestamp: payload.comment.created,
+              source: 'jira-agent',
+              issueKey: issueKey,
+              isAI: false
+            });
+            console.log(`✅ Comentario de agente enviado via WebSocket al ticket ${issueKey}`);
+          }
+        } else {
+          console.log(`🤖 Comentario de IA detectado, no enviando via WebSocket (se enviará cuando se confirme en Jira)`);
         }
         
         // Verificar si el asistente está desactivado para este ticket
