@@ -153,8 +153,11 @@ class MovonteAPI {
   }
 
   private setupWebSockets(): void {
+    console.log('🔌 Configurando WebSockets...');
+    
     // Crear servidor HTTP
     this.httpServer = createServer(this.app);
+    console.log('🌐 Servidor HTTP creado para WebSockets');
     
     // Configurar Socket.IO
     this.io = new Server(this.httpServer, {
@@ -176,6 +179,8 @@ class MovonteAPI {
       console.log('🔌 Cliente WebSocket conectado:', socket.id);
       console.log('👤 Usuario conectado al chat en tiempo real');
       console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
+      console.log('🌐 Cliente conectado desde:', socket.handshake.address);
+      console.log('🔗 Headers de conexión:', socket.handshake.headers);
       
       // 🎯 MANEJAR SALAS POR TICKET
       socket.on('join-ticket', (ticketId) => {
@@ -200,6 +205,15 @@ class MovonteAPI {
 
     // 🔌 Pasar referencia del WebSocket a los controladores que la necesiten
     this.setupWebSocketReferences();
+    
+    console.log('✅ WebSockets configurados correctamente');
+    console.log('🔗 CORS configurado para:', [
+      "https://chat.movonte.com",
+      "https://movonte.com",
+      "https://movonte-consulting.github.io",
+      "http://localhost:3000",
+      "http://127.0.0.1:5500"
+    ]);
   }
 
   private setupWebSocketReferences(): void {
