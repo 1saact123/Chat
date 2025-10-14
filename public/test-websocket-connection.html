@@ -79,6 +79,7 @@
             <button id="connectBtn" onclick="connectWebSocket()">Conectar</button>
             <button id="disconnectBtn" onclick="disconnectWebSocket()" disabled>Desconectar</button>
             <button id="testBtn" onclick="testConnection()" disabled>Probar Conexión</button>
+            <button id="testConnectivityBtn" onclick="testBasicConnectivity()">Probar Conectividad</button>
             <button id="clearBtn" onclick="clearLog()">Limpiar Log</button>
         </div>
         
@@ -86,8 +87,32 @@
         <div id="log" class="log"></div>
     </div>
 
-    <!-- Socket.IO Client -->
-    <script src="https://chat.movonte.com/socket.io/socket.io.js"></script>
+    <!-- Socket.IO Client con fallback -->
+    <script src="https://chat.movonte.com/socket.io/socket.io.js" onerror="loadSocketIOFallback()"></script>
+    <script>
+        function loadSocketIOFallback() {
+            console.error('❌ No se pudo cargar Socket.IO desde el servidor, intentando CDN...');
+            const script = document.createElement('script');
+            script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+            script.onload = () => {
+                console.log('✅ Socket.IO cargado desde CDN');
+                initializeSocketIO();
+            };
+            script.onerror = () => {
+                console.error('❌ No se pudo cargar Socket.IO desde ningún origen');
+                document.getElementById('log').innerHTML += '[ERROR] No se pudo cargar Socket.IO\n';
+            };
+            document.head.appendChild(script);
+        }
+        
+        function initializeSocketIO() {
+            if (typeof io === 'undefined') {
+                console.error('❌ Socket.IO no está disponible');
+                return;
+            }
+            console.log('✅ Socket.IO disponible, versión:', io.version || 'unknown');
+        }
+    </script>
     
     <script>
         let socket = null;
@@ -120,13 +145,31 @@
                 socket.disconnect();
             }
             
+            // Verificar que Socket.IO esté disponible
+            if (typeof io === 'undefined') {
+                log('❌ Socket.IO no está disponible. Verificando carga...');
+                setTimeout(() => {
+                    if (typeof io === 'undefined') {
+                        log('❌ Socket.IO aún no disponible. Recargando página...');
+                        window.location.reload();
+                    } else {
+                        connectWebSocket();
+                    }
+                }, 2000);
+                return;
+            }
+            
             log('🔌 Intentando conectar a WebSocket...');
+            log('📡 URL: https://chat.movonte.com');
+            log('🔧 Socket.IO versión: ' + (io.version || 'unknown'));
             updateStatus('connecting', '🔄 Conectando...');
             
             socket = io('https://chat.movonte.com', {
                 transports: ['websocket', 'polling'],
                 timeout: 20000,
-                forceNew: true
+                forceNew: true,
+                upgrade: true,
+                rememberUpgrade: false
             });
             
             // Event listeners
@@ -161,7 +204,26 @@
             socket.on('connect_error', (error) => {
                 log(`❌ Error de conexión: ${error.message}`);
                 log(`🔍 Detalles del error: ${JSON.stringify(error)}`);
+                log(`🌐 Tipo de error: ${error.type || 'unknown'}`);
+                log(`📡 Descripción: ${error.description || 'No disponible'}`);
                 updateStatus('disconnected', '❌ Error de Conexión');
+            });
+            
+            // Eventos adicionales para diagnóstico
+            socket.on('reconnect', (attemptNumber) => {
+                log(`🔄 Reconectado después de ${attemptNumber} intentos`);
+            });
+            
+            socket.on('reconnect_attempt', (attemptNumber) => {
+                log(`🔄 Intento de reconexión #${attemptNumber}`);
+            });
+            
+            socket.on('reconnect_error', (error) => {
+                log(`❌ Error en reconexión: ${error.message}`);
+            });
+            
+            socket.on('reconnect_failed', () => {
+                log(`❌ Falló la reconexión después de todos los intentos`);
             });
             
             socket.on('ai-response', (data) => {
@@ -211,16 +273,60 @@
             document.getElementById('log').innerHTML = '';
         }
         
+        // Función para probar conectividad básica
+        async function testBasicConnectivity() {
+            log('🧪 Probando conectividad básica...');
+            
+            try {
+                // Probar si el servidor responde
+                const response = await fetch('https://chat.movonte.com/health', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    log('✅ Servidor responde correctamente');
+                    const data = await response.text();
+                    log(`📄 Respuesta del servidor: ${data}`);
+                } else {
+                    log(`⚠️ Servidor responde con código: ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ Error de conectividad: ${error.message}`);
+            }
+            
+            try {
+                // Probar endpoint de Socket.IO
+                const socketResponse = await fetch('https://chat.movonte.com/socket.io/', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (socketResponse.ok) {
+                    log('✅ Endpoint Socket.IO accesible');
+                } else {
+                    log(`⚠️ Endpoint Socket.IO responde con código: ${socketResponse.status}`);
+                }
+            } catch (error) {
+                log(`❌ Error accediendo a Socket.IO: ${error.message}`);
+            }
+        }
+        
         // Inicializar
         updateButtons();
         log('🚀 Página de prueba WebSocket cargada');
         log('📡 URL del servidor: https://chat.movonte.com');
         log('🔗 Endpoint WebSocket: /socket.io/');
         
+        // Probar conectividad básica primero
+        setTimeout(() => {
+            testBasicConnectivity();
+        }, 500);
+        
         // Auto-conectar al cargar la página
         setTimeout(() => {
             connectWebSocket();
-        }, 1000);
+        }, 2000);
     </script>
 </body>
 </html>

@@ -165,13 +165,20 @@ class MovonteAPI {
         origin: [
           "https://chat.movonte.com",
           "https://movonte.com",
+          "https://www.movonte.com",
           "https://movonte-consulting.github.io",
           "http://localhost:3000",
-          "http://127.0.0.1:5500"
+          "http://localhost:5173",
+          "http://127.0.0.1:5500",
+          "http://127.0.0.1:3000",
+          "http://127.0.0.1:5173"
         ],
-        methods: ["GET", "POST"],
-        credentials: true
-      }
+        methods: ["GET", "POST", "OPTIONS"],
+        credentials: true,
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+      },
+      allowEIO3: true,
+      transports: ['websocket', 'polling']
     });
 
     // Manejar conexiones WebSocket
@@ -181,6 +188,13 @@ class MovonteAPI {
       console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
       console.log('🌐 Cliente conectado desde:', socket.handshake.address);
       console.log('🔗 Headers de conexión:', socket.handshake.headers);
+      console.log('🌍 Origin del cliente:', socket.handshake.headers.origin);
+      console.log('🔧 Transporte utilizado:', socket.conn.transport.name);
+      console.log('📊 Información del engine:', {
+        transport: socket.conn.transport.name,
+        readyState: socket.conn.readyState,
+        protocol: socket.conn.protocol
+      });
       
       // 🎯 MANEJAR SALAS POR TICKET
       socket.on('join-ticket', (ticketId) => {
@@ -196,10 +210,21 @@ class MovonteAPI {
       });
       
       // Manejar desconexión
-      socket.on('disconnect', () => {
+      socket.on('disconnect', (reason) => {
         console.log('🔌 Cliente WebSocket desconectado:', socket.id);
         console.log('👤 Usuario desconectado del chat');
+        console.log('📡 Razón de desconexión:', reason);
         console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
+      });
+      
+      // Manejar errores de conexión
+      socket.on('error', (error) => {
+        console.error('❌ Error en WebSocket:', error);
+        console.error('🔍 Detalles del error:', {
+          message: error.message,
+          stack: error.stack,
+          socketId: socket.id
+        });
       });
     });
 

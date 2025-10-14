@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug WebSocket - Movonte</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .connecting { background-color: #fff3cd; color: #856404; }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { border-color: #28a745; background-color: #f8fff9; }
+        .error { border-color: #dc3545; background-color: #fff8f8; }
+        .warning { border-color: #ffc107; background-color: #fffdf5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Debug WebSocket - Movonte</h1>
+        <p>Esta página te ayudará a diagnosticar problemas de conectividad WebSocket.</p>
+        
+        <div id="overallStatus" class="status disconnected">
+            ❌ No iniciado
+        </div>
+        
+        <div>
+            <button onclick="runAllTests()">🧪 Ejecutar Todas las Pruebas</button>
+            <button onclick="clearAllLogs()">🗑️ Limpiar Logs</button>
+        </div>
+    </div>
+
+    <!-- Prueba 1: Conectividad básica del servidor -->
+    <div class="container test-section" id="test1">
+        <h3>📡 Prueba 1: Conectividad del Servidor</h3>
+        <div id="test1Status" class="status disconnected">⏳ Pendiente</div>
+        <button onclick="testServerConnectivity()">Probar Servidor</button>
+        <div id="test1Log" class="log"></div>
+    </div>
+
+    <!-- Prueba 2: Endpoint Socket.IO -->
+    <div class="container test-section" id="test2">
+        <h3>🔌 Prueba 2: Endpoint Socket.IO</h3>
+        <div id="test2Status" class="status disconnected">⏳ Pendiente</div>
+        <button onclick="testSocketIOEndpoint()">Probar Socket.IO</button>
+        <div id="test2Log" class="log"></div>
+    </div>
+
+    <!-- Prueba 3: Carga de Socket.IO Client -->
+    <div class="container test-section" id="test3">
+        <h3>📦 Prueba 3: Cliente Socket.IO</h3>
+        <div id="test3Status" class="status disconnected">⏳ Pendiente</div>
+        <button onclick="testSocketIOClient()">Probar Cliente</button>
+        <div id="test3Log" class="log"></div>
+    </div>
+
+    <!-- Prueba 4: Conexión WebSocket -->
+    <div class="container test-section" id="test4">
+        <h3>🌐 Prueba 4: Conexión WebSocket</h3>
+        <div id="test4Status" class="status disconnected">⏳ Pendiente</div>
+        <button onclick="testWebSocketConnection()">Probar WebSocket</button>
+        <div id="test4Log" class="log"></div>
+    </div>
+
+    <!-- Log general -->
+    <div class="container">
+        <h3>📋 Log General</h3>
+        <div id="generalLog" class="log"></div>
+    </div>
+
+    <script>
+        let socket = null;
+        let testResults = {
+            server: false,
+            socketio: false,
+            client: false,
+            websocket: false
+        };
+
+        function log(section, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            
+            // Log específico de la sección
+            if (section) {
+                const logDiv = document.getElementById(section + 'Log');
+                if (logDiv) {
+                    logDiv.textContent += logMessage + '\n';
+                    logDiv.scrollTop = logDiv.scrollHeight;
+                }
+            }
+            
+            // Log general
+            const generalLog = document.getElementById('generalLog');
+            generalLog.textContent += logMessage + '\n';
+            generalLog.scrollTop = generalLog.scrollHeight;
+            
+            console.log(logMessage);
+        }
+
+        function updateStatus(section, status, message) {
+            const statusDiv = document.getElementById(section + 'Status');
+            const testDiv = document.getElementById(section);
+            
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message;
+            
+            // Actualizar color de la sección
+            testDiv.className = `container test-section ${status === 'connected' ? 'success' : status === 'connecting' ? 'warning' : 'error'}`;
+        }
+
+        async function testServerConnectivity() {
+            updateStatus('test1', 'connecting', '🔄 Probando...');
+            log('test1', '🧪 Probando conectividad del servidor...');
+            
+            try {
+                const response = await fetch('https://chat.movonte.com/health', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.text();
+                    log('test1', `✅ Servidor responde correctamente (${response.status})`);
+                    log('test1', `📄 Respuesta: ${data}`);
+                    updateStatus('test1', 'connected', '✅ Servidor OK');
+                    testResults.server = true;
+                } else {
+                    log('test1', `⚠️ Servidor responde con código: ${response.status}`);
+                    updateStatus('test1', 'disconnected', `⚠️ Código ${response.status}`);
+                }
+            } catch (error) {
+                log('test1', `❌ Error de conectividad: ${error.message}`);
+                updateStatus('test1', 'disconnected', '❌ Error de conexión');
+            }
+        }
+
+        async function testSocketIOEndpoint() {
+            updateStatus('test2', 'connecting', '🔄 Probando...');
+            log('test2', '🧪 Probando endpoint Socket.IO...');
+            
+            try {
+                const response = await fetch('https://chat.movonte.com/socket.io/', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    log('test2', `✅ Endpoint Socket.IO accesible (${response.status})`);
+                    updateStatus('test2', 'connected', '✅ Socket.IO OK');
+                    testResults.socketio = true;
+                } else {
+                    log('test2', `⚠️ Endpoint Socket.IO responde con código: ${response.status}`);
+                    updateStatus('test2', 'disconnected', `⚠️ Código ${response.status}`);
+                }
+            } catch (error) {
+                log('test2', `❌ Error accediendo a Socket.IO: ${error.message}`);
+                updateStatus('test2', 'disconnected', '❌ Error de conexión');
+            }
+        }
+
+        function testSocketIOClient() {
+            updateStatus('test3', 'connecting', '🔄 Probando...');
+            log('test3', '🧪 Probando carga del cliente Socket.IO...');
+            
+            if (typeof io !== 'undefined') {
+                log('test3', `✅ Socket.IO cliente cargado correctamente`);
+                log('test3', `📦 Versión: ${io.version || 'unknown'}`);
+                updateStatus('test3', 'connected', '✅ Cliente OK');
+                testResults.client = true;
+            } else {
+                log('test3', '❌ Socket.IO cliente no está disponible');
+                log('test3', '🔄 Intentando cargar desde CDN...');
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+                script.onload = () => {
+                    log('test3', '✅ Socket.IO cargado desde CDN');
+                    updateStatus('test3', 'connected', '✅ Cliente OK (CDN)');
+                    testResults.client = true;
+                };
+                script.onerror = () => {
+                    log('test3', '❌ No se pudo cargar Socket.IO desde CDN');
+                    updateStatus('test3', 'disconnected', '❌ Cliente no disponible');
+                };
+                document.head.appendChild(script);
+            }
+        }
+
+        function testWebSocketConnection() {
+            updateStatus('test4', 'connecting', '🔄 Probando...');
+            log('test4', '🧪 Probando conexión WebSocket...');
+            
+            if (typeof io === 'undefined') {
+                log('test4', '❌ Socket.IO no está disponible');
+                updateStatus('test4', 'disconnected', '❌ Socket.IO no disponible');
+                return;
+            }
+            
+            if (socket) {
+                socket.disconnect();
+            }
+            
+            socket = io('https://chat.movonte.com', {
+                transports: ['websocket', 'polling'],
+                timeout: 10000,
+                forceNew: true
+            });
+            
+            socket.on('connect', () => {
+                log('test4', '✅ WebSocket conectado exitosamente!');
+                log('test4', `🔗 Socket ID: ${socket.id}`);
+                log('test4', `🔧 Transporte: ${socket.io.engine.transport.name}`);
+                updateStatus('test4', 'connected', '✅ WebSocket OK');
+                testResults.websocket = true;
+                updateOverallStatus();
+            });
+            
+            socket.on('connect_error', (error) => {
+                log('test4', `❌ Error de conexión: ${error.message}`);
+                log('test4', `🔍 Tipo: ${error.type || 'unknown'}`);
+                updateStatus('test4', 'disconnected', '❌ Error de conexión');
+            });
+            
+            socket.on('disconnect', (reason) => {
+                log('test4', `❌ Desconectado: ${reason}`);
+            });
+        }
+
+        function updateOverallStatus() {
+            const totalTests = Object.keys(testResults).length;
+            const passedTests = Object.values(testResults).filter(Boolean).length;
+            
+            const overallStatus = document.getElementById('overallStatus');
+            
+            if (passedTests === totalTests) {
+                overallStatus.className = 'status connected';
+                overallStatus.textContent = `✅ Todas las pruebas pasaron (${passedTests}/${totalTests})`;
+            } else if (passedTests > 0) {
+                overallStatus.className = 'status connecting';
+                overallStatus.textContent = `⚠️ Pruebas parciales (${passedTests}/${totalTests})`;
+            } else {
+                overallStatus.className = 'status disconnected';
+                overallStatus.textContent = `❌ Todas las pruebas fallaron (${passedTests}/${totalTests})`;
+            }
+        }
+
+        async function runAllTests() {
+            log(null, '🚀 Ejecutando todas las pruebas...');
+            
+            await testServerConnectivity();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testSocketIOEndpoint();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            testSocketIOClient();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            testWebSocketConnection();
+        }
+
+        function clearAllLogs() {
+            document.querySelectorAll('.log').forEach(log => {
+                log.textContent = '';
+            });
+            log(null, '🗑️ Logs limpiados');
+        }
+
+        // Auto-ejecutar pruebas al cargar
+        window.addEventListener('load', () => {
+            log(null, '🚀 Página de debug cargada');
+            setTimeout(runAllTests, 1000);
+        });
+    </script>
+</body>
+</html>
