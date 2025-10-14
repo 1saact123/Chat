@@ -41,7 +41,6 @@ export class UserOpenAIService {
       if (!serviceConfig || !serviceConfig.isActive) {
         return {
           success: false,
-          threadId: '',
           error: `Service '${serviceId}' not found or inactive for user ${this.userId}`
         };
       }
@@ -85,7 +84,7 @@ export class UserOpenAIService {
       if (runStatus.status === 'completed') {
         const messages = await this.openai.beta.threads.messages.list(thread.id);
         const assistantMessage = messages.data[0];
-        const response = (assistantMessage.content[0] as any).text?.value || 'No response available';
+        const response = assistantMessage.content[0].text.value;
 
         return {
           success: true,
@@ -97,7 +96,6 @@ export class UserOpenAIService {
       } else {
         return {
           success: false,
-          threadId: threadId || '',
           error: `Assistant run failed with status: ${runStatus.status}`
         };
       }
@@ -105,7 +103,6 @@ export class UserOpenAIService {
       console.error(`Error processing chat for user ${this.userId}:`, error);
       return {
         success: false,
-        threadId: '',
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }

@@ -62,7 +62,7 @@ export interface JiraWebhookPayload {
   
   export interface ChatbotResponse {
     success: boolean;
-    threadId?: string;
+    threadId: string;
     response?: string;
     error?: string;
     assistantId?: string;
