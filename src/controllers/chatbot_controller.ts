@@ -384,7 +384,7 @@ export class ChatbotController {
         // Usar el asistente tradicional en lugar de ChatKit
         const response = await this.openaiService.processChatForService(
           payload.comment.body,
-          'default-service',
+          'landing-page',
           `jira_${issueKey}`,
           enrichedContext
         );
