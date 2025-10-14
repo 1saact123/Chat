@@ -436,6 +436,23 @@ export class ChatbotController {
             
             // 🔌 RESPUESTA DE IA PROCESADA - SE ENVIARÁ VIA WEBHOOK DE JIRA
             console.log(`✅ Respuesta de IA procesada, se enviará via webhook de Jira`);
+            
+            // 📡 ENVIAR RESPUESTA DE IA VIA WEBSOCKET
+            const webSocketServer = this.getWebSocketServer();
+            if (webSocketServer) {
+              console.log(`📡 Enviando respuesta de IA via WebSocket al ticket ${issueKey}...`);
+              webSocketServer.to(`ticket_${issueKey}`).emit('ai-response', {
+                issueKey,
+                message: response.response,
+                timestamp: new Date().toISOString(),
+                source: 'traditional-assistant',
+                assistantId: response.assistantId,
+                assistantName: response.assistantName
+              });
+              console.log(`✅ Respuesta de IA enviada via WebSocket al ticket ${issueKey}`);
+            } else {
+              console.log(`⚠️ WebSocket server no disponible para enviar respuesta de IA`);
+            }
           } catch (jiraError) {
             console.error('❌ Error adding AI response to Jira:', jiraError);
             // No fallar el webhook si no se puede agregar el comentario
