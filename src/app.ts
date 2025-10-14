@@ -7,7 +7,7 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 
-import routes from './routes';
+import routes, { setWebSocketServer } from './routes';
 import { validateEnvironmentVariables } from './utils/validations';
 import { testConnection, syncDatabase } from './config/database';
 import { redirectToLoginIfNotAuth, requireAdmin } from './middleware/auth';
@@ -205,6 +205,9 @@ class MovonteAPI {
 
     // 🔌 Pasar referencia del WebSocket a los controladores que la necesiten
     this.setupWebSocketReferences();
+    
+    // 🔌 Pasar referencia del WebSocket al controlador de chatbot
+    setWebSocketServer(this.io);
     
     console.log('✅ WebSockets configurados correctamente');
     console.log('🔗 CORS configurado para:', [

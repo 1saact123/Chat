@@ -41,6 +41,12 @@ const userController = new UserController();
 const userServiceController = new UserServiceController();
 const chatKitController = new ChatKitController();
 
+// Function to set WebSocket server reference
+export const setWebSocketServer = (io: any) => {
+  chatbotController.setWebSocketServer(io);
+  console.log('🔌 WebSocket server reference set in chatbot controller');
+};
+
 const router = Router();
 
 // === AUTH ROUTES ===

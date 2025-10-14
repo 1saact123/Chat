@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test WebSocket Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .connecting { background-color: #fff3cd; color: #856404; }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Test WebSocket Simple</h1>
+        
+        <div id="status" class="status disconnected">
+            ❌ Desconectado
+        </div>
+        
+        <div>
+            <button id="connectBtn" onclick="connect()">Conectar</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>Desconectar</button>
+            <button id="clearBtn" onclick="clearLog()">Limpiar Log</button>
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <input type="text" id="ticketInput" placeholder="Ticket ID (ej: DEV-1)" value="DEV-1">
+            <button onclick="joinTicket()">Unirse a Ticket</button>
+            <button onclick="leaveTicket()">Salir del Ticket</button>
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <input type="text" id="messageInput" placeholder="Mensaje de prueba">
+            <button onclick="sendTestMessage()">Enviar Mensaje</button>
+        </div>
+        
+        <h3>📋 Log de Eventos:</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script src="https://chat.movonte.com/socket.io/socket.io.js"></script>
+    <script>
+        let socket = null;
+        let isConnected = false;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(status, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message;
+        }
+        
+        function connect() {
+            if (socket) {
+                log('⚠️ Ya hay una conexión activa');
+                return;
+            }
+            
+            log('🔄 Intentando conectar a WebSocket...');
+            updateStatus('connecting', '🔄 Conectando...');
+            
+            socket = io('https://chat.movonte.com', {
+                transports: ['websocket', 'polling'],
+                timeout: 20000,
+                forceNew: true
+            });
+            
+            socket.on('connect', () => {
+                isConnected = true;
+                log('✅ WebSocket conectado exitosamente');
+                log(`🔗 Socket ID: ${socket.id}`);
+                updateStatus('connected', '✅ Conectado');
+                
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = false;
+            });
+            
+            socket.on('disconnect', (reason) => {
+                isConnected = false;
+                log(`❌ Desconectado del WebSocket. Razón: ${reason}`);
+                updateStatus('disconnected', '❌ Desconectado');
+                
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+            });
+            
+            socket.on('connect_error', (error) => {
+                log(`❌ Error de conexión: ${error.message}`);
+                updateStatus('disconnected', '❌ Error de Conexión');
+                
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+            });
+            
+            socket.on('ai-response', (data) => {
+                log(`🤖 Respuesta de IA recibida: ${JSON.stringify(data, null, 2)}`);
+            });
+            
+            socket.on('jira-comment', (data) => {
+                log(`💬 Comentario de Jira recibido: ${JSON.stringify(data, null, 2)}`);
+            });
+            
+            // Eventos de debug
+            socket.onAny((event, ...args) => {
+                log(`📡 Evento recibido: ${event} - ${JSON.stringify(args, null, 2)}`);
+            });
+        }
+        
+        function disconnect() {
+            if (socket) {
+                log('🔌 Desconectando WebSocket...');
+                socket.disconnect();
+                socket = null;
+                isConnected = false;
+                
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+            }
+        }
+        
+        function joinTicket() {
+            const ticketId = document.getElementById('ticketInput').value;
+            if (!ticketId) {
+                log('⚠️ Por favor ingresa un Ticket ID');
+                return;
+            }
+            
+            if (!socket || !isConnected) {
+                log('⚠️ No hay conexión WebSocket activa');
+                return;
+            }
+            
+            log(`🎫 Uniéndose al ticket: ${ticketId}`);
+            socket.emit('join-ticket', ticketId);
+        }
+        
+        function leaveTicket() {
+            const ticketId = document.getElementById('ticketInput').value;
+            if (!ticketId) {
+                log('⚠️ Por favor ingresa un Ticket ID');
+                return;
+            }
+            
+            if (!socket || !isConnected) {
+                log('⚠️ No hay conexión WebSocket activa');
+                return;
+            }
+            
+            log(`🎫 Saliendo del ticket: ${ticketId}`);
+            socket.emit('leave-ticket', ticketId);
+        }
+        
+        function sendTestMessage() {
+            const message = document.getElementById('messageInput').value;
+            if (!message) {
+                log('⚠️ Por favor ingresa un mensaje');
+                return;
+            }
+            
+            if (!socket || !isConnected) {
+                log('⚠️ No hay conexión WebSocket activa');
+                return;
+            }
+            
+            log(`📤 Enviando mensaje de prueba: ${message}`);
+            socket.emit('test-message', { message, timestamp: new Date().toISOString() });
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Auto-conectar al cargar la página
+        window.addEventListener('load', () => {
+            log('🚀 Página cargada, iniciando test de WebSocket...');
+            setTimeout(connect, 1000);
+        });
+    </script>
+</body>
+</html>
