@@ -379,27 +379,22 @@ export class ChatbotController {
         };
         
         console.log(`🔧 Contexto enriquecido creado para ${issueKey}`);
-        console.log(`📤 Procesando mensaje con ChatKit: "${payload.comment.body}"`);
+        console.log(`📤 Procesando mensaje con asistente tradicional: "${payload.comment.body}"`);
         
-        // Usar ChatKit en lugar del asistente tradicional
-        const chatKitService = this.getChatKitService();
-        const response = await chatKitService.processJiraComment(
-          issueKey,
+        // Usar el asistente tradicional en lugar de ChatKit
+        const response = await this.openaiService.processChatForService(
           payload.comment.body,
-          {
-            displayName: payload.comment.author.displayName,
-            accountId: payload.comment.author.accountId,
-            emailAddress: payload.comment.author.emailAddress
-          }
+          'default-service',
+          `jira_${issueKey}`,
+          enrichedContext
         );
         
-        console.log(`🤖 RESPUESTA DE CHATKIT RECIBIDA:`, {
+        console.log(`🤖 RESPUESTA DE ASISTENTE TRADICIONAL RECIBIDA:`, {
           success: response.success,
-          hasResponse: !!response.message,
-          sessionId: response.sessionId,
-          serviceUsed: 'chatkit',
-          threadId: `chatkit_${issueKey}`,
-          responsePreview: response.message ? response.message.substring(0, 100) + '...' : 'No response',
+          hasResponse: !!response.response,
+          serviceUsed: 'traditional-assistant',
+          threadId: response.threadId,
+          responsePreview: response.response ? response.response.substring(0, 100) + '...' : 'No response',
           error: response.error
         });
         
@@ -409,8 +404,8 @@ export class ChatbotController {
         // Actualizar estadísticas en base de datos
         await this.updateWebhookStats(true);
         
-        // Si ChatKit respondió exitosamente, procesar normalmente
-        if (response.success && response.message) {
+        // Si el asistente tradicional respondió exitosamente, procesar normalmente
+        if (response.success && response.response) {
           console.log(`✅ Respuesta exitosa recibida, procesando...`);
           
           try {
@@ -418,25 +413,25 @@ export class ChatbotController {
             const { JiraService } = await import('../services/jira_service');
             const jiraService = JiraService.getInstance();
             
-            console.log(`📤 Agregando comentario a Jira: "${response.message.substring(0, 50)}..."`);
+            console.log(`📤 Agregando comentario a Jira: "${response.response.substring(0, 50)}..."`);
             
             // Agregar comentario de la IA a Jira
-            const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, response.message);
+            const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, response.response);
             this.webhookStats.successfulResponses++;
             
             console.log(`✅ Comentario agregado exitosamente a Jira`);
             
             // Agregar la respuesta de la IA al historial
-            this.addToConversationHistory(issueKey, 'assistant', response.message);
+            this.addToConversationHistory(issueKey, 'assistant', response.response);
             
             // Guardar el account ID de la IA para futuras detecciones
             if (jiraResponse && jiraResponse.author && jiraResponse.author.accountId) {
               console.log(`📝 Account ID de la IA detectado: ${jiraResponse.author.accountId}`);
             }
             
-            console.log(`🎯 RESPUESTA DE CHATKIT AGREGADA A JIRA:`);
+            console.log(`🎯 RESPUESTA DE ASISTENTE TRADICIONAL AGREGADA A JIRA:`);
             console.log(`   Issue: ${payload.issue.key}`);
-            console.log(`   Respuesta: ${response.message.substring(0, 100)}...`);
+            console.log(`   Respuesta: ${response.response.substring(0, 100)}...`);
             console.log(`   Estadísticas: ${this.webhookStats.successfulResponses} respuestas exitosas`);
             
             // 🔌 RESPUESTA DE IA PROCESADA - SE ENVIARÁ VIA WEBHOOK DE JIRA
@@ -449,9 +444,9 @@ export class ChatbotController {
           // 🚀 FLUJO PARALELO: ENVIAR DATOS AL WEBHOOK CONFIGURADO
           this.sendToWebhookInParallel(issueKey, payload.comment.body, payload.comment.author.displayName, payload.comment.created, response, enrichedContext);
         } else {
-          console.log(`❌ Respuesta de ChatKit fallida o vacía:`, {
+          console.log(`❌ Respuesta de asistente tradicional fallida o vacía:`, {
             success: response.success,
-            hasResponse: !!response.message,
+            hasResponse: !!response.response,
             error: response.error
           });
         }
