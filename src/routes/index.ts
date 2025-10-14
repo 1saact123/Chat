@@ -7,6 +7,8 @@ import { AdminController } from '../controllers/admin_controller';
 import { WidgetIntegrationController } from '../controllers/widget_integration_controller';
 import { UserController } from '../controllers/user_controller';
 import { UserServiceController } from '../controllers/user_service_controller';
+import { UserTicketsController } from '../controllers/user_tickets_controller';
+import { UserWebhooksController } from '../controllers/user_webhooks_controller';
 import { ChatKitController } from '../controllers/chatkit_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
@@ -39,6 +41,8 @@ const adminController = new AdminController();
 const widgetIntegrationController = new WidgetIntegrationController();
 const userController = new UserController();
 const userServiceController = new UserServiceController();
+const userTicketsController = new UserTicketsController();
+const userWebhooksController = new UserWebhooksController();
 const chatKitController = new ChatKitController();
 
 // Function to set WebSocket server reference
@@ -112,10 +116,47 @@ router.get('/api/user/projects', authenticateToken, userServiceController.getUse
 // Endpoint público para obtener asistente activo de un servicio del usuario
 router.get('/api/user/services/:serviceId/assistant', userServiceController.getActiveAssistantForUserService.bind(userServiceController));
 
-// Configuración de webhook del usuario
+// === USER TICKETS MANAGEMENT ROUTES ===
+// Obtener tickets deshabilitados del usuario
+router.get('/api/user/tickets/disabled', authenticateToken, userTicketsController.getDisabledTickets.bind(userTicketsController));
+
+// Deshabilitar asistente en un ticket específico del usuario
+router.post('/api/user/tickets/:issueKey/disable', authenticateToken, userTicketsController.disableAssistantForTicket.bind(userTicketsController));
+
+// Habilitar asistente en un ticket específico del usuario
+router.post('/api/user/tickets/:issueKey/enable', authenticateToken, userTicketsController.enableAssistantForTicket.bind(userTicketsController));
+
+// Verificar estado del asistente en un ticket del usuario
+router.get('/api/user/tickets/:issueKey/status', authenticateToken, userTicketsController.checkTicketAssistantStatus.bind(userTicketsController));
+
+// === USER WEBHOOKS MANAGEMENT ROUTES ===
+// Obtener estado del webhook del usuario
+router.get('/api/user/webhook/status', authenticateToken, userWebhooksController.getWebhookStatus.bind(userWebhooksController));
+
+// Configurar webhook del usuario
+router.post('/api/user/webhook/configure', authenticateToken, userWebhooksController.configureWebhook.bind(userWebhooksController));
+
+// Probar webhook del usuario
+router.post('/api/user/webhook/test', authenticateToken, userWebhooksController.testWebhook.bind(userWebhooksController));
+
+// Deshabilitar webhook del usuario
+router.post('/api/user/webhook/disable', authenticateToken, userWebhooksController.disableWebhook.bind(userWebhooksController));
+
+// Configurar filtro del webhook del usuario
+router.post('/api/user/webhook/filter', authenticateToken, userWebhooksController.configureWebhookFilter.bind(userWebhooksController));
+
+// Obtener webhooks guardados del usuario
+router.get('/api/user/webhooks/saved', authenticateToken, userWebhooksController.getSavedWebhooks.bind(userWebhooksController));
+
+// Guardar webhook del usuario
+router.post('/api/user/webhooks/save', authenticateToken, userWebhooksController.saveWebhook.bind(userWebhooksController));
+
+// Eliminar webhook guardado del usuario
+router.delete('/api/user/webhooks/:id', authenticateToken, userWebhooksController.deleteWebhook.bind(userWebhooksController));
+
+// Configuración de webhook del usuario (legacy)
 router.get('/api/user/webhook', authenticateToken, userController.getUserWebhookConfiguration.bind(userController));
 router.post('/api/user/webhook', authenticateToken, userController.setUserWebhookConfiguration.bind(userController));
-router.post('/api/user/webhook/filter', authenticateToken, userController.setUserWebhookFilter.bind(userController));
 
 // Registro de usuario (solo admin)
 router.post('/api/user/register', authenticateToken, requireAdmin, userController.registerUser.bind(userController));

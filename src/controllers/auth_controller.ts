@@ -78,6 +78,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       maxAge: 24 * 60 * 60 * 1000 // 24 horas
     });
 
+    // Para admins, siempre considerar que la configuración inicial está completa
+    const isSetupComplete = user.role === 'admin' ? true : user.isInitialSetupComplete;
+
     // Respuesta exitosa
     res.json({
       success: true,
@@ -89,9 +92,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           email: user.email,
           role: user.role,
           lastLogin: user.lastLogin,
-          isInitialSetupComplete: user.isInitialSetupComplete
+          isInitialSetupComplete: isSetupComplete
         },
-        requiresInitialSetup: !user.isInitialSetupComplete
+        requiresInitialSetup: !isSetupComplete
       },
       message: 'Login exitoso'
     });
@@ -157,10 +160,16 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
+    // Para admins, siempre considerar que la configuración inicial está completa
+    const userData = {
+      ...req.user,
+      isInitialSetupComplete: req.user.role === 'admin' ? true : req.user.isInitialSetupComplete
+    };
+
     res.json({
       success: true,
       data: {
-        user: req.user
+        user: userData
       }
     });
   } catch (error) {

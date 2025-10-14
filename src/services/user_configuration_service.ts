@@ -20,6 +20,8 @@ interface UserWebhookConfiguration {
   filterEnabled: boolean;
   filterCondition?: string;
   filterValue?: string;
+  webhookUrl?: string;
+  lastTest?: string;
 }
 
 interface UserInstanceConfiguration {
@@ -30,11 +32,19 @@ interface UserInstanceConfiguration {
   settings?: any;
 }
 
+interface DisabledTicket {
+  issueKey: string;
+  reason: string;
+  disabledAt: string;
+  disabledBy: string;
+}
+
 export class UserConfigurationService {
   private static instances: Map<number, UserConfigurationService> = new Map();
   private userId: number;
   private configurations: Map<string, UserServiceConfiguration> = new Map();
   private webhookConfig: UserWebhookConfiguration | null = null;
+  private disabledTickets: Map<string, DisabledTicket> = new Map();
   private dbService: DatabaseService;
 
   private constructor(userId: number) {
@@ -330,5 +340,35 @@ export class UserConfigurationService {
   // Método para limpiar instancia
   public static clearInstance(userId: number): void {
     UserConfigurationService.instances.delete(userId);
+  }
+
+  // Métodos para manejo de tickets deshabilitados
+  public disableAssistantForTicket(issueKey: string, reason: string): void {
+    const disabledTicket: DisabledTicket = {
+      issueKey,
+      reason,
+      disabledAt: new Date().toISOString(),
+      disabledBy: `user_${this.userId}`
+    };
+    
+    this.disabledTickets.set(issueKey, disabledTicket);
+    console.log(`✅ Ticket ${issueKey} disabled for user ${this.userId}`);
+  }
+
+  public enableAssistantForTicket(issueKey: string): void {
+    this.disabledTickets.delete(issueKey);
+    console.log(`✅ Ticket ${issueKey} enabled for user ${this.userId}`);
+  }
+
+  public isTicketDisabled(issueKey: string): boolean {
+    return this.disabledTickets.has(issueKey);
+  }
+
+  public getTicketInfo(issueKey: string): DisabledTicket | null {
+    return this.disabledTickets.get(issueKey) || null;
+  }
+
+  public getDisabledTickets(): DisabledTicket[] {
+    return Array.from(this.disabledTickets.values());
   }
 }

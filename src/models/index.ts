@@ -357,6 +357,7 @@ User.init({
 // Interface para SavedWebhook
 export interface SavedWebhookAttributes {
   id?: number;
+  userId?: number;
   name: string;
   url: string;
   description?: string;
@@ -370,6 +371,7 @@ export interface SavedWebhookCreationAttributes extends Optional<SavedWebhookAtt
 // Modelo SavedWebhook
 export class SavedWebhook extends Model<SavedWebhookAttributes, SavedWebhookCreationAttributes> implements SavedWebhookAttributes {
   public id!: number;
+  public userId?: number;
   public name!: string;
   public url!: string;
   public description?: string;
@@ -383,6 +385,14 @@ SavedWebhook.init({
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
   },
   name: {
     type: DataTypes.STRING(255),

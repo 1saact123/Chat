@@ -295,4 +295,34 @@ export class DatabaseService {
     });
     console.log(`✅ Updated webhook filter: enabled=${filterEnabled}, condition=${filterCondition}, value=${filterValue}`);
   }
+
+  // ===== USER WEBHOOKS =====
+
+  async getUserSavedWebhooks(userId: number): Promise<SavedWebhook[]> {
+    return await SavedWebhook.findAll({
+      where: { userId, isActive: true },
+      order: [['createdAt', 'DESC']]
+    });
+  }
+
+  async saveUserWebhook(userId: number, webhookData: { name: string; url: string; description?: string; isActive: boolean }): Promise<SavedWebhook> {
+    const webhook = await SavedWebhook.create({
+      userId,
+      name: webhookData.name,
+      url: webhookData.url,
+      description: webhookData.description || '',
+      isActive: webhookData.isActive
+    });
+    console.log(`✅ Saved webhook for user ${userId}: ${webhookData.name}`);
+    return webhook;
+  }
+
+  async deleteUserWebhook(id: number, userId: number): Promise<boolean> {
+    const [affectedCount] = await SavedWebhook.update(
+      { isActive: false }, 
+      { where: { id, userId } }
+    );
+    console.log(`${affectedCount > 0 ? '🗑️ Deleted' : '❌ Failed to delete'} user webhook: ${id} for user ${userId}`);
+    return affectedCount > 0;
+  }
 }
