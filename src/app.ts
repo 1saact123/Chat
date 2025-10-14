@@ -162,16 +162,52 @@ class MovonteAPI {
     // Configurar Socket.IO
     this.io = new Server(this.httpServer, {
       cors: {
-        origin: [
-          "https://chat.movonte.com",
-          "https://movonte.com",
-          "https://movonte-consulting.github.io",
-          "http://localhost:3000",
-          "http://127.0.0.1:5500"
-        ],
-        methods: ["GET", "POST"],
-        credentials: true
-      }
+        origin: (origin, callback) => {
+          console.log('🔍 Socket.IO CORS check for origin:', origin);
+          
+          // ✅ CRÍTICO: Permitir requests sin origin (conexiones directas)
+          if (!origin) {
+            console.log('✅ Socket.IO: Request without origin allowed');
+            return callback(null, true);
+          }
+          
+          const allowedOrigins = [
+            "https://chat.movonte.com",
+            "https://movonte.com",
+            "https://www.movonte.com",
+            "https://movonte-consulting.github.io",
+            "http://localhost:3000",
+            "http://127.0.0.1:5500",
+            "http://localhost:5173", // Vite dev server
+            "http://127.0.0.1:5173"
+          ];
+          
+          // Verificar si el origin está permitido
+          const isAllowed = allowedOrigins.some(allowed => {
+            if (allowed.includes('*')) {
+              const pattern = allowed.replace('*', '.*');
+              return new RegExp(pattern).test(origin);
+            }
+            return allowed === origin;
+          });
+          
+          if (isAllowed) {
+            console.log('✅ Socket.IO: Origin allowed:', origin);
+            callback(null, true);
+          } else {
+            console.log('❌ Socket.IO: Origin blocked:', origin);
+            callback(new Error('Not allowed by Socket.IO CORS'));
+          }
+        },
+        methods: ["GET", "POST", "OPTIONS"],
+        credentials: true,
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+      },
+      // ✅ Configuración adicional para WebSockets
+      transports: ['websocket', 'polling'],
+      allowEIO3: true, // Compatibilidad con versiones anteriores
+      pingTimeout: 60000,
+      pingInterval: 25000
     });
 
     // Manejar conexiones WebSocket
@@ -181,6 +217,8 @@ class MovonteAPI {
       console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
       console.log('🌐 Cliente conectado desde:', socket.handshake.address);
       console.log('🔗 Headers de conexión:', socket.handshake.headers);
+      console.log('🌍 Origin del cliente:', socket.handshake.headers.origin);
+      console.log('🚀 Transporte utilizado:', socket.conn.transport.name);
       
       // 🎯 MANEJAR SALAS POR TICKET
       socket.on('join-ticket', (ticketId) => {
@@ -195,10 +233,15 @@ class MovonteAPI {
         console.log(`✅ Cliente salió de la sala: ticket_${ticketId}`);
       });
       
+      // Manejar errores de conexión
+      socket.on('error', (error) => {
+        console.error('❌ Error en WebSocket:', socket.id, error);
+      });
+      
       // Manejar desconexión
-      socket.on('disconnect', () => {
+      socket.on('disconnect', (reason) => {
         console.log('🔌 Cliente WebSocket desconectado:', socket.id);
-        console.log('👤 Usuario desconectado del chat');
+        console.log('👤 Usuario desconectado del chat. Razón:', reason);
         console.log('📡 Total de conexiones activas:', this.io.engine.clientsCount);
       });
     });
