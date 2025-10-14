@@ -52,4 +52,3 @@ router.post('/api/chatkit/chat/direct', authenticateToken,
 );
 
 export default router;
-

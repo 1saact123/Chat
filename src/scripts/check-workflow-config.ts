@@ -114,4 +114,3 @@ if (require.main === module) {
 }
 
 export { checkWorkflowConfig };
-

@@ -17,7 +17,6 @@ interface ChatKitResponse {
   message?: string;
   error?: string;
   sessionId?: string;
-  clientSecret?: string;
 }
 
 export class ChatKitJiraService {
@@ -140,17 +139,14 @@ export class ChatKitJiraService {
         session = await this.createSessionForTicket(issueKey, authorInfo);
       }
 
-      console.log(`✅ Sesión ChatKit disponible para ${issueKey}: ${session.id}`);
-
       // 2. Para ChatKit, el procesamiento de mensajes se hace en el frontend
       // El backend solo proporciona la sesión y maneja la integración con Jira
-      // El frontend debe usar el SDK de ChatKit con el client_secret para procesar mensajes
-      
+      console.log(`✅ Sesión ChatKit disponible para ${issueKey}: ${session.id}`);
+
       return {
         success: true,
-        message: `Sesión ChatKit creada para ${issueKey}. Usa el SDK de ChatKit en el frontend con el client_secret para procesar mensajes.`,
-        sessionId: session.id,
-        clientSecret: session.client_secret
+        message: 'Comentario de Jira recibido. Usa la sesión ChatKit en el frontend para obtener respuesta de IA.',
+        sessionId: session.id
       };
 
     } catch (error) {
@@ -162,6 +158,12 @@ export class ChatKitJiraService {
     }
   }
 
+  /**
+   * NOTA: El procesamiento de mensajes con ChatKit se hace en el frontend
+   * usando el SDK de ChatKit y el client_secret proporcionado por este servicio.
+   * Este método se mantiene para referencia futura si se necesita procesamiento
+   * directo desde el backend.
+   */
 
   /**
    * Crear mensaje enriquecido con contexto
