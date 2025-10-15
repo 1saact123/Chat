@@ -9,6 +9,7 @@ import { UserController } from '../controllers/user_controller';
 import { UserServiceController } from '../controllers/user_service_controller';
 import { UserTicketsController } from '../controllers/user_tickets_controller';
 import { UserWebhooksController } from '../controllers/user_webhooks_controller';
+import { ServiceValidationController } from '../controllers/service_validation_controller';
 import { ChatKitController } from '../controllers/chatkit_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
@@ -43,6 +44,7 @@ const userController = new UserController();
 const userServiceController = new UserServiceController();
 const userTicketsController = new UserTicketsController();
 const userWebhooksController = new UserWebhooksController();
+const serviceValidationController = new ServiceValidationController();
 const chatKitController = new ChatKitController();
 
 // Function to set WebSocket server reference
@@ -153,6 +155,28 @@ router.post('/api/user/webhooks/save', authenticateToken, userWebhooksController
 
 // Eliminar webhook guardado del usuario
 router.delete('/api/user/webhooks/:id', authenticateToken, userWebhooksController.deleteWebhook.bind(userWebhooksController));
+
+// === SERVICE VALIDATION ROUTES ===
+// Crear solicitud de validación de servicio
+router.post('/api/user/service-validation/request', authenticateToken, serviceValidationController.createValidationRequest.bind(serviceValidationController));
+
+// Obtener solicitudes de validación del usuario
+router.get('/api/user/service-validation/requests', authenticateToken, serviceValidationController.getUserValidations.bind(serviceValidationController));
+
+// Obtener solicitudes pendientes (solo para admins)
+router.get('/api/admin/service-validation/pending', authenticateToken, serviceValidationController.getPendingValidations.bind(serviceValidationController));
+
+// Aprobar solicitud de validación (solo para admins)
+router.post('/api/admin/service-validation/:id/approve', authenticateToken, serviceValidationController.approveValidation.bind(serviceValidationController));
+
+// Rechazar solicitud de validación (solo para admins)
+router.post('/api/admin/service-validation/:id/reject', authenticateToken, serviceValidationController.rejectValidation.bind(serviceValidationController));
+
+// Generar token protegido para servicio
+router.post('/api/user/service-validation/protected-token', authenticateToken, serviceValidationController.generateProtectedToken.bind(serviceValidationController));
+
+// Validar token protegido
+router.post('/api/service-validation/validate-token', serviceValidationController.validateProtectedToken.bind(serviceValidationController));
 
 // Configuración de webhook del usuario (legacy)
 router.get('/api/user/webhook', authenticateToken, userController.getUserWebhookConfiguration.bind(userController));

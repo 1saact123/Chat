@@ -27,7 +27,7 @@ export class UserTicketsController {
 
       // Obtener tickets deshabilitados específicos del usuario
       const userConfigService = UserConfigurationService.getInstance(user.id);
-      const disabledTickets = userConfigService.getDisabledTickets();
+      const disabledTickets = await userConfigService.getDisabledTickets();
 
       res.json({
         success: true,
@@ -100,7 +100,7 @@ export class UserTicketsController {
 
       // Agregar el ticket a la lista de tickets desactivados del usuario
       const userConfigService = UserConfigurationService.getInstance(user.id);
-      userConfigService.disableAssistantForTicket(issueKey, reason || 'Manual disable');
+      await userConfigService.disableAssistantForTicket(issueKey, reason || 'Manual disable');
 
       res.json({
         success: true,
@@ -175,7 +175,7 @@ export class UserTicketsController {
 
       // Remover el ticket de la lista de tickets desactivados del usuario
       const userConfigService = UserConfigurationService.getInstance(user.id);
-      userConfigService.enableAssistantForTicket(issueKey);
+      await userConfigService.enableAssistantForTicket(issueKey);
 
       res.json({
         success: true,
@@ -249,8 +249,8 @@ export class UserTicketsController {
 
       // Verificar si el ticket está deshabilitado para el usuario
       const userConfigService = UserConfigurationService.getInstance(user.id);
-      const isDisabled = userConfigService.isTicketDisabled(issueKey);
-      const ticketInfo = userConfigService.getTicketInfo(issueKey);
+      const isDisabled = await userConfigService.isTicketDisabled(issueKey);
+      const ticketInfo = await userConfigService.getTicketInfo(issueKey);
 
       res.json({
         success: true,

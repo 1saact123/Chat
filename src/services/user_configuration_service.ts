@@ -1,5 +1,5 @@
 import { DatabaseService } from './database_service';
-import { User, UserConfiguration, UserWebhook, UserInstance } from '../models';
+import { User, UserConfiguration, UserWebhook, UserInstance, UserDisabledTicket } from '../models';
 
 interface UserServiceConfiguration {
   serviceId: string;
@@ -44,7 +44,6 @@ export class UserConfigurationService {
   private userId: number;
   private configurations: Map<string, UserServiceConfiguration> = new Map();
   private webhookConfig: UserWebhookConfiguration | null = null;
-  private disabledTickets: Map<string, DisabledTicket> = new Map();
   private dbService: DatabaseService;
 
   private constructor(userId: number) {
@@ -343,32 +342,82 @@ export class UserConfigurationService {
   }
 
   // Métodos para manejo de tickets deshabilitados
-  public disableAssistantForTicket(issueKey: string, reason: string): void {
-    const disabledTicket: DisabledTicket = {
-      issueKey,
-      reason,
-      disabledAt: new Date().toISOString(),
-      disabledBy: `user_${this.userId}`
-    };
-    
-    this.disabledTickets.set(issueKey, disabledTicket);
-    console.log(`✅ Ticket ${issueKey} disabled for user ${this.userId}`);
+  public async disableAssistantForTicket(issueKey: string, reason: string): Promise<void> {
+    try {
+      await UserDisabledTicket.upsert({
+        userId: this.userId,
+        issueKey,
+        reason,
+        disabledAt: new Date(),
+        disabledBy: `user_${this.userId}`
+      });
+      console.log(`✅ Ticket ${issueKey} disabled for user ${this.userId}`);
+    } catch (error) {
+      console.error(`❌ Error disabling ticket ${issueKey} for user ${this.userId}:`, error);
+      throw error;
+    }
   }
 
-  public enableAssistantForTicket(issueKey: string): void {
-    this.disabledTickets.delete(issueKey);
-    console.log(`✅ Ticket ${issueKey} enabled for user ${this.userId}`);
+  public async enableAssistantForTicket(issueKey: string): Promise<void> {
+    try {
+      await UserDisabledTicket.destroy({
+        where: { userId: this.userId, issueKey }
+      });
+      console.log(`✅ Ticket ${issueKey} enabled for user ${this.userId}`);
+    } catch (error) {
+      console.error(`❌ Error enabling ticket ${issueKey} for user ${this.userId}:`, error);
+      throw error;
+    }
   }
 
-  public isTicketDisabled(issueKey: string): boolean {
-    return this.disabledTickets.has(issueKey);
+  public async isTicketDisabled(issueKey: string): Promise<boolean> {
+    try {
+      const ticket = await UserDisabledTicket.findOne({
+        where: { userId: this.userId, issueKey }
+      });
+      return !!ticket;
+    } catch (error) {
+      console.error(`❌ Error checking if ticket ${issueKey} is disabled for user ${this.userId}:`, error);
+      return false;
+    }
   }
 
-  public getTicketInfo(issueKey: string): DisabledTicket | null {
-    return this.disabledTickets.get(issueKey) || null;
+  public async getTicketInfo(issueKey: string): Promise<DisabledTicket | null> {
+    try {
+      const ticket = await UserDisabledTicket.findOne({
+        where: { userId: this.userId, issueKey }
+      });
+      
+      if (!ticket) return null;
+      
+      return {
+        issueKey: ticket.issueKey,
+        reason: ticket.reason || '',
+        disabledAt: ticket.disabledAt?.toISOString() || new Date().toISOString(),
+        disabledBy: ticket.disabledBy || `user_${this.userId}`
+      };
+    } catch (error) {
+      console.error(`❌ Error getting ticket info for ${issueKey} and user ${this.userId}:`, error);
+      return null;
+    }
   }
 
-  public getDisabledTickets(): DisabledTicket[] {
-    return Array.from(this.disabledTickets.values());
+  public async getDisabledTickets(): Promise<DisabledTicket[]> {
+    try {
+      const tickets = await UserDisabledTicket.findAll({
+        where: { userId: this.userId },
+        order: [['disabledAt', 'DESC']]
+      });
+      
+      return tickets.map(ticket => ({
+        issueKey: ticket.issueKey,
+        reason: ticket.reason || '',
+        disabledAt: ticket.disabledAt?.toISOString() || new Date().toISOString(),
+        disabledBy: ticket.disabledBy || `user_${this.userId}`
+      }));
+    } catch (error) {
+      console.error(`❌ Error getting disabled tickets for user ${this.userId}:`, error);
+      return [];
+    }
   }
 }

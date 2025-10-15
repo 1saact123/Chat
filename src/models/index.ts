@@ -536,6 +536,66 @@ export class UserWebhook extends Model<UserWebhookAttributes, UserWebhookCreatio
   public readonly updatedAt!: Date;
 }
 
+// Interface para UserDisabledTicket
+export interface UserDisabledTicketAttributes {
+  id?: number;
+  userId: number;
+  issueKey: string;
+  reason?: string;
+  disabledAt?: Date;
+  disabledBy?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface UserDisabledTicketCreationAttributes extends Optional<UserDisabledTicketAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+
+// Modelo UserDisabledTicket
+export class UserDisabledTicket extends Model<UserDisabledTicketAttributes, UserDisabledTicketCreationAttributes> implements UserDisabledTicketAttributes {
+  public id!: number;
+  public userId!: number;
+  public issueKey!: string;
+  public reason?: string;
+  public disabledAt?: Date;
+  public disabledBy?: string;
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+// Interface para ServiceValidation
+export interface ServiceValidationAttributes {
+  id?: number;
+  userId: number;
+  serviceName: string;
+  serviceDescription?: string;
+  websiteUrl: string;
+  requestedDomain: string;
+  status: 'pending' | 'approved' | 'rejected';
+  adminNotes?: string;
+  validatedBy?: number;
+  validatedAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface ServiceValidationCreationAttributes extends Optional<ServiceValidationAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+
+// Modelo ServiceValidation
+export class ServiceValidation extends Model<ServiceValidationAttributes, ServiceValidationCreationAttributes> implements ServiceValidationAttributes {
+  public id!: number;
+  public userId!: number;
+  public serviceName!: string;
+  public serviceDescription?: string;
+  public websiteUrl!: string;
+  public requestedDomain!: string;
+  public status!: 'pending' | 'approved' | 'rejected';
+  public adminNotes?: string;
+  public validatedBy?: number;
+  public validatedAt?: Date;
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
 UserWebhook.init({
   id: {
     type: DataTypes.INTEGER,
@@ -583,6 +643,100 @@ UserWebhook.init({
 }, {
   sequelize,
   tableName: 'user_webhooks',
+  timestamps: true
+});
+
+UserDisabledTicket.init({
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  issueKey: {
+    type: DataTypes.STRING(50),
+    allowNull: false
+  },
+  reason: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  disabledAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: DataTypes.NOW
+  },
+  disabledBy: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  }
+}, {
+  sequelize,
+  tableName: 'user_disabled_tickets',
+  timestamps: true
+});
+
+ServiceValidation.init({
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  serviceName: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  serviceDescription: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  websiteUrl: {
+    type: DataTypes.STRING(500),
+    allowNull: false
+  },
+  requestedDomain: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  status: {
+    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+    allowNull: false,
+    defaultValue: 'pending'
+  },
+  adminNotes: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  validatedBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  validatedAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  }
+}, {
+  sequelize,
+  tableName: 'service_validations',
   timestamps: true
 });
 
@@ -658,6 +812,18 @@ UserWebhook.belongsTo(User, { foreignKey: 'userId' });
 
 User.hasMany(UserInstance, { foreignKey: 'userId' });
 UserInstance.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(SavedWebhook, { foreignKey: 'userId' });
+SavedWebhook.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(UserDisabledTicket, { foreignKey: 'userId' });
+UserDisabledTicket.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(ServiceValidation, { foreignKey: 'userId', as: 'serviceValidations' });
+ServiceValidation.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+User.hasMany(ServiceValidation, { foreignKey: 'validatedBy', as: 'validatedServices' });
+ServiceValidation.belongsTo(User, { foreignKey: 'validatedBy', as: 'validator' });
 
 // Los modelos ya están exportados arriba, no necesitamos re-exportarlos
 
