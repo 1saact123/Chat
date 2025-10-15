@@ -38,12 +38,12 @@ async function checkServiceValidationsTable() {
     if (totalCount > 0) {
       // Mostrar algunos registros de ejemplo
       const [records] = await sequelize.query(
-        `SELECT id, serviceName, status, requestedDomain, createdAt FROM service_validations ORDER BY createdAt DESC LIMIT 5`
+        `SELECT id, service_name, status, requested_domain, created_at FROM service_validations ORDER BY created_at DESC LIMIT 5`
       );
       
       console.log('📝 Recent records:');
       (records as any[]).forEach((record: any) => {
-        console.log(`  - ID: ${record.id}, Service: ${record.serviceName}, Status: ${record.status}, Domain: ${record.requestedDomain}, Created: ${record.createdAt}`);
+        console.log(`  - ID: ${record.id}, Service: ${record.service_name}, Status: ${record.status}, Domain: ${record.requested_domain}, Created: ${record.created_at}`);
       });
     }
     

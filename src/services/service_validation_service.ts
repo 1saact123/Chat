@@ -113,7 +113,7 @@ export class ServiceValidationService {
           as: 'user',
           attributes: ['id', 'username', 'email']
         }],
-        order: [['createdAt', 'ASC']]
+        order: [['created_at', 'ASC']]
       });
 
       return validations.map(validation => ({
@@ -145,7 +145,7 @@ export class ServiceValidationService {
     try {
       const validations = await ServiceValidation.findAll({
         where: { userId },
-        order: [['createdAt', 'DESC']]
+        order: [['created_at', 'DESC']]
       });
 
       return validations.map(validation => ({
