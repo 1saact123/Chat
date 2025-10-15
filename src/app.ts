@@ -62,7 +62,8 @@ class MovonteAPI {
           return callback(null, true);
         }
         
-        const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+        // Obtener dominios permitidos desde variables de entorno y base de datos
+        const baseOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
           'http://localhost:3000',
           'https://chat.movonte.com', 
           'https://movonte.com',
@@ -70,6 +71,12 @@ class MovonteAPI {
           'https://*.atlassian.net',  // Permitir todos los subdominios de Atlassian
           'https://atlassian.net'
         ];
+        
+        // TODO: En el futuro, también cargar dominios aprobados desde la base de datos
+        // const approvedDomains = await this.getApprovedDomainsFromDatabase();
+        // const allowedOrigins = [...baseOrigins, ...approvedDomains];
+        
+        const allowedOrigins = baseOrigins;
         
         console.log('📋 Allowed origins:', allowedOrigins);
         

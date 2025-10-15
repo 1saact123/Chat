@@ -160,7 +160,7 @@ export class ServiceValidationController {
 
       res.json({
         success: true,
-        message: 'Solicitud de validación aprobada exitosamente. CORS configurado automáticamente.',
+        message: `Solicitud de validación aprobada exitosamente. CORS configurado automáticamente para el dominio: ${validation.requestedDomain}`,
         data: validation
       });
     } catch (error) {
@@ -254,6 +254,16 @@ export class ServiceValidationController {
         res.status(400).json({ 
           success: false, 
           error: 'El servicio no está activo. Actívalo primero para generar el token.' 
+        });
+        return;
+      }
+
+      // Verificar que el servicio esté aprobado por el administrador
+      const isAdminApproved = userService.configuration?.adminApproved;
+      if (!isAdminApproved) {
+        res.status(403).json({ 
+          success: false, 
+          error: 'El servicio no ha sido aprobado por el administrador. Contacta al administrador para aprobar tu servicio.' 
         });
         return;
       }
