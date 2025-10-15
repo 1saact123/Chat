@@ -1,5 +1,6 @@
 import { ServiceValidation, User, UserConfiguration } from '../models';
 import { DatabaseService } from './database_service';
+import { UserConfigurationService } from './user_configuration_service';
 
 export interface ServiceValidationRequest {
   serviceName: string;
@@ -342,5 +343,10 @@ export class ServiceValidationService {
     } catch (error) {
       return { userId: 0, serviceId: '', isValid: false };
     }
+  }
+
+  // Obtener el servicio de configuración del usuario
+  public getUserConfigurationService(userId: number): UserConfigurationService {
+    return UserConfigurationService.getInstance(userId);
   }
 }

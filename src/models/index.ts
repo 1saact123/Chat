@@ -692,7 +692,6 @@ ServiceValidation.init({
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'user_id',
     references: {
       model: 'users',
       key: 'id'
@@ -700,23 +699,19 @@ ServiceValidation.init({
   },
   serviceName: {
     type: DataTypes.STRING(255),
-    allowNull: false,
-    field: 'service_name'
+    allowNull: false
   },
   serviceDescription: {
     type: DataTypes.TEXT,
-    allowNull: true,
-    field: 'service_description'
+    allowNull: true
   },
   websiteUrl: {
     type: DataTypes.STRING(500),
-    allowNull: false,
-    field: 'website_url'
+    allowNull: false
   },
   requestedDomain: {
     type: DataTypes.STRING(255),
-    allowNull: false,
-    field: 'requested_domain'
+    allowNull: false
   },
   status: {
     type: DataTypes.ENUM('pending', 'approved', 'rejected'),
@@ -725,13 +720,11 @@ ServiceValidation.init({
   },
   adminNotes: {
     type: DataTypes.TEXT,
-    allowNull: true,
-    field: 'admin_notes'
+    allowNull: true
   },
   validatedBy: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    field: 'validated_by',
     references: {
       model: 'users',
       key: 'id'
@@ -739,15 +732,12 @@ ServiceValidation.init({
   },
   validatedAt: {
     type: DataTypes.DATE,
-    allowNull: true,
-    field: 'validated_at'
+    allowNull: true
   }
 }, {
   sequelize,
   tableName: 'service_validations',
-  timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  timestamps: true
 });
 
 // Interface para UserInstance

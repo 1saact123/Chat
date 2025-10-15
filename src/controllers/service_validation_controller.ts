@@ -236,6 +236,28 @@ export class ServiceValidationController {
         return;
       }
 
+      // Verificar que el usuario tenga acceso al servicio
+      const userConfigService = this.validationService.getUserConfigurationService(req.user.id);
+      const userServices = userConfigService.getAllServiceConfigurations();
+      
+      const userService = userServices.find(service => service.serviceId === serviceId);
+      if (!userService) {
+        res.status(403).json({ 
+          success: false, 
+          error: 'No tienes acceso a este servicio o el servicio no existe' 
+        });
+        return;
+      }
+
+      // Verificar que el servicio esté activo
+      if (!userService.isActive) {
+        res.status(400).json({ 
+          success: false, 
+          error: 'El servicio no está activo. Actívalo primero para generar el token.' 
+        });
+        return;
+      }
+
       const protectedToken = this.validationService.generateProtectedToken(serviceId, req.user.id);
 
       res.json({
