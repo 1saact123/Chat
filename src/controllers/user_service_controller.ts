@@ -109,13 +109,13 @@ export class UserServiceController {
         return;
       }
 
-      // Crear servicio
+      // Crear servicio en estado pendiente hasta que sea aprobado por admin
       const success = await this.createUserServiceConfiguration(user.id, {
         serviceId,
         serviceName,
         assistantId,
         assistantName,
-        isActive: true
+        isActive: false
       });
 
       if (success) {
