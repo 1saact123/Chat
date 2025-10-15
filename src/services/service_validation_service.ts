@@ -1,4 +1,4 @@
-import { ServiceValidation, User } from '../models';
+import { ServiceValidation, User, UserConfiguration } from '../models';
 import { DatabaseService } from './database_service';
 
 export interface ServiceValidationRequest {
@@ -191,6 +191,9 @@ export class ServiceValidationService {
         adminNotes: adminNotes || 'Aprobado por administrador'
       });
 
+      // Buscar y activar el servicio del usuario correspondiente
+      await this.activateUserService(validation.userId, validation.serviceName);
+
       // Aquí se aplicaría la configuración de CORS automáticamente
       await this.applyCorsConfiguration(validation.requestedDomain);
 
@@ -257,6 +260,39 @@ export class ServiceValidationService {
     } catch (error) {
       console.error('❌ Error rejecting validation:', error);
       throw error;
+    }
+  }
+
+  // Activar el servicio del usuario cuando se aprueba la validación
+  private async activateUserService(userId: number, serviceName: string): Promise<void> {
+    try {
+      // Buscar el servicio del usuario por nombre
+      const userService = await UserConfiguration.findOne({
+        where: {
+          userId,
+          serviceName
+        }
+      });
+
+      if (userService) {
+        // Activar el servicio y marcarlo como aprobado por admin
+        await userService.update({
+          isActive: true,
+          configuration: {
+            ...userService.configuration,
+            adminApproved: true,
+            adminApprovedAt: new Date().toISOString()
+          },
+          lastUpdated: new Date()
+        });
+
+        console.log(`✅ User service activated: ${serviceName} for user ${userId}`);
+      } else {
+        console.log(`⚠️ User service not found: ${serviceName} for user ${userId}`);
+      }
+    } catch (error) {
+      console.error('❌ Error activating user service:', error);
+      // No lanzar el error para no interrumpir el proceso de aprobación
     }
   }
 

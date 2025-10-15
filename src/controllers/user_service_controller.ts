@@ -160,7 +160,8 @@ export class UserServiceController {
           assistantId: config.assistantId,
           assistantName: config.assistantName,
           isActive: config.isActive,
-          lastUpdated: config.lastUpdated
+          lastUpdated: config.lastUpdated,
+          configuration: config.configuration
         }))
       });
     } catch (error) {
