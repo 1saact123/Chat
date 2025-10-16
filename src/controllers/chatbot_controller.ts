@@ -204,10 +204,8 @@ export class ChatbotController {
         console.log(`   IssueKey: ${issueKey}`);
         console.log(`   Proyecto del ticket: ${issueProjectKey}`);
         
-        // PRIORIDAD 1: Verificar si el ticket pertenece a algún servicio de usuario aprobado
-        let isUserServiceProject = false;
+        // Buscar servicios de usuario que usen este proyecto específico
         let userServiceInfo = null;
-        
         try {
           const { UserConfiguration } = await import('../models');
           
@@ -223,7 +221,6 @@ export class ChatbotController {
           for (const service of userServices) {
             // Verificar si el servicio tiene configuración de proyecto
             if (service.configuration && service.configuration.projectKey === issueProjectKey) {
-              isUserServiceProject = true;
               userServiceInfo = {
                 userId: service.userId,
                 serviceId: service.serviceId,
@@ -239,32 +236,15 @@ export class ChatbotController {
           console.error(`❌ Error verificando servicios de usuario:`, error);
         }
         
-        // PRIORIDAD 2: Verificar si el ticket pertenece al proyecto activo global (solo si no es servicio de usuario)
-        let isGlobalProject = false;
-        if (!isUserServiceProject) {
-          const { JiraService } = await import('../services/jira_service');
-          const jiraService = JiraService.getInstance();
-          const activeProject = jiraService.getActiveProject();
-          
-          console.log(`   Proyecto activo global: ${activeProject || 'NO CONFIGURADO'}`);
-          
-          if (activeProject && issueProjectKey === activeProject) {
-            isGlobalProject = true;
-            console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece al proyecto activo global ${activeProject}`);
-          }
-        }
-        
-        // Si no pertenece a ningún proyecto válido, ignorar
-        if (!isGlobalProject && !isUserServiceProject) {
-          console.log(`🚫 TICKET IGNORADO: ${issueKey} no pertenece a ningún proyecto válido`);
+        // Si no pertenece a ningún servicio de usuario, ignorar
+        if (!userServiceInfo) {
+          console.log(`🚫 TICKET IGNORADO: ${issueKey} no pertenece a ningún servicio de usuario activo`);
           console.log(`   Proyecto del ticket: ${issueProjectKey}`);
-          console.log(`   No se encontraron servicios de usuario para este proyecto`);
-          console.log(`   No coincide con proyecto activo global`);
           res.json({ 
             success: true, 
-            message: `Ticket ${issueKey} ignored - not from valid project`,
+            message: `Ticket ${issueKey} ignored - not from any active user service`,
             ignored: true,
-            reason: 'wrong_project'
+            reason: 'no_matching_service'
           });
           return;
         }
@@ -424,55 +404,33 @@ export class ChatbotController {
         
         console.log(`🔧 Contexto enriquecido creado para ${issueKey}`);
         
-        // Determinar qué asistente usar
-        let serviceToUse = 'landing-page'; // Por defecto usar el asistente global
-        let assistantInfo = null;
+        // Usar el asistente específico del usuario (ya no hay asistente global)
+        console.log(`📤 Procesando mensaje con asistente de usuario: "${payload.comment.body}"`);
+        console.log(`   Usuario: ${userServiceInfo.userId}`);
+        console.log(`   Servicio: ${userServiceInfo.serviceName}`);
+        console.log(`   Asistente: ${userServiceInfo.assistantName}`);
         
-        if (userServiceInfo) {
-          // Si es un servicio de usuario, usar su asistente específico
-          serviceToUse = userServiceInfo.serviceId;
-          assistantInfo = {
-            assistantId: userServiceInfo.assistantId,
-            assistantName: userServiceInfo.assistantName,
-            userId: userServiceInfo.userId
-          };
-          console.log(`📤 Procesando mensaje con asistente de usuario: "${payload.comment.body}"`);
-          console.log(`   Usuario: ${userServiceInfo.userId}`);
-          console.log(`   Servicio: ${userServiceInfo.serviceName}`);
-          console.log(`   Asistente: ${userServiceInfo.assistantName}`);
-        } else {
-          console.log(`📤 Procesando mensaje con asistente global: "${payload.comment.body}"`);
+        // Usar el asistente específico del usuario
+        const { UserOpenAIService } = await import('../services/user_openai_service');
+        const { User } = await import('../models');
+        
+        const user = await User.findByPk(userServiceInfo.userId);
+        if (!user || !user.openaiToken) {
+          console.error(`❌ Usuario ${userServiceInfo.userId} no tiene token de OpenAI configurado`);
+          res.json({ 
+            success: false, 
+            error: 'Usuario no tiene token de OpenAI configurado' 
+          });
+          return;
         }
         
-        // Usar el asistente apropiado
-        let response;
-        if (userServiceInfo) {
-          // Usar el asistente específico del usuario
-          const { UserOpenAIService } = await import('../services/user_openai_service');
-          const { User } = await import('../models');
-          
-          const user = await User.findByPk(userServiceInfo.userId);
-          if (user && user.openaiToken) {
-            const userOpenAIService = new UserOpenAIService(userServiceInfo.userId, user.openaiToken);
-            response = await userOpenAIService.processChatForService(
-              payload.comment.body,
-              userServiceInfo.serviceId,
-              `jira_${issueKey}`,
-              enrichedContext
-            );
-          } else {
-            console.error(`❌ Usuario ${userServiceInfo.userId} no tiene token de OpenAI configurado`);
-            response = { success: false, error: 'Usuario no tiene token de OpenAI configurado' };
-          }
-        } else {
-          // Usar el asistente global
-          response = await this.openaiService.processChatForService(
-            payload.comment.body,
-            serviceToUse,
-            `jira_${issueKey}`,
-            enrichedContext
-          );
-        }
+        const userOpenAIService = new UserOpenAIService(userServiceInfo.userId, user.openaiToken);
+        const response = await userOpenAIService.processChatForService(
+          payload.comment.body,
+          userServiceInfo.serviceId,
+          `jira_${issueKey}`,
+          enrichedContext
+        );
         
         console.log(`🤖 RESPUESTA DE ASISTENTE TRADICIONAL RECIBIDA:`, {
           success: response.success,
