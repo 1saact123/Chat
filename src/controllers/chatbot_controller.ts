@@ -197,59 +197,60 @@ export class ChatbotController {
         // Obtener el issueKey al inicio
         const issueKey = payload.issue.key;
         
-        // Verificar que el ticket pertenece a un proyecto válido (global o de usuario)
-        const { JiraService } = await import('../services/jira_service');
-        const jiraService = JiraService.getInstance();
-        const activeProject = jiraService.getActiveProject();
-        
         // Extraer el prefijo del proyecto del issueKey (ej: TI-123 -> TI)
         const issueProjectKey = issueKey.split('-')[0];
         
         console.log(`🔍 DEBUG - Validación de proyecto:`);
         console.log(`   IssueKey: ${issueKey}`);
         console.log(`   Proyecto del ticket: ${issueProjectKey}`);
-        console.log(`   Proyecto activo global: ${activeProject || 'NO CONFIGURADO'}`);
         
-        // Verificar si el ticket pertenece al proyecto activo global
-        let isGlobalProject = false;
-        if (activeProject && issueProjectKey === activeProject) {
-          isGlobalProject = true;
-          console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece al proyecto activo global ${activeProject}`);
-        }
-        
-        // Verificar si el ticket pertenece a algún servicio de usuario aprobado
+        // PRIORIDAD 1: Verificar si el ticket pertenece a algún servicio de usuario aprobado
         let isUserServiceProject = false;
         let userServiceInfo = null;
-        if (!isGlobalProject) {
-          try {
-            const { UserConfiguration } = await import('../models');
-            
-            // Buscar servicios de usuario que usen este proyecto específico
-            const userServices = await UserConfiguration.findAll({
-              where: {
-                isActive: true
-              }
-            });
-            
-            console.log(`🔍 Verificando servicios de usuario activos: ${userServices.length} encontrados`);
-            
-            for (const service of userServices) {
-              // Verificar si el servicio tiene configuración de proyecto
-              if (service.configuration && service.configuration.projectKey === issueProjectKey) {
-                isUserServiceProject = true;
-                userServiceInfo = {
-                  userId: service.userId,
-                  serviceId: service.serviceId,
-                  serviceName: service.serviceName,
-                  assistantId: service.assistantId,
-                  assistantName: service.assistantName
-                };
-                console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece a servicio de usuario: ${service.serviceName} (Usuario: ${service.userId})`);
-                break;
-              }
+        
+        try {
+          const { UserConfiguration } = await import('../models');
+          
+          // Buscar servicios de usuario que usen este proyecto específico
+          const userServices = await UserConfiguration.findAll({
+            where: {
+              isActive: true
             }
-          } catch (error) {
-            console.error(`❌ Error verificando servicios de usuario:`, error);
+          });
+          
+          console.log(`🔍 Verificando servicios de usuario activos: ${userServices.length} encontrados`);
+          
+          for (const service of userServices) {
+            // Verificar si el servicio tiene configuración de proyecto
+            if (service.configuration && service.configuration.projectKey === issueProjectKey) {
+              isUserServiceProject = true;
+              userServiceInfo = {
+                userId: service.userId,
+                serviceId: service.serviceId,
+                serviceName: service.serviceName,
+                assistantId: service.assistantId,
+                assistantName: service.assistantName
+              };
+              console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece a servicio de usuario: ${service.serviceName} (Usuario: ${service.userId})`);
+              break;
+            }
+          }
+        } catch (error) {
+          console.error(`❌ Error verificando servicios de usuario:`, error);
+        }
+        
+        // PRIORIDAD 2: Verificar si el ticket pertenece al proyecto activo global (solo si no es servicio de usuario)
+        let isGlobalProject = false;
+        if (!isUserServiceProject) {
+          const { JiraService } = await import('../services/jira_service');
+          const jiraService = JiraService.getInstance();
+          const activeProject = jiraService.getActiveProject();
+          
+          console.log(`   Proyecto activo global: ${activeProject || 'NO CONFIGURADO'}`);
+          
+          if (activeProject && issueProjectKey === activeProject) {
+            isGlobalProject = true;
+            console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece al proyecto activo global ${activeProject}`);
           }
         }
         
@@ -257,7 +258,8 @@ export class ChatbotController {
         if (!isGlobalProject && !isUserServiceProject) {
           console.log(`🚫 TICKET IGNORADO: ${issueKey} no pertenece a ningún proyecto válido`);
           console.log(`   Proyecto del ticket: ${issueProjectKey}`);
-          console.log(`   Proyecto activo global: ${activeProject || 'NO CONFIGURADO'}`);
+          console.log(`   No se encontraron servicios de usuario para este proyecto`);
+          console.log(`   No coincide con proyecto activo global`);
           res.json({ 
             success: true, 
             message: `Ticket ${issueKey} ignored - not from valid project`,
