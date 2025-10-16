@@ -67,12 +67,12 @@ export class UserServiceController {
         return;
       }
 
-      const { serviceId, serviceName, assistantId, assistantName } = req.body;
+      const { serviceId, serviceName, assistantId, assistantName, projectKey } = req.body;
 
-      if (!serviceId || !serviceName || !assistantId || !assistantName) {
+      if (!serviceId || !serviceName || !assistantId || !assistantName || !projectKey) {
         res.status(400).json({
           success: false,
-          error: 'Se requieren serviceId, serviceName, assistantId y assistantName'
+          error: 'Se requieren serviceId, serviceName, assistantId, assistantName y projectKey'
         });
         return;
       }
@@ -115,7 +115,10 @@ export class UserServiceController {
         serviceName,
         assistantId,
         assistantName,
-        isActive: false
+        isActive: false,
+        configuration: {
+          projectKey: projectKey
+        }
       });
 
       if (success) {
@@ -473,6 +476,7 @@ export class UserServiceController {
         assistantId: config.assistantId,
         assistantName: config.assistantName,
         isActive: config.isActive,
+        configuration: config.configuration,
         lastUpdated: new Date()
       });
       return true;

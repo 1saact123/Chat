@@ -197,36 +197,74 @@ export class ChatbotController {
         // Obtener el issueKey al inicio
         const issueKey = payload.issue.key;
         
-        // Verificar que el ticket pertenece al proyecto activo
+        // Verificar que el ticket pertenece a un proyecto válido (global o de usuario)
         const { JiraService } = await import('../services/jira_service');
         const jiraService = JiraService.getInstance();
         const activeProject = jiraService.getActiveProject();
         
+        // Extraer el prefijo del proyecto del issueKey (ej: TI-123 -> TI)
+        const issueProjectKey = issueKey.split('-')[0];
+        
         console.log(`🔍 DEBUG - Validación de proyecto:`);
         console.log(`   IssueKey: ${issueKey}`);
-        console.log(`   Proyecto activo: ${activeProject || 'NO CONFIGURADO'}`);
+        console.log(`   Proyecto del ticket: ${issueProjectKey}`);
+        console.log(`   Proyecto activo global: ${activeProject || 'NO CONFIGURADO'}`);
         
-        if (activeProject) {
-          // Extraer el prefijo del proyecto del issueKey (ej: TI-123 -> TI)
-          const issueProjectKey = issueKey.split('-')[0];
-          console.log(`   Proyecto del ticket: ${issueProjectKey}`);
-          
-          if (issueProjectKey !== activeProject) {
-            console.log(`🚫 TICKET IGNORADO: ${issueKey} no pertenece al proyecto activo ${activeProject}`);
-            console.log(`   Proyecto del ticket: ${issueProjectKey}`);
-            console.log(`   Proyecto activo: ${activeProject}`);
-            res.json({ 
-              success: true, 
-              message: `Ticket ${issueKey} ignored - not from active project ${activeProject}`,
-              ignored: true,
-              reason: 'wrong_project'
+        // Verificar si el ticket pertenece al proyecto activo global
+        let isGlobalProject = false;
+        if (activeProject && issueProjectKey === activeProject) {
+          isGlobalProject = true;
+          console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece al proyecto activo global ${activeProject}`);
+        }
+        
+        // Verificar si el ticket pertenece a algún servicio de usuario aprobado
+        let isUserServiceProject = false;
+        let userServiceInfo = null;
+        if (!isGlobalProject) {
+          try {
+            const { UserConfiguration } = await import('../models');
+            
+            // Buscar servicios de usuario que usen este proyecto específico
+            const userServices = await UserConfiguration.findAll({
+              where: {
+                isActive: true
+              }
             });
-            return;
-          } else {
-            console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece al proyecto activo ${activeProject}`);
+            
+            console.log(`🔍 Verificando servicios de usuario activos: ${userServices.length} encontrados`);
+            
+            for (const service of userServices) {
+              // Verificar si el servicio tiene configuración de proyecto
+              if (service.configuration && service.configuration.projectKey === issueProjectKey) {
+                isUserServiceProject = true;
+                userServiceInfo = {
+                  userId: service.userId,
+                  serviceId: service.serviceId,
+                  serviceName: service.serviceName,
+                  assistantId: service.assistantId,
+                  assistantName: service.assistantName
+                };
+                console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece a servicio de usuario: ${service.serviceName} (Usuario: ${service.userId})`);
+                break;
+              }
+            }
+          } catch (error) {
+            console.error(`❌ Error verificando servicios de usuario:`, error);
           }
-        } else {
-          console.log(`⚠️  ADVERTENCIA: No hay proyecto activo configurado, procesando todos los tickets`);
+        }
+        
+        // Si no pertenece a ningún proyecto válido, ignorar
+        if (!isGlobalProject && !isUserServiceProject) {
+          console.log(`🚫 TICKET IGNORADO: ${issueKey} no pertenece a ningún proyecto válido`);
+          console.log(`   Proyecto del ticket: ${issueProjectKey}`);
+          console.log(`   Proyecto activo global: ${activeProject || 'NO CONFIGURADO'}`);
+          res.json({ 
+            success: true, 
+            message: `Ticket ${issueKey} ignored - not from valid project`,
+            ignored: true,
+            reason: 'wrong_project'
+          });
+          return;
         }
         
         // Crear un ID único para este comentario (más robusto)
@@ -383,15 +421,56 @@ export class ChatbotController {
         };
         
         console.log(`🔧 Contexto enriquecido creado para ${issueKey}`);
-        console.log(`📤 Procesando mensaje con asistente tradicional: "${payload.comment.body}"`);
         
-        // Usar el asistente tradicional en lugar de ChatKit
-        const response = await this.openaiService.processChatForService(
-          payload.comment.body,
-          'landing-page',
-          `jira_${issueKey}`,
-          enrichedContext
-        );
+        // Determinar qué asistente usar
+        let serviceToUse = 'landing-page'; // Por defecto usar el asistente global
+        let assistantInfo = null;
+        
+        if (userServiceInfo) {
+          // Si es un servicio de usuario, usar su asistente específico
+          serviceToUse = userServiceInfo.serviceId;
+          assistantInfo = {
+            assistantId: userServiceInfo.assistantId,
+            assistantName: userServiceInfo.assistantName,
+            userId: userServiceInfo.userId
+          };
+          console.log(`📤 Procesando mensaje con asistente de usuario: "${payload.comment.body}"`);
+          console.log(`   Usuario: ${userServiceInfo.userId}`);
+          console.log(`   Servicio: ${userServiceInfo.serviceName}`);
+          console.log(`   Asistente: ${userServiceInfo.assistantName}`);
+        } else {
+          console.log(`📤 Procesando mensaje con asistente global: "${payload.comment.body}"`);
+        }
+        
+        // Usar el asistente apropiado
+        let response;
+        if (userServiceInfo) {
+          // Usar el asistente específico del usuario
+          const { UserOpenAIService } = await import('../services/user_openai_service');
+          const { User } = await import('../models');
+          
+          const user = await User.findByPk(userServiceInfo.userId);
+          if (user && user.openaiToken) {
+            const userOpenAIService = new UserOpenAIService(userServiceInfo.userId, user.openaiToken);
+            response = await userOpenAIService.processChatForService(
+              payload.comment.body,
+              userServiceInfo.serviceId,
+              `jira_${issueKey}`,
+              enrichedContext
+            );
+          } else {
+            console.error(`❌ Usuario ${userServiceInfo.userId} no tiene token de OpenAI configurado`);
+            response = { success: false, error: 'Usuario no tiene token de OpenAI configurado' };
+          }
+        } else {
+          // Usar el asistente global
+          response = await this.openaiService.processChatForService(
+            payload.comment.body,
+            serviceToUse,
+            `jira_${issueKey}`,
+            enrichedContext
+          );
+        }
         
         console.log(`🤖 RESPUESTA DE ASISTENTE TRADICIONAL RECIBIDA:`, {
           success: response.success,
