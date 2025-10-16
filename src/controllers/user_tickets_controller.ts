@@ -87,7 +87,7 @@ export class UserTicketsController {
       }
 
       // Verificar que el ticket existe en el Jira del usuario
-      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl);
+      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl, user.email);
       const issue = await jiraService.getIssueByKey(issueKey);
       
       if (!issue) {
@@ -162,7 +162,7 @@ export class UserTicketsController {
       }
 
       // Verificar que el ticket existe en el Jira del usuario
-      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl);
+      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl, user.email);
       const issue = await jiraService.getIssueByKey(issueKey);
       
       if (!issue) {
@@ -236,7 +236,7 @@ export class UserTicketsController {
       }
 
       // Verificar que el ticket existe en el Jira del usuario
-      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl);
+      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl, user.email);
       const issue = await jiraService.getIssueByKey(issueKey);
       
       if (!issue) {

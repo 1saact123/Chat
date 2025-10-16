@@ -6,13 +6,12 @@ export class UserJiraService {
   private auth: string;
   private userId: number;
 
-  constructor(userId: number, jiraToken: string, jiraUrl: string) {
+  constructor(userId: number, jiraToken: string, jiraUrl: string, userEmail: string) {
     this.userId = userId;
     this.baseUrl = jiraUrl;
     
-    // Para tokens de Jira, asumimos que el token ya incluye la autenticación
-    // Si necesitas email + token, ajusta esta lógica
-    this.auth = Buffer.from(`${jiraToken}`).toString('base64');
+    // Para autenticación Basic de Jira se necesita email:token
+    this.auth = Buffer.from(`${userEmail}:${jiraToken}`).toString('base64');
   }
 
   // Listar proyectos del usuario

@@ -28,7 +28,7 @@ export class UserServiceController {
 
       // Crear servicios con tokens del usuario
       const openaiService = new UserOpenAIService(user.id, user.openaiToken);
-      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl || '');
+      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl || '', user.email);
 
       // Obtener datos del usuario
       const assistants = await openaiService.listAssistants();
@@ -400,7 +400,7 @@ export class UserServiceController {
         return;
       }
 
-      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl || '');
+      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl || '', user.email);
       const projects = await jiraService.listProjects();
 
       res.json({
