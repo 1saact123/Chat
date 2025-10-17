@@ -386,20 +386,29 @@ export class ChatbotController {
           console.log(`🤖 Comentario de IA detectado, no enviando via WebSocket (se enviará cuando se confirme en Jira)`);
         }
         
-        // Verificar si el asistente está desactivado para este ticket
-        const configService = ConfigurationService.getInstance();
-        if (configService.isTicketDisabled(issueKey)) {
-          const ticketInfo = configService.getDisabledTicketInfo(issueKey);
-          console.log(`🚫 ASISTENTE DESACTIVADO PARA TICKET ${issueKey}:`);
-          console.log(`   Razón: ${ticketInfo?.reason || 'No reason provided'}`);
-          console.log(`   Desactivado: ${ticketInfo?.disabledAt || 'Unknown'}`);
-          res.json({ 
-            success: true, 
-            message: 'AI Assistant disabled for this ticket', 
-            disabled: true,
-            reason: ticketInfo?.reason
-          });
-          return;
+        // Verificar si el asistente está desactivado para este ticket por el usuario
+        if (userServiceInfo) {
+          try {
+            const { UserConfigurationService } = await import('../services/user_configuration_service');
+            const userConfigService = UserConfigurationService.getInstance(userServiceInfo.userId);
+            const isDisabled = await userConfigService.isTicketDisabled(issueKey);
+            
+            if (isDisabled) {
+              const ticketInfo = await userConfigService.getTicketInfo(issueKey);
+              console.log(`🚫 ASISTENTE DESACTIVADO PARA TICKET ${issueKey} POR USUARIO ${userServiceInfo.userId}:`);
+              console.log(`   Razón: ${ticketInfo?.reason || 'No reason provided'}`);
+              console.log(`   Desactivado: ${ticketInfo?.disabledAt || 'Unknown'}`);
+              res.json({ 
+                success: true, 
+                message: 'AI Assistant disabled for this ticket by user', 
+                disabled: true,
+                reason: ticketInfo?.reason
+              });
+              return;
+            }
+          } catch (error) {
+            console.error(`❌ Error verificando ticket desactivado por usuario:`, error);
+          }
         }
         
         // Agregar el comentario del usuario al historial
