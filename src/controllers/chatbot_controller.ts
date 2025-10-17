@@ -413,8 +413,8 @@ export class ChatbotController {
         // Crear contexto enriquecido con historial
         const enrichedContext = {
           jiraIssueKey: issueKey,
-          issueSummary: payload.issue.fields.summary,
-          issueStatus: payload.issue.fields.status.name,
+          issueSummary: payload.issue.fields?.summary || 'No summary available',
+          issueStatus: payload.issue.fields?.status?.name || 'Unknown',
           authorName: payload.comment.author.displayName,
           isJiraComment: true,
           conversationType: 'jira-ticket',
@@ -558,15 +558,15 @@ export class ChatbotController {
         
         console.log(`🎫 NUEVO TICKET CREADO:`);
         console.log(`   Issue: ${issueKey}`);
-        console.log(`   Summary: ${payload.issue.fields.summary}`);
-        console.log(`   Status: ${payload.issue.fields.status.name}`);
-        console.log(`   Creator: ${payload.issue.fields.creator?.displayName || 'N/A'}`);
-        console.log(`   Labels: ${payload.issue.fields.labels?.join(', ') || 'Ninguno'}`);
+        console.log(`   Summary: ${payload.issue.fields?.summary || 'No summary available'}`);
+        console.log(`   Status: ${payload.issue.fields?.status?.name || 'Unknown'}`);
+        console.log(`   Creator: ${payload.issue.fields?.creator?.displayName || 'N/A'}`);
+        console.log(`   Labels: ${payload.issue.fields?.labels?.join(', ') || 'Ninguno'}`);
         
         // Verificar si es un ticket de contacto web
-        const isWebContact = payload.issue.fields.labels?.includes('contacto-web') || 
-                           payload.issue.fields.labels?.includes('lead') ||
-                           payload.issue.fields.summary?.toLowerCase().includes('web contact');
+        const isWebContact = payload.issue.fields?.labels?.includes('contacto-web') || 
+                           payload.issue.fields?.labels?.includes('lead') ||
+                           payload.issue.fields?.summary?.toLowerCase().includes('web contact');
         
         if (isWebContact) {
           console.log(`🌐 TICKET DE CONTACTO WEB DETECTADO`);

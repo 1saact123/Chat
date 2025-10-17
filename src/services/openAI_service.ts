@@ -60,8 +60,8 @@ export class OpenAIService {
       // Jira-specific context (use enriched if available)
       const context = enrichedContext || {
         jiraIssueKey: issue.key,
-        issueSummary: issue.fields.summary,
-        issueStatus: issue.fields.status.name,
+        issueSummary: issue.fields?.summary || 'No summary available',
+        issueStatus: issue.fields?.status?.name || 'Unknown',
         authorName: comment.author.displayName,
         isJiraComment: true,
         conversationType: 'jira-ticket'
