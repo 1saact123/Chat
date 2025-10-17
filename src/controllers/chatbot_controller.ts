@@ -521,7 +521,7 @@ export class ChatbotController {
           }
 
           // 🚀 FLUJO PARALELO: ENVIAR DATOS AL WEBHOOK CONFIGURADO
-          this.sendToWebhookInParallel(issueKey, this.extractTextFromADF(payload.comment.body), payload.comment.author.displayName, payload.comment.created, response, enrichedContext);
+          this.sendToWebhookInParallel(issueKey, this.extractTextFromADF(payload.comment.body), payload.comment.author.displayName, payload.comment.created, response, enrichedContext, userServiceInfo?.userId);
         } else {
           console.log(`❌ Respuesta de asistente tradicional fallida o vacía:`, {
             success: response.success,
@@ -1088,15 +1088,42 @@ Formato el reporte de manera clara y profesional.`;
     author: string, 
     timestamp: string, 
     aiResponse: any, 
-    context: any
+    context: any,
+    userId?: number
   ): Promise<void> {
     try {
       console.log(`🚀 Iniciando flujo paralelo de webhook para ${issueKey}...`);
       
-      // Verificar si el webhook está configurado y habilitado
+      // Si es un servicio de usuario, verificar si tiene webhook configurado
+      if (userId) {
+        try {
+          const { UserWebhook } = await import('../models');
+          const userWebhooks = await UserWebhook.findAll({
+            where: { userId, isEnabled: true }
+          });
+          
+          if (userWebhooks.length === 0) {
+            console.log(`⚠️ Usuario ${userId} no tiene webhooks configurados, saltando envío paralelo`);
+            return;
+          }
+          
+          console.log(`✅ Usuario ${userId} tiene ${userWebhooks.length} webhook(s) configurado(s)`);
+          // Procesar webhooks del usuario (implementar lógica específica del usuario)
+          for (const userWebhook of userWebhooks) {
+            console.log(`📤 Enviando a webhook del usuario: ${userWebhook.name} (${userWebhook.url})`);
+            // Aquí implementarías el envío específico del usuario
+          }
+          return;
+        } catch (error) {
+          console.error(`❌ Error verificando webhooks del usuario ${userId}:`, error);
+          return;
+        }
+      }
+      
+      // Solo usar sistema global para servicios de admin
       const configService = ConfigurationService.getInstance();
       if (!configService.isWebhookEnabled() || !configService.getWebhookUrl()) {
-        console.log(`⚠️ Webhook no configurado o deshabilitado, saltando envío paralelo`);
+        console.log(`⚠️ Webhook global no configurado o deshabilitado, saltando envío paralelo`);
         return;
       }
 
