@@ -29,6 +29,31 @@ export class ChatKitWebhookController {
   }
 
   /**
+   * Método para extraer texto del formato ADF de Jira
+   */
+  private extractTextFromADF(adfBody: any): string {
+    if (typeof adfBody === 'string') {
+      return adfBody;
+    }
+    
+    if (adfBody && adfBody.content) {
+      let text = '';
+      for (const node of adfBody.content) {
+        if (node.type === 'paragraph' && node.content) {
+          for (const contentNode of node.content) {
+            if (contentNode.type === 'text' && contentNode.text) {
+              text += contentNode.text + ' ';
+            }
+          }
+        }
+      }
+      return text.trim();
+    }
+    
+    return '';
+  }
+
+  /**
    * Manejar webhook de Jira usando ChatKit
    */
   async handleJiraWebhook(req: Request, res: Response): Promise<void> {
@@ -45,23 +70,23 @@ export class ChatKitWebhookController {
       }
 
       const issueKey = payload.issue.key;
-      const commentBody = payload.comment.body;
+      const commentBodyText = this.extractTextFromADF(payload.comment.body);
       const authorInfo = {
         displayName: payload.comment.author.displayName,
         email: payload.comment.author.emailAddress
       };
 
-      console.log(`💬 Comentario de ${authorInfo.displayName} en ${issueKey}: ${commentBody}`);
+      console.log(`💬 Comentario de ${authorInfo.displayName} en ${issueKey}: ${commentBodyText}`);
 
       // Filtrar comentarios del widget (para evitar loops)
-      if (this.isWidgetComment(commentBody, authorInfo)) {
+      if (this.isWidgetComment(commentBodyText, authorInfo)) {
         console.log(`🚫 Comentario del widget filtrado`);
         res.json({ success: true, message: 'Comentario del widget filtrado' });
         return;
       }
 
       // Filtrar comentarios de IA (para evitar loops)
-      if (this.isAIComment(commentBody, authorInfo)) {
+      if (this.isAIComment(commentBodyText, authorInfo)) {
         console.log(`🚫 Comentario de IA filtrado`);
         res.json({ success: true, message: 'Comentario de IA filtrado' });
         return;
@@ -70,7 +95,7 @@ export class ChatKitWebhookController {
       // Procesar comentario usando ChatKit
       const result = await this.chatkitJiraService.processJiraComment(
         issueKey,
-        commentBody,
+        commentBodyText,
         authorInfo
       );
 

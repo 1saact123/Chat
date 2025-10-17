@@ -94,10 +94,33 @@ export class ChatbotController {
     console.log('🔄 Webhook stats reset');
   }
 
+  // Método para extraer texto del formato ADF de Jira
+  private extractTextFromADF(adfBody: any): string {
+    if (typeof adfBody === 'string') {
+      return adfBody;
+    }
+    
+    if (adfBody && adfBody.content) {
+      let text = '';
+      for (const node of adfBody.content) {
+        if (node.type === 'paragraph' && node.content) {
+          for (const contentNode of node.content) {
+            if (contentNode.type === 'text' && contentNode.text) {
+              text += contentNode.text + ' ';
+            }
+          }
+        }
+      }
+      return text.trim();
+    }
+    
+    return '';
+  }
+
   // Método simplificado para detectar comentarios de IA
   private isAIComment(comment: any): boolean {
     const authorEmail = comment.author.emailAddress?.toLowerCase() || '';
-    const commentBody = comment.body.toLowerCase();
+    const commentBodyText = this.extractTextFromADF(comment.body).toLowerCase();
     const authorDisplayName = comment.author.displayName?.toLowerCase() || '';
 
     // Check if comment is from AI account (JIRA_EMAIL)
@@ -120,7 +143,7 @@ export class ChatbotController {
     
     // Detectar por contenido
     const isAIContent = aiContentPatterns.some(pattern => 
-      commentBody.includes(pattern)
+      commentBodyText.includes(pattern)
     );
     
     return isFromAIAccount || isFromAIDisplayName || isAIContent;
@@ -280,7 +303,7 @@ export class ChatbotController {
           console.log(`   Autor: ${payload.comment.author.displayName}`);
           console.log(`   Email: ${payload.comment.author.emailAddress || 'N/A'}`);
           console.log(`   Account ID: ${payload.comment.author.accountId}`);
-          console.log(`   Contenido: ${payload.comment.body.substring(0, 150)}...`);
+          console.log(`   Contenido: ${this.extractTextFromADF(payload.comment.body).substring(0, 150)}...`);
           console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios de IA saltados`);
           
           // 🔌 ENVIAR COMENTARIO DE IA VIA WEBSOCKET
@@ -288,7 +311,7 @@ export class ChatbotController {
           if (webSocketServer) {
             console.log(`📡 Enviando comentario de IA via WebSocket al ticket ${issueKey}...`);
             webSocketServer.to(`ticket_${issueKey}`).emit('jira-comment', {
-              message: payload.comment.body,
+              message: this.extractTextFromADF(payload.comment.body),
               author: payload.comment.author.displayName,
               timestamp: payload.comment.created,
               source: 'jira-ai',
@@ -310,7 +333,7 @@ export class ChatbotController {
           console.log(`   Autor: ${payload.comment.author.displayName}`);
           console.log(`   Email: ${payload.comment.author.emailAddress || 'N/A'}`);
           console.log(`   Account ID: ${payload.comment.author.accountId}`);
-          console.log(`   Contenido: ${payload.comment.body.substring(0, 150)}...`);
+          console.log(`   Contenido: ${this.extractTextFromADF(payload.comment.body).substring(0, 150)}...`);
           console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios del widget saltados`);
           res.json({ success: true, message: 'Skipped widget comment', widgetComment: true });
           return;
@@ -342,7 +365,7 @@ export class ChatbotController {
         console.log(`🔍 DEBUG - Autor: ${payload.comment.author.displayName}`);
         console.log(`🔍 DEBUG - Email: ${payload.comment.author.emailAddress}`);
         console.log(`🔍 DEBUG - Account ID: ${payload.comment.author.accountId}`);
-        console.log(`🔍 DEBUG - Contenido: ${payload.comment.body.substring(0, 100)}...`);
+        console.log(`🔍 DEBUG - Contenido: ${this.extractTextFromADF(payload.comment.body).substring(0, 100)}...`);
         
         // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET (SOLO SI NO ES DE IA)
         if (!this.isAIComment(payload.comment)) {
@@ -350,7 +373,7 @@ export class ChatbotController {
           if (webSocketServer) {
             console.log(`📡 Enviando comentario de agente via WebSocket al ticket ${issueKey}...`);
             webSocketServer.to(`ticket_${issueKey}`).emit('jira-comment', {
-              message: payload.comment.body,
+              message: this.extractTextFromADF(payload.comment.body),
               author: payload.comment.author.displayName,
               timestamp: payload.comment.created,
               source: 'jira-agent',
@@ -380,7 +403,7 @@ export class ChatbotController {
         }
         
         // Agregar el comentario del usuario al historial
-        this.addToConversationHistory(issueKey, 'user', payload.comment.body);
+        this.addToConversationHistory(issueKey, 'user', this.extractTextFromADF(payload.comment.body));
         console.log(`📝 Comentario agregado al historial para ${issueKey}`);
         
         // Obtener historial de conversación para contexto
@@ -405,7 +428,7 @@ export class ChatbotController {
         console.log(`🔧 Contexto enriquecido creado para ${issueKey}`);
         
         // Usar el asistente específico del usuario (ya no hay asistente global)
-        console.log(`📤 Procesando mensaje con asistente de usuario: "${payload.comment.body}"`);
+        console.log(`📤 Procesando mensaje con asistente de usuario: "${this.extractTextFromADF(payload.comment.body)}"`);
         console.log(`   Usuario: ${userServiceInfo.userId}`);
         console.log(`   Servicio: ${userServiceInfo.serviceName}`);
         console.log(`   Asistente: ${userServiceInfo.assistantName}`);
@@ -426,7 +449,7 @@ export class ChatbotController {
         
         const userOpenAIService = new UserOpenAIService(userServiceInfo.userId, user.openaiToken);
         const response = await userOpenAIService.processChatForService(
-          payload.comment.body,
+          this.extractTextFromADF(payload.comment.body),
           userServiceInfo.serviceId,
           `jira_${issueKey}`,
           enrichedContext
@@ -489,7 +512,7 @@ export class ChatbotController {
           }
 
           // 🚀 FLUJO PARALELO: ENVIAR DATOS AL WEBHOOK CONFIGURADO
-          this.sendToWebhookInParallel(issueKey, payload.comment.body, payload.comment.author.displayName, payload.comment.created, response, enrichedContext);
+          this.sendToWebhookInParallel(issueKey, this.extractTextFromADF(payload.comment.body), payload.comment.author.displayName, payload.comment.created, response, enrichedContext);
         } else {
           console.log(`❌ Respuesta de asistente tradicional fallida o vacía:`, {
             success: response.success,
