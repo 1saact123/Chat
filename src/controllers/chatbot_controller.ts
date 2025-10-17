@@ -533,27 +533,37 @@ export class ChatbotController {
         // Procesar evento de creación de ticket
         const issueKey = payload.issue.key;
         
-        // Verificar que el ticket pertenece al proyecto activo
-        const { JiraService } = await import('../services/jira_service');
-        const jiraService = JiraService.getInstance();
-        const activeProject = jiraService.getActiveProject();
+        // Verificar que el ticket pertenece a algún servicio de usuario
+        const issueProjectKey = issueKey.split('-')[0];
+        let hasMatchingService = false;
         
-        if (activeProject) {
-          // Extraer el prefijo del proyecto del issueKey (ej: TI-123 -> TI)
-          const issueProjectKey = issueKey.split('-')[0];
+        try {
+          const { UserConfiguration } = await import('../models');
+          const userServices = await UserConfiguration.findAll({
+            where: { isActive: true }
+          });
           
-          if (issueProjectKey !== activeProject) {
-            console.log(`🚫 TICKET CREADO IGNORADO: ${issueKey} no pertenece al proyecto activo ${activeProject}`);
+          for (const service of userServices) {
+            if (service.configuration && service.configuration.projectKey === issueProjectKey) {
+              hasMatchingService = true;
+              console.log(`✅ TICKET CREADO ACEPTADO: ${issueKey} pertenece a servicio: ${service.serviceName}`);
+              break;
+            }
+          }
+          
+          if (!hasMatchingService) {
+            console.log(`🚫 TICKET CREADO IGNORADO: ${issueKey} no pertenece a ningún servicio de usuario activo`);
             console.log(`   Proyecto del ticket: ${issueProjectKey}`);
-            console.log(`   Proyecto activo: ${activeProject}`);
             res.json({ 
               success: true, 
-              message: `Ticket ${issueKey} creation ignored - not from active project ${activeProject}`,
+              message: `Ticket ${issueKey} creation ignored - no matching user service`,
               ignored: true,
-              reason: 'wrong_project'
+              reason: 'no_matching_service'
             });
             return;
           }
+        } catch (error) {
+          console.error(`❌ Error verificando servicios de usuario para ticket creado:`, error);
         }
         
         console.log(`🎫 NUEVO TICKET CREADO:`);
@@ -1219,21 +1229,32 @@ Formato el reporte de manera clara y profesional.`;
     try {
       const issueKey = payload.issue.key;
       
-      // Verificar que el ticket pertenece al proyecto activo
-      const { JiraService } = await import('../services/jira_service');
-      const jiraService = JiraService.getInstance();
-      const activeProject = jiraService.getActiveProject();
+      // Verificar que el ticket pertenece a algún servicio de usuario
+      const issueProjectKey = issueKey.split('-')[0];
+      let hasMatchingService = false;
       
-      if (activeProject) {
-        // Extraer el prefijo del proyecto del issueKey (ej: TI-123 -> TI)
-        const issueProjectKey = issueKey.split('-')[0];
+      try {
+        const { UserConfiguration } = await import('../models');
+        const userServices = await UserConfiguration.findAll({
+          where: { isActive: true }
+        });
         
-        if (issueProjectKey !== activeProject) {
-          console.log(`🚫 CAMBIO DE ESTADO IGNORADO: ${issueKey} no pertenece al proyecto activo ${activeProject}`);
+        for (const service of userServices) {
+          if (service.configuration && service.configuration.projectKey === issueProjectKey) {
+            hasMatchingService = true;
+            console.log(`✅ CAMBIO DE ESTADO ACEPTADO: ${issueKey} pertenece a servicio: ${service.serviceName}`);
+            break;
+          }
+        }
+        
+        if (!hasMatchingService) {
+          console.log(`🚫 CAMBIO DE ESTADO IGNORADO: ${issueKey} no pertenece a ningún servicio de usuario activo`);
           console.log(`   Proyecto del ticket: ${issueProjectKey}`);
-          console.log(`   Proyecto activo: ${activeProject}`);
           return;
         }
+      } catch (error) {
+        console.error(`❌ Error verificando servicios de usuario para cambio de estado:`, error);
+        return;
       }
       
       const configService = ConfigurationService.getInstance();
