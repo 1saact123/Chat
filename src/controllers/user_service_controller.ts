@@ -2,9 +2,15 @@ import { Request, Response } from 'express';
 import { User, UserConfiguration } from '../models';
 import { UserOpenAIService } from '../services/user_openai_service';
 import { UserJiraService } from '../services/user_jira_service';
+import { DatabaseService } from '../services/database_service';
 import '../middleware/auth'; // Importar para cargar las definiciones de tipos
 
 export class UserServiceController {
+  private dbService: DatabaseService;
+
+  constructor() {
+    this.dbService = DatabaseService.getInstance();
+  }
 
   // Dashboard del usuario con sus propios datos
   async getUserDashboard(req: Request, res: Response): Promise<void> {
@@ -105,6 +111,24 @@ export class UserServiceController {
         res.status(400).json({
           success: false,
           error: `El servicio '${serviceId}' ya existe`
+        });
+        return;
+      }
+
+      // Verificar que no hay otro servicio usando el mismo proyecto
+      const allActiveServices = await UserConfiguration.findAll({
+        where: { isActive: true }
+      });
+      
+      const existingProjectService = allActiveServices.find(service => {
+        const config = service.configuration as any;
+        return config?.projectKey === projectKey;
+      });
+
+      if (existingProjectService) {
+        res.status(400).json({
+          success: false,
+          error: `El proyecto '${projectKey}' ya está siendo usado por el servicio '${existingProjectService.serviceId}'. Cada proyecto solo puede tener un servicio activo.`
         });
         return;
       }
