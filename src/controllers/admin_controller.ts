@@ -24,8 +24,28 @@ export class AdminController {
       const jiraService = JiraService.getInstance();
       const projects = await jiraService.listProjects();
       
-      // Obtener configuraciones actuales de servicios
-      const serviceConfigs = this.configService.getAllConfigurations();
+      // Obtener configuraciones actuales de servicios desde unified_configurations
+      const { sequelize } = await import('../config/database');
+      const [configurations] = await sequelize.query(`
+        SELECT * FROM unified_configurations 
+        WHERE user_id = ? AND is_active = TRUE
+        ORDER BY service_name
+      `, {
+        replacements: [req.user?.id || 1]
+      });
+      
+      // Mapear a formato esperado
+      const serviceConfigs = (configurations as any[]).map((config: any) => ({
+        serviceId: config.service_id,
+        serviceName: config.service_name,
+        assistantId: config.assistant_id,
+        assistantName: config.assistant_name,
+        isActive: Boolean(config.is_active),
+        lastUpdated: config.last_updated,
+        configuration: typeof config.configuration === 'string' 
+          ? JSON.parse(config.configuration) 
+          : config.configuration
+      }));
       
       // Obtener proyecto activo actual
       const activeProject = jiraService.getActiveProject();
@@ -77,9 +97,16 @@ export class AdminController {
     try {
       const { serviceId } = req.params;
       
-      const config = this.configService.getServiceConfiguration(serviceId);
+      const { sequelize } = await import('../config/database');
+      const [configurations] = await sequelize.query(`
+        SELECT * FROM unified_configurations 
+        WHERE service_id = ? AND user_id = ?
+        LIMIT 1
+      `, {
+        replacements: [serviceId, req.user?.id || 1]
+      });
       
-      if (!config) {
+      if (!configurations || (configurations as any[]).length === 0) {
         res.status(404).json({
           success: false,
           error: `Servicio '${serviceId}' no encontrado`
@@ -87,9 +114,20 @@ export class AdminController {
         return;
       }
 
+      const config = (configurations as any[])[0];
       res.json({
         success: true,
-        data: config,
+        data: {
+          serviceId: config.service_id,
+          serviceName: config.service_name,
+          assistantId: config.assistant_id,
+          assistantName: config.assistant_name,
+          isActive: Boolean(config.is_active),
+          lastUpdated: config.last_updated,
+          configuration: typeof config.configuration === 'string' 
+            ? JSON.parse(config.configuration) 
+            : config.configuration
+        },
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -127,24 +165,30 @@ export class AdminController {
         return;
       }
 
-      // Actualizar configuración
-      const success = await this.configService.updateServiceConfiguration(serviceId, assistantId, assistantName);
+      // Actualizar configuración en unified_configurations
+      const { sequelize } = await import('../config/database');
+      const [result] = await sequelize.query(`
+        UPDATE unified_configurations 
+        SET assistant_id = ?, assistant_name = ?, last_updated = NOW()
+        WHERE service_id = ? AND user_id = ?
+      `, {
+        replacements: [assistantId, assistantName, serviceId, req.user?.id || 1]
+      });
+      
+      const success = (result as any).affectedRows > 0;
       
       if (success) {
-        // Sincronizar automáticamente con UserConfiguration
-        try {
-          const { syncSpecificService } = await import('../scripts/auto_sync_configurations');
-          await syncSpecificService(serviceId);
-          console.log(`✅ Configuración sincronizada automáticamente para ${serviceId}`);
-        } catch (syncError) {
-          console.error(`⚠️ Error en sincronización automática para ${serviceId}:`, syncError);
-          // No fallar la operación principal por un error de sincronización
-        }
+        console.log(`✅ Configuración actualizada para ${serviceId}: ${assistantName}`);
 
         res.json({
           success: true,
-          message: `Configuración actualizada y sincronizada para ${serviceId}`,
-          data: this.configService.getServiceConfiguration(serviceId),
+          message: `Configuración actualizada para ${serviceId}`,
+          data: {
+            serviceId,
+            assistantId,
+            assistantName,
+            lastUpdated: new Date().toISOString()
+          },
           timestamp: new Date().toISOString()
         });
       } else {
