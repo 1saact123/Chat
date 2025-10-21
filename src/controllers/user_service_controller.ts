@@ -124,8 +124,15 @@ export class UserServiceController {
       `);
       
       const existingProjectService = allActiveServices.find((service: any) => {
-        const config = service.configuration ? JSON.parse(service.configuration) : {};
-        return config?.projectKey === projectKey;
+        let config = {};
+        try {
+          config = typeof service.configuration === 'string' 
+            ? JSON.parse(service.configuration) 
+            : service.configuration || {};
+        } catch (e) {
+          config = service.configuration || {};
+        }
+        return (config as any)?.projectKey === projectKey;
       });
 
       if (existingProjectService) {
