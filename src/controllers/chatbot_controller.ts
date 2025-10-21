@@ -240,7 +240,7 @@ export class ChatbotController {
           
           console.log(`🔍 Verificando servicios de usuario activos: ${userServices.length} encontrados`);
           
-          for (const service of userServices) {
+          for (const service of userServices as any[]) {
             // Verificar si el servicio tiene configuración de proyecto
             const config = service.configuration ? JSON.parse(service.configuration) : {};
             if (config.projectKey === issueProjectKey) {

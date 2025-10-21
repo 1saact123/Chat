@@ -130,7 +130,7 @@ export class UserServiceController {
       if (existingProjectService) {
         res.status(400).json({
           success: false,
-          error: `El proyecto '${projectKey}' ya está siendo usado por el servicio '${existingProjectService.serviceId}'. Cada proyecto solo puede tener un servicio activo.`
+          error: `El proyecto '${projectKey}' ya está siendo usado por el servicio '${(existingProjectService as any).service_id}'. Cada proyecto solo puede tener un servicio activo.`
         });
         return;
       }
