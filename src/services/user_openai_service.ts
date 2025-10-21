@@ -112,10 +112,31 @@ export class UserOpenAIService {
   }
 
   private async getUserServiceConfiguration(serviceId: string): Promise<any> {
-    const config = await UserConfiguration.findOne({
-      where: { userId: this.userId, serviceId }
+    const { sequelize } = await import('../config/database');
+    const [configurations] = await sequelize.query(`
+      SELECT * FROM unified_configurations 
+      WHERE user_id = ? AND service_id = ? AND is_active = TRUE
+      LIMIT 1
+    `, {
+      replacements: [this.userId, serviceId]
     });
-    return config;
+    
+    if (!configurations || (configurations as any[]).length === 0) {
+      return null;
+    }
+    
+    const config = (configurations as any[])[0];
+    return {
+      serviceId: config.service_id,
+      serviceName: config.service_name,
+      assistantId: config.assistant_id,
+      assistantName: config.assistant_name,
+      isActive: Boolean(config.is_active),
+      lastUpdated: config.last_updated,
+      configuration: typeof config.configuration === 'string' 
+        ? JSON.parse(config.configuration) 
+        : config.configuration
+    };
   }
 
   private async getThread(threadId: string): Promise<any> {
