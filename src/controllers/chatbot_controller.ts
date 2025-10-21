@@ -242,8 +242,18 @@ export class ChatbotController {
           
           for (const service of userServices as any[]) {
             // Verificar si el servicio tiene configuración de proyecto
-            const config = service.configuration ? JSON.parse(service.configuration) : {};
-            if (config.projectKey === issueProjectKey) {
+            let config = {};
+            try {
+              // Si configuration es string, parsearlo; si ya es objeto, usarlo directamente
+              config = typeof service.configuration === 'string' 
+                ? JSON.parse(service.configuration) 
+                : service.configuration || {};
+            } catch (e) {
+              console.error(`⚠️ Error parseando configuración para servicio ${service.service_id}:`, e);
+              config = {};
+            }
+            
+            if ((config as any).projectKey === issueProjectKey) {
               userServiceInfo = {
                 userId: service.user_id,
                 serviceId: service.service_id,
