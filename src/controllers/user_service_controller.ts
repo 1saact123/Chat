@@ -3,6 +3,7 @@ import { User, UserConfiguration } from '../models';
 import { UserOpenAIService } from '../services/user_openai_service';
 import { UserJiraService } from '../services/user_jira_service';
 import { DatabaseService } from '../services/database_service';
+import { CorsService } from '../services/cors_service';
 import '../middleware/auth'; // Importar para cargar las definiciones de tipos
 
 export class UserServiceController {
@@ -153,6 +154,19 @@ export class UserServiceController {
       });
 
       if (success) {
+        // Si es admin y se proporcionó un dominio, agregarlo automáticamente a CORS
+        if (isAdmin && (req.body.requestedDomain || req.body.websiteUrl)) {
+          try {
+            const corsService = CorsService.getInstance();
+            const domain = req.body.requestedDomain || new URL(req.body.websiteUrl).hostname;
+            await corsService.addApprovedDomain(domain);
+            console.log(`✅ Dominio ${domain} agregado automáticamente a CORS (Admin)`);
+          } catch (corsError) {
+            console.error('⚠️ Error agregando dominio a CORS:', corsError);
+            // No fallar la creación del servicio por este error
+          }
+        }
+        
         const message = isAdmin 
           ? `Servicio '${serviceName}' creado y activado exitosamente (Admin - Sin aprobación requerida)`
           : `Servicio '${serviceName}' creado exitosamente (Pendiente de aprobación de administrador)`;
@@ -315,9 +329,13 @@ export class UserServiceController {
         return;
       }
 
-      // Eliminar servicio
-      await UserConfiguration.destroy({
-        where: { userId: req.user.id, serviceId }
+      // Eliminar servicio de la tabla unificada
+      const { sequelize } = await import('../config/database');
+      await sequelize.query(`
+        DELETE FROM unified_configurations 
+        WHERE user_id = ? AND service_id = ?
+      `, {
+        replacements: [req.user.id, serviceId]
       });
 
       res.json({

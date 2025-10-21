@@ -12,6 +12,7 @@ import { validateEnvironmentVariables } from './utils/validations';
 import { testConnection, syncDatabase } from './config/database';
 import { redirectToLoginIfNotAuth, requireAdmin } from './middleware/auth';
 import { OpenAIService } from './services/openAI_service';
+import { CorsService } from './services/cors_service';
 
 class MovonteAPI {
   private app: express.Application;
@@ -19,11 +20,13 @@ class MovonteAPI {
   private io!: Server;
   private port: number;
   private openaiService: OpenAIService;
+  private corsService: CorsService;
 
   constructor() {
     this.app = express();
     this.port = parseInt(process.env.PORT || '3000');
     this.openaiService = new OpenAIService();
+    this.corsService = CorsService.getInstance();
     
     this.setupMiddleware();
     this.setupRoutes();
@@ -51,50 +54,25 @@ class MovonteAPI {
       },
     }));
     
-    // CORS - MEJORADO para webhooks de Jira
+    // CORS - DINÁMICO desde base de datos (sin necesidad de reiniciar)
     this.app.use(cors({
-      origin: (origin, callback) => {
+      origin: async (origin, callback) => {
         console.log('🔍 CORS check for origin:', origin);
         
-        // ✅ CRÍTICO: Permitir requests sin origin (webhooks de Jira)
-        if (!origin) {
-          console.log('✅ Request without origin allowed (webhook/server-to-server)');
-          return callback(null, true);
-        }
-        
-        // Obtener dominios permitidos desde variables de entorno y base de datos
-        const baseOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
-          'http://localhost:3000',
-          'https://chat.movonte.com', 
-          'https://movonte.com',
-          'https://www.movonte.com',
-          'https://*.atlassian.net',  // Permitir todos los subdominios de Atlassian
-          'https://atlassian.net'
-        ];
-        
-        // TODO: En el futuro, también cargar dominios aprobados desde la base de datos
-        // const approvedDomains = await this.getApprovedDomainsFromDatabase();
-        // const allowedOrigins = [...baseOrigins, ...approvedDomains];
-        
-        const allowedOrigins = baseOrigins;
-        
-        console.log('📋 Allowed origins:', allowedOrigins);
-        
-        // Verificar si el origin coincide con algún patrón permitido
-        const isAllowed = allowedOrigins.some(allowed => {
-          if (allowed.includes('*')) {
-            const pattern = allowed.replace('*', '.*');
-            return new RegExp(pattern).test(origin);
+        try {
+          // Verificar si el origin está permitido usando el servicio de CORS dinámico
+          const isAllowed = await this.corsService.isOriginAllowed(origin || '');
+          
+          if (isAllowed) {
+            console.log(`✅ Origin permitido: ${origin || 'sin origin (webhook)'}`);
+            return callback(null, true);
           }
-          return allowed === origin;
-        });
-        
-        if (isAllowed) {
-          console.log('✅ Origin allowed:', origin);
-          callback(null, true);
-        } else {
-          console.log('❌ Origin blocked:', origin);
+          
+          console.log(`❌ Origin NO permitido: ${origin}`);
           callback(new Error('Not allowed by CORS'));
+        } catch (error) {
+          console.error('❌ Error verificando CORS:', error);
+          callback(new Error('CORS verification error'));
         }
       },
       credentials: true,

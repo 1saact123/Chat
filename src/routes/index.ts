@@ -11,6 +11,7 @@ import { UserTicketsController } from '../controllers/user_tickets_controller';
 import { UserWebhooksController } from '../controllers/user_webhooks_controller';
 import { ServiceValidationController } from '../controllers/service_validation_controller';
 import { ChatKitController } from '../controllers/chatkit_controller';
+import { CorsController } from '../controllers/cors_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
@@ -46,6 +47,7 @@ const userTicketsController = new UserTicketsController();
 const userWebhooksController = new UserWebhooksController();
 const serviceValidationController = new ServiceValidationController();
 const chatKitController = new ChatKitController();
+const corsController = new CorsController();
 
 // Function to set WebSocket server reference
 export const setWebSocketServer = (io: any) => {
@@ -441,6 +443,19 @@ router.get('/api/admin/users/:userId/permissions', authenticateToken, requireAdm
 
 // Actualizar permisos de un usuario (solo admins)
 router.put('/api/admin/users/:userId/permissions', authenticateToken, requireAdmin, adminController.updateUserPermissions.bind(adminController));
+
+// === CORS MANAGEMENT ROUTES - PROTECTED (Admin only) ===
+// Obtener estadísticas de CORS
+router.get('/api/admin/cors/stats', authenticateToken, requireAdmin, corsController.getStats.bind(corsController));
+
+// Forzar recarga de CORS desde BD
+router.post('/api/admin/cors/reload', authenticateToken, requireAdmin, corsController.forceReload.bind(corsController));
+
+// Agregar dominio a CORS
+router.post('/api/admin/cors/add', authenticateToken, requireAdmin, corsController.addDomain.bind(corsController));
+
+// Remover dominio de CORS
+router.delete('/api/admin/cors/:domain', authenticateToken, requireAdmin, corsController.removeDomain.bind(corsController));
 
 // Send email with chat context - COMMENTED OUT FOR TESTING
 // router.post('/api/chatbot/email/send-with-context', chatbotController.sendEmailWithChatContext.bind(chatbotController));
