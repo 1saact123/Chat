@@ -230,28 +230,28 @@ export class ChatbotController {
         // Buscar servicios de usuario que usen este proyecto específico
         let userServiceInfo = null;
         try {
-          const { UserConfiguration } = await import('../models');
+          const { sequelize } = await import('../config/database');
           
-          // Buscar servicios de usuario que usen este proyecto específico
-          const userServices = await UserConfiguration.findAll({
-            where: {
-              isActive: true
-            }
-          });
+          // Buscar servicios de usuario activos en la tabla unificada
+          const [userServices] = await sequelize.query(`
+            SELECT * FROM unified_configurations 
+            WHERE is_active = TRUE
+          `);
           
           console.log(`🔍 Verificando servicios de usuario activos: ${userServices.length} encontrados`);
           
           for (const service of userServices) {
             // Verificar si el servicio tiene configuración de proyecto
-            if (service.configuration && service.configuration.projectKey === issueProjectKey) {
+            const config = service.configuration ? JSON.parse(service.configuration) : {};
+            if (config.projectKey === issueProjectKey) {
               userServiceInfo = {
-                userId: service.userId,
-                serviceId: service.serviceId,
-                serviceName: service.serviceName,
-                assistantId: service.assistantId,
-                assistantName: service.assistantName
+                userId: service.user_id,
+                serviceId: service.service_id,
+                serviceName: service.service_name,
+                assistantId: service.assistant_id,
+                assistantName: service.assistant_name
               };
-              console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece a servicio de usuario: ${service.serviceName} (Usuario: ${service.userId})`);
+              console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece a servicio de usuario: ${service.service_name} (Usuario: ${service.user_id})`);
               break;
             }
           }

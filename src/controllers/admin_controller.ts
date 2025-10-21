@@ -131,9 +131,19 @@ export class AdminController {
       const success = await this.configService.updateServiceConfiguration(serviceId, assistantId, assistantName);
       
       if (success) {
+        // Sincronizar automáticamente con UserConfiguration
+        try {
+          const { syncSpecificService } = await import('../scripts/auto_sync_configurations');
+          await syncSpecificService(serviceId);
+          console.log(`✅ Configuración sincronizada automáticamente para ${serviceId}`);
+        } catch (syncError) {
+          console.error(`⚠️ Error en sincronización automática para ${serviceId}:`, syncError);
+          // No fallar la operación principal por un error de sincronización
+        }
+
         res.json({
           success: true,
-          message: `Configuración actualizada para ${serviceId}`,
+          message: `Configuración actualizada y sincronizada para ${serviceId}`,
           data: this.configService.getServiceConfiguration(serviceId),
           timestamp: new Date().toISOString()
         });

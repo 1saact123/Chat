@@ -116,12 +116,14 @@ export class UserServiceController {
       }
 
       // Verificar que no hay otro servicio usando el mismo proyecto
-      const allActiveServices = await UserConfiguration.findAll({
-        where: { isActive: true }
-      });
+      const { sequelize } = await import('../config/database');
+      const [allActiveServices] = await sequelize.query(`
+        SELECT * FROM unified_configurations 
+        WHERE is_active = TRUE
+      `);
       
-      const existingProjectService = allActiveServices.find(service => {
-        const config = service.configuration as any;
+      const existingProjectService = allActiveServices.find((service: any) => {
+        const config = service.configuration ? JSON.parse(service.configuration) : {};
         return config?.projectKey === projectKey;
       });
 
@@ -133,23 +135,33 @@ export class UserServiceController {
         return;
       }
 
-      // Crear servicio en estado pendiente hasta que sea aprobado por admin
+      // Determinar si el usuario es admin (no necesita aprobación)
+      const isAdmin = user.role === 'admin';
+      
+      // Crear servicio - activo inmediatamente si es admin, pendiente si es usuario regular
       const success = await this.createUserServiceConfiguration(user.id, {
         serviceId,
         serviceName,
         assistantId,
         assistantName,
-        isActive: false,
+        isActive: isAdmin, // Activo inmediatamente si es admin
         configuration: {
-          projectKey: projectKey
+          projectKey: projectKey,
+          adminApproved: isAdmin, // Aprobado automáticamente si es admin
+          adminApprovedAt: isAdmin ? new Date().toISOString() : undefined
         }
       });
 
       if (success) {
+        const message = isAdmin 
+          ? `Servicio '${serviceName}' creado y activado exitosamente (Admin - Sin aprobación requerida)`
+          : `Servicio '${serviceName}' creado exitosamente (Pendiente de aprobación de administrador)`;
+        
         res.json({
           success: true,
-          message: `Servicio '${serviceName}' creado exitosamente`,
-          data: await this.getUserServiceConfiguration(user.id, serviceId)
+          message: message,
+          data: await this.getUserServiceConfiguration(user.id, serviceId),
+          isAdmin: isAdmin
         });
       } else {
         res.status(500).json({
@@ -248,19 +260,27 @@ export class UserServiceController {
         }
       }
 
-      // Actualizar configuración
-      await UserConfiguration.update({
-        assistantId: assistantId || existingConfig.assistantId,
-        assistantName: assistantName || existingConfig.assistantName,
-        isActive: isActive !== undefined ? isActive : existingConfig.isActive,
-        lastUpdated: new Date()
-      }, {
-        where: { userId: user.id, serviceId }
+      // Actualizar configuración en tabla unificada
+      const { sequelize } = await import('../config/database');
+      await sequelize.query(`
+        UPDATE unified_configurations 
+        SET assistant_id = ?, assistant_name = ?, is_active = ?, last_updated = NOW(), updated_at = NOW()
+        WHERE user_id = ? AND service_id = ?
+      `, {
+        replacements: [
+          assistantId || existingConfig.assistant_id,
+          assistantName || existingConfig.assistant_name,
+          isActive !== undefined ? isActive : existingConfig.is_active,
+          user.id,
+          serviceId
+        ]
       });
+
+      console.log(`✅ Configuración actualizada en tabla unificada para ${serviceId}`);
 
       res.json({
         success: true,
-        message: `Servicio '${serviceId}' actualizado exitosamente`,
+        message: `Servicio '${serviceId}' actualizado y sincronizado exitosamente`,
         data: await this.getUserServiceConfiguration(user.id, serviceId)
       });
     } catch (error) {
@@ -480,28 +500,46 @@ export class UserServiceController {
   }
 
   private async getUserServiceConfigurations(userId: number): Promise<any[]> {
-    return await UserConfiguration.findAll({
-      where: { userId }
+    const { sequelize } = await import('../config/database');
+    const [configurations] = await sequelize.query(`
+      SELECT * FROM unified_configurations 
+      WHERE user_id = ? AND is_active = TRUE
+      ORDER BY service_name
+    `, {
+      replacements: [userId]
     });
+    return configurations;
   }
 
   private async getUserServiceConfiguration(userId: number, serviceId: string): Promise<any> {
-    return await UserConfiguration.findOne({
-      where: { userId, serviceId }
+    const { sequelize } = await import('../config/database');
+    const [configurations] = await sequelize.query(`
+      SELECT * FROM unified_configurations 
+      WHERE user_id = ? AND service_id = ? AND is_active = TRUE
+      LIMIT 1
+    `, {
+      replacements: [userId, serviceId]
     });
+    return configurations.length > 0 ? configurations[0] : null;
   }
 
   private async createUserServiceConfiguration(userId: number, config: any): Promise<boolean> {
     try {
-      await UserConfiguration.create({
-        userId,
-        serviceId: config.serviceId,
-        serviceName: config.serviceName,
-        assistantId: config.assistantId,
-        assistantName: config.assistantName,
-        isActive: config.isActive,
-        configuration: config.configuration,
-        lastUpdated: new Date()
+      const { sequelize } = await import('../config/database');
+      await sequelize.query(`
+        INSERT INTO unified_configurations 
+        (service_id, service_name, user_id, assistant_id, assistant_name, is_active, configuration, last_updated, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())
+      `, {
+        replacements: [
+          config.serviceId,
+          config.serviceName,
+          userId,
+          config.assistantId,
+          config.assistantName,
+          config.isActive,
+          JSON.stringify(config.configuration || {})
+        ]
       });
       return true;
     } catch (error) {
