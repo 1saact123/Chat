@@ -508,7 +508,21 @@ export class UserServiceController {
     `, {
       replacements: [userId]
     });
-    return configurations;
+    
+    // Mapear nombres de columnas de snake_case a camelCase para el frontend
+    return (configurations as any[]).map((config: any) => ({
+      serviceId: config.service_id,
+      serviceName: config.service_name,
+      assistantId: config.assistant_id,
+      assistantName: config.assistant_name,
+      isActive: Boolean(config.is_active),
+      lastUpdated: config.last_updated,
+      configuration: typeof config.configuration === 'string' 
+        ? JSON.parse(config.configuration) 
+        : config.configuration,
+      createdAt: config.created_at,
+      updatedAt: config.updated_at
+    }));
   }
 
   private async getUserServiceConfiguration(userId: number, serviceId: string): Promise<any> {
@@ -520,7 +534,25 @@ export class UserServiceController {
     `, {
       replacements: [userId, serviceId]
     });
-    return configurations.length > 0 ? configurations[0] : null;
+    
+    if (configurations.length === 0) return null;
+    
+    const config: any = configurations[0];
+    
+    // Mapear nombres de columnas de snake_case a camelCase para el frontend
+    return {
+      serviceId: config.service_id,
+      serviceName: config.service_name,
+      assistantId: config.assistant_id,
+      assistantName: config.assistant_name,
+      isActive: Boolean(config.is_active),
+      lastUpdated: config.last_updated,
+      configuration: typeof config.configuration === 'string' 
+        ? JSON.parse(config.configuration) 
+        : config.configuration,
+      createdAt: config.created_at,
+      updatedAt: config.updated_at
+    };
   }
 
   private async createUserServiceConfiguration(userId: number, config: any): Promise<boolean> {
