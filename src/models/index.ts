@@ -262,6 +262,7 @@ export interface UserAttributes {
   jiraUrl?: string;
   openaiToken?: string;
   isInitialSetupComplete?: boolean;
+  adminId?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -281,6 +282,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public jiraToken?: string;
   public openaiToken?: string;
   public isInitialSetupComplete?: boolean;
+  public adminId?: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -347,6 +349,14 @@ User.init({
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false
+  },
+  adminId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
   }
 }, {
   sequelize,

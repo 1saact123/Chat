@@ -352,7 +352,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       password: hashedPassword,
       role,
       isActive: true,
-      adminId: role === 'user' ? req.user.id : null // Solo usuarios regulares tienen admin_id
+      adminId: role === 'user' ? req.user.id : undefined // Solo usuarios regulares tienen admin_id
     });
 
     res.status(201).json({

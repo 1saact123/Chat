@@ -502,7 +502,7 @@ export class UserController {
         password: hashedPassword,
         role: role || 'user',
         isActive: true,
-        adminId: (role || 'user') === 'user' ? req.user.id : null, // Solo usuarios regulares tienen admin_id
+        adminId: (role || 'user') === 'user' ? req.user.id : undefined, // Solo usuarios regulares tienen admin_id
         permissions: permissions || {
           serviceManagement: false,
           automaticAIDisableRules: false,
