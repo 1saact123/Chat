@@ -495,14 +495,14 @@ export class UserController {
       // Hash del password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Crear usuario con admin_id del admin que lo crea
+      // Crear usuario con adminId asignado al administrador que lo crea
       const user = await User.create({
         username,
         email,
         password: hashedPassword,
         role: role || 'user',
         isActive: true,
-        adminId: (role || 'user') === 'user' ? req.user.id : undefined, // Solo usuarios regulares tienen admin_id
+        adminId: req.user.id, // Asignar al administrador que crea el usuario
         permissions: permissions || {
           serviceManagement: false,
           automaticAIDisableRules: false,

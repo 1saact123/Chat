@@ -48,11 +48,24 @@ export class ServiceValidationController {
         return;
       }
 
+      // Obtener el adminId del usuario (su administrador asignado)
+      const { User } = await import('../models');
+      const user = await User.findByPk(req.user.id);
+      
+      if (!user) {
+        res.status(404).json({ 
+          success: false, 
+          error: 'Usuario no encontrado' 
+        });
+        return;
+      }
+
       const validationRequest: ServiceValidationRequest = {
         serviceName,
         serviceDescription,
         websiteUrl,
-        requestedDomain
+        requestedDomain,
+        adminId: user.adminId // Asignar al administrador del usuario
       };
 
       const validation = await this.validationService.createValidationRequest(
@@ -113,7 +126,8 @@ export class ServiceValidationController {
         return;
       }
 
-      const validations = await this.validationService.getPendingValidations();
+      // Solo obtener solicitudes asignadas a este administrador
+      const validations = await this.validationService.getPendingValidationsForAdmin(req.user.id);
 
       res.json({
         success: true,

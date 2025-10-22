@@ -263,12 +263,8 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    // Filtrar usuarios por admin_id - cada admin solo ve sus usuarios
     const users = await User.findAll({
-      where: {
-        adminId: req.user.id // Solo usuarios asignados a este admin
-      },
-      attributes: ['id', 'username', 'email', 'role', 'isActive', 'lastLogin', 'createdAt', 'adminId'],
+      attributes: ['id', 'username', 'email', 'role', 'isActive', 'lastLogin', 'createdAt'],
       order: [['createdAt', 'DESC']]
     });
 
@@ -345,14 +341,13 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     // Hash de la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crear usuario con admin_id del admin que lo crea
+    // Crear usuario
     const newUser = await User.create({
       username,
       email,
       password: hashedPassword,
       role,
-      isActive: true,
-      adminId: role === 'user' ? req.user.id : undefined // Solo usuarios regulares tienen admin_id
+      isActive: true
     });
 
     res.status(201).json({

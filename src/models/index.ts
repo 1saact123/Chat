@@ -262,7 +262,7 @@ export interface UserAttributes {
   jiraUrl?: string;
   openaiToken?: string;
   isInitialSetupComplete?: boolean;
-  adminId?: number;
+  adminId?: number; // ID del administrador que gestiona este usuario
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -584,6 +584,7 @@ export interface ServiceValidationAttributes {
   adminNotes?: string;
   validatedBy?: number;
   validatedAt?: Date;
+  adminId?: number; // ID del administrador que debe aprobar esta solicitud
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -602,6 +603,7 @@ export class ServiceValidation extends Model<ServiceValidationAttributes, Servic
   public adminNotes?: string;
   public validatedBy?: number;
   public validatedAt?: Date;
+  public adminId?: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -743,6 +745,14 @@ ServiceValidation.init({
   validatedAt: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  adminId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
   }
 }, {
   sequelize,
@@ -834,6 +844,13 @@ ServiceValidation.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 User.hasMany(ServiceValidation, { foreignKey: 'validatedBy', as: 'validatedServices' });
 ServiceValidation.belongsTo(User, { foreignKey: 'validatedBy', as: 'validator' });
+
+// Relaciones para jerarquía de administradores
+User.hasMany(User, { foreignKey: 'adminId', as: 'managedUsers' });
+User.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });
+
+User.hasMany(ServiceValidation, { foreignKey: 'adminId', as: 'pendingValidations' });
+ServiceValidation.belongsTo(User, { foreignKey: 'adminId', as: 'assignedAdmin' });
 
 // Los modelos ya están exportados arriba, no necesitamos re-exportarlos
 

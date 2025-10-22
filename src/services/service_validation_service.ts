@@ -7,6 +7,7 @@ export interface ServiceValidationRequest {
   serviceDescription?: string;
   websiteUrl: string;
   requestedDomain: string;
+  adminId?: number; // ID del administrador asignado
 }
 
 export interface ServiceValidationResponse {
@@ -75,7 +76,8 @@ export class ServiceValidationService {
         serviceDescription: request.serviceDescription,
         websiteUrl: request.websiteUrl,
         requestedDomain: request.requestedDomain,
-        status: 'pending'
+        status: 'pending',
+        adminId: request.adminId // Asignar al administrador del usuario
       });
 
       console.log(`✅ Service validation request created for user ${userId}: ${request.serviceName}`);
@@ -137,6 +139,46 @@ export class ServiceValidationService {
       }));
     } catch (error) {
       console.error('❌ Error getting pending validations:', error);
+      throw error;
+    }
+  }
+
+  // Obtener solicitudes pendientes asignadas a un administrador específico
+  public async getPendingValidationsForAdmin(adminId: number): Promise<ServiceValidationResponse[]> {
+    try {
+      const validations = await ServiceValidation.findAll({
+        where: { 
+          status: 'pending',
+          adminId: adminId
+        },
+        include: [{
+          model: User,
+          as: 'user',
+          attributes: ['id', 'username', 'email']
+        }],
+        order: [['created_at', 'ASC']]
+      });
+
+      return validations.map(validation => ({
+        id: validation.id,
+        serviceName: validation.serviceName,
+        serviceDescription: validation.serviceDescription,
+        websiteUrl: validation.websiteUrl,
+        requestedDomain: validation.requestedDomain,
+        status: validation.status,
+        adminNotes: validation.adminNotes,
+        validatedBy: validation.validatedBy,
+        validatedAt: validation.validatedAt,
+        createdAt: validation.createdAt,
+        updatedAt: validation.updatedAt,
+        user: (validation as any).user ? {
+          id: (validation as any).user.id,
+          username: (validation as any).user.username,
+          email: (validation as any).user.email
+        } : undefined
+      }));
+    } catch (error) {
+      console.error('❌ Error getting pending validations for admin:', error);
       throw error;
     }
   }

@@ -4,16 +4,13 @@ import { UserOpenAIService } from '../services/user_openai_service';
 import { UserJiraService } from '../services/user_jira_service';
 import { DatabaseService } from '../services/database_service';
 import { CorsService } from '../services/cors_service';
-import { ApprovalNotificationsController } from './approval_notifications_controller';
 import '../middleware/auth'; // Importar para cargar las definiciones de tipos
 
 export class UserServiceController {
   private dbService: DatabaseService;
-  private approvalController: ApprovalNotificationsController;
 
   constructor() {
     this.dbService = DatabaseService.getInstance();
-    this.approvalController = new ApprovalNotificationsController();
   }
 
   // Dashboard del usuario con sus propios datos
@@ -164,7 +161,6 @@ export class UserServiceController {
       });
 
       // Si llegamos aquí, el servicio se creó exitosamente
-      
       // Si es admin y se proporcionó un dominio, agregarlo automáticamente a CORS
       if (isAdmin && (req.body.requestedDomain || req.body.websiteUrl)) {
         try {
@@ -174,22 +170,6 @@ export class UserServiceController {
           console.log(`✅ Dominio ${domain} agregado automáticamente a CORS (Admin)`);
         } catch (corsError) {
           console.error('⚠️ Error agregando dominio a CORS:', corsError);
-          // No fallar la creación del servicio por este error
-        }
-      }
-      
-      // Si no es admin, crear notificación de aprobación
-      if (!isAdmin && user.adminId) {
-        try {
-          await this.approvalController.createApprovalNotification(
-            user.id,
-            user.adminId,
-            serviceId,
-            serviceName,
-            `El usuario ${user.username} ha solicitado aprobación para el servicio '${serviceName}'`
-          );
-        } catch (notificationError) {
-          console.error('⚠️ Error creando notificación de aprobación:', notificationError);
           // No fallar la creación del servicio por este error
         }
       }
