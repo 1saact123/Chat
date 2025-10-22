@@ -12,6 +12,7 @@ import { UserWebhooksController } from '../controllers/user_webhooks_controller'
 import { ServiceValidationController } from '../controllers/service_validation_controller';
 import { ChatKitController } from '../controllers/chatkit_controller';
 import { CorsController } from '../controllers/cors_controller';
+import { ApprovalNotificationsController } from '../controllers/approval_notifications_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
@@ -48,6 +49,7 @@ const userWebhooksController = new UserWebhooksController();
 const serviceValidationController = new ServiceValidationController();
 const chatKitController = new ChatKitController();
 const corsController = new CorsController();
+const approvalNotificationsController = new ApprovalNotificationsController();
 
 // Function to set WebSocket server reference
 export const setWebSocketServer = (io: any) => {
@@ -456,6 +458,19 @@ router.post('/api/admin/cors/add', authenticateToken, requireAdmin, corsControll
 
 // Remover dominio de CORS
 router.delete('/api/admin/cors/:domain', authenticateToken, requireAdmin, corsController.removeDomain.bind(corsController));
+
+// === APPROVAL NOTIFICATIONS ROUTES - PROTECTED (Admin only) ===
+// Obtener notificaciones pendientes
+router.get('/api/admin/approval-notifications/pending', authenticateToken, requireAdmin, approvalNotificationsController.getPendingNotifications.bind(approvalNotificationsController));
+
+// Aprobar servicio
+router.post('/api/admin/approval-notifications/:notificationId/approve', authenticateToken, requireAdmin, approvalNotificationsController.approveService.bind(approvalNotificationsController));
+
+// Rechazar servicio
+router.post('/api/admin/approval-notifications/:notificationId/reject', authenticateToken, requireAdmin, approvalNotificationsController.rejectService.bind(approvalNotificationsController));
+
+// Obtener historial de notificaciones
+router.get('/api/admin/approval-notifications/history', authenticateToken, requireAdmin, approvalNotificationsController.getNotificationHistory.bind(approvalNotificationsController));
 
 // Send email with chat context - COMMENTED OUT FOR TESTING
 // router.post('/api/chatbot/email/send-with-context', chatbotController.sendEmailWithChatContext.bind(chatbotController));

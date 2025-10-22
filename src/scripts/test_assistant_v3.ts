@@ -86,3 +86,6 @@ testAssistantV3().then(() => {
   console.log('- Debería responder con el asistente V3');
 }).catch(console.error);
 
+
+
+

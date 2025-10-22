@@ -4,13 +4,16 @@ import { UserOpenAIService } from '../services/user_openai_service';
 import { UserJiraService } from '../services/user_jira_service';
 import { DatabaseService } from '../services/database_service';
 import { CorsService } from '../services/cors_service';
+import { ApprovalNotificationsController } from './approval_notifications_controller';
 import '../middleware/auth'; // Importar para cargar las definiciones de tipos
 
 export class UserServiceController {
   private dbService: DatabaseService;
+  private approvalController: ApprovalNotificationsController;
 
   constructor() {
     this.dbService = DatabaseService.getInstance();
+    this.approvalController = new ApprovalNotificationsController();
   }
 
   // Dashboard del usuario con sus propios datos
@@ -147,7 +150,7 @@ export class UserServiceController {
       const isAdmin = user.role === 'admin';
       
       // Crear servicio - activo inmediatamente si es admin, pendiente si es usuario regular
-      const success = await this.createUserServiceConfiguration(user.id, {
+      await this.createUserServiceConfiguration(user.id, {
         serviceId,
         serviceName,
         assistantId,
@@ -160,36 +163,47 @@ export class UserServiceController {
         }
       });
 
-      if (success) {
-        // Si es admin y se proporcionó un dominio, agregarlo automáticamente a CORS
-        if (isAdmin && (req.body.requestedDomain || req.body.websiteUrl)) {
-          try {
-            const corsService = CorsService.getInstance();
-            const domain = req.body.requestedDomain || new URL(req.body.websiteUrl).hostname;
-            await corsService.addApprovedDomain(domain);
-            console.log(`✅ Dominio ${domain} agregado automáticamente a CORS (Admin)`);
-          } catch (corsError) {
-            console.error('⚠️ Error agregando dominio a CORS:', corsError);
-            // No fallar la creación del servicio por este error
-          }
+      // Si llegamos aquí, el servicio se creó exitosamente
+      
+      // Si es admin y se proporcionó un dominio, agregarlo automáticamente a CORS
+      if (isAdmin && (req.body.requestedDomain || req.body.websiteUrl)) {
+        try {
+          const corsService = CorsService.getInstance();
+          const domain = req.body.requestedDomain || new URL(req.body.websiteUrl).hostname;
+          await corsService.addApprovedDomain(domain);
+          console.log(`✅ Dominio ${domain} agregado automáticamente a CORS (Admin)`);
+        } catch (corsError) {
+          console.error('⚠️ Error agregando dominio a CORS:', corsError);
+          // No fallar la creación del servicio por este error
         }
-        
-        const message = isAdmin 
-          ? `Servicio '${serviceName}' creado y activado exitosamente (Admin - Sin aprobación requerida)`
-          : `Servicio '${serviceName}' creado exitosamente (Pendiente de aprobación de administrador)`;
-        
-        res.json({
-          success: true,
-          message: message,
-          data: await this.getUserServiceConfiguration(user.id, serviceId),
-          isAdmin: isAdmin
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Error interno al crear servicio'
-        });
       }
+      
+      // Si no es admin, crear notificación de aprobación
+      if (!isAdmin && user.adminId) {
+        try {
+          await this.approvalController.createApprovalNotification(
+            user.id,
+            user.adminId,
+            serviceId,
+            serviceName,
+            `El usuario ${user.username} ha solicitado aprobación para el servicio '${serviceName}'`
+          );
+        } catch (notificationError) {
+          console.error('⚠️ Error creando notificación de aprobación:', notificationError);
+          // No fallar la creación del servicio por este error
+        }
+      }
+      
+      const message = isAdmin 
+        ? `Servicio '${serviceName}' creado y activado exitosamente (Admin - Sin aprobación requerida)`
+        : `Servicio '${serviceName}' creado exitosamente (Pendiente de aprobación de administrador)`;
+      
+      res.json({
+        success: true,
+        message: message,
+        data: await this.getUserServiceConfiguration(user.id, serviceId),
+        isAdmin: isAdmin
+      });
     } catch (error) {
       console.error('Error creando servicio del usuario:', error);
       res.status(500).json({
@@ -580,7 +594,7 @@ export class UserServiceController {
     };
   }
 
-  private async createUserServiceConfiguration(userId: number, config: any): Promise<boolean> {
+  private async createUserServiceConfiguration(userId: number, config: any): Promise<void> {
     try {
       const { sequelize } = await import('../config/database');
       await sequelize.query(`
@@ -598,10 +612,18 @@ export class UserServiceController {
           JSON.stringify(config.configuration || {})
         ]
       });
-      return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating user service configuration:', error);
-      return false;
+      
+      // Si es un error de duplicado de Sequelize, lanzar un error específico
+      if (error.name === 'SequelizeUniqueConstraintError' && 
+          error.original?.code === 'ER_DUP_ENTRY' && 
+          error.original?.sqlMessage?.includes('unique_user_service')) {
+        throw new Error(`Ya existe un servicio con el ID '${config.serviceId}'. Por favor, elige un ID diferente.`);
+      }
+      
+      // Para otros errores, lanzar el error original
+      throw error;
     }
   }
 }

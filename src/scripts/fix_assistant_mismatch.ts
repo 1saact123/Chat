@@ -80,3 +80,6 @@ fixAssistantMismatch().then(() => {
   console.log('O ejecuta un script para forzar la recarga de configuraciones');
 }).catch(console.error);
 
+
+
+
