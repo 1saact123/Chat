@@ -54,3 +54,4 @@ async function checkAllServices() {
 checkAllServices().then(() => {
   console.log('\n✅ === VERIFICACIÓN COMPLETADA ===');
 }).catch(console.error);
+

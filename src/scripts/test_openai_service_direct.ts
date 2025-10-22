@@ -57,3 +57,4 @@ testOpenAIServiceDirect().then(() => {
   console.log('\n✅ === PRUEBA COMPLETADA ===');
 }).catch(console.error);
 
+

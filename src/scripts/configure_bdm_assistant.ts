@@ -107,3 +107,4 @@ configureBDMAssistant().then(() => {
   console.log('POST https://chat.movonte.com/api/services/bdm-service/chat');
 }).catch(console.error);
 
+

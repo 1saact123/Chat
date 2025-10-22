@@ -72,3 +72,4 @@ syncAssistantV4().then(() => {
   console.log('\n💡 PRÓXIMO PASO:');
   console.log('Ejecuta el script de prueba para verificar que funciona');
 }).catch(console.error);
+

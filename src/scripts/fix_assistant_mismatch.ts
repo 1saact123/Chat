@@ -79,3 +79,4 @@ fixAssistantMismatch().then(() => {
   console.log('Reinicia el servidor para que cargue las nuevas configuraciones');
   console.log('O ejecuta un script para forzar la recarga de configuraciones');
 }).catch(console.error);
+

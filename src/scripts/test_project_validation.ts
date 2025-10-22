@@ -74,3 +74,4 @@ testProjectValidation().then(() => {
   console.log('- Solo el proyecto TI está en uso (landing-page)');
   console.log('- Los demás proyectos están disponibles');
 }).catch(console.error);
+

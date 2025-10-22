@@ -59,3 +59,4 @@ async function checkCurrentAssistant() {
 checkCurrentAssistant().then(() => {
   console.log('\n✅ === VERIFICACIÓN COMPLETADA ===');
 }).catch(console.error);
+

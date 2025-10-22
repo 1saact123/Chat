@@ -80,3 +80,4 @@ testBDMCorrectEndpoint().then(() => {
   console.log('Solo necesita el serviceId en la URL');
 }).catch(console.error);
 
+
