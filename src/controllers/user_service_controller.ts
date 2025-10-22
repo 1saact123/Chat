@@ -160,6 +160,27 @@ export class UserServiceController {
         }
       });
 
+      // Si es usuario regular, crear solicitud de validación automáticamente
+      if (!isAdmin) {
+        try {
+          const { ServiceValidationService } = await import('../services/service_validation_service');
+          const validationService = ServiceValidationService.getInstance();
+          
+          await validationService.createValidationRequest(user.id, {
+            serviceName,
+            serviceDescription: req.body.serviceDescription || `Servicio ${serviceName}`,
+            websiteUrl: req.body.websiteUrl || `https://${req.body.requestedDomain || 'example.com'}`,
+            requestedDomain: req.body.requestedDomain || new URL(req.body.websiteUrl || 'https://example.com').hostname,
+            adminId: user.adminId // Asignar al administrador del usuario
+          });
+          
+          console.log(`✅ Solicitud de validación creada automáticamente para servicio ${serviceName}`);
+        } catch (validationError) {
+          console.error('⚠️ Error creando solicitud de validación:', validationError);
+          // No fallar la creación del servicio por este error
+        }
+      }
+
       // Si llegamos aquí, el servicio se creó exitosamente
       // Si es admin y se proporcionó un dominio, agregarlo automáticamente a CORS
       if (isAdmin && (req.body.requestedDomain || req.body.websiteUrl)) {

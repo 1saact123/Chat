@@ -309,24 +309,39 @@ export class ServiceValidationService {
   // Activar el servicio del usuario cuando se aprueba la validación
   private async activateUserService(userId: number, serviceName: string): Promise<void> {
     try {
-      // Buscar el servicio del usuario por nombre
-      const userService = await UserConfiguration.findOne({
-        where: {
-          userId,
-          serviceName
-        }
+      // Buscar el servicio del usuario en unified_configurations
+      const { sequelize } = await import('../config/database');
+      const [services] = await sequelize.query(`
+        SELECT * FROM unified_configurations 
+        WHERE user_id = ? AND service_name = ?
+        LIMIT 1
+      `, {
+        replacements: [userId, serviceName]
       });
 
-      if (userService) {
-        // Activar el servicio y marcarlo como aprobado por admin
-        await userService.update({
-          isActive: true,
-          configuration: {
-            ...userService.configuration,
-            adminApproved: true,
-            adminApprovedAt: new Date().toISOString()
-          },
-          lastUpdated: new Date()
+      if (services.length > 0) {
+        const service = services[0] as any;
+        
+        // Actualizar el servicio en unified_configurations
+        const currentConfig = typeof service.configuration === 'string' 
+          ? JSON.parse(service.configuration) 
+          : service.configuration || {};
+
+        await sequelize.query(`
+          UPDATE unified_configurations 
+          SET is_active = true, 
+              configuration = ?,
+              last_updated = NOW()
+          WHERE id = ?
+        `, {
+          replacements: [
+            JSON.stringify({
+              ...currentConfig,
+              adminApproved: true,
+              adminApprovedAt: new Date().toISOString()
+            }),
+            service.id
+          ]
         });
 
         console.log(`✅ User service activated: ${serviceName} for user ${userId}`);

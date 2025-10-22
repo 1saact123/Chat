@@ -557,15 +557,25 @@ export class ChatbotController {
         let hasMatchingService = false;
         
         try {
-          const { UserConfiguration } = await import('../models');
-          const userServices = await UserConfiguration.findAll({
-            where: { isActive: true }
-          });
+          const { sequelize } = await import('../config/database');
+          const [userServices] = await sequelize.query(`
+            SELECT * FROM unified_configurations 
+            WHERE is_active = true
+          `);
           
-          for (const service of userServices) {
-            if (service.configuration && service.configuration.projectKey === issueProjectKey) {
+          for (const service of userServices as any[]) {
+            let config = {};
+            try {
+              config = typeof service.configuration === 'string' 
+                ? JSON.parse(service.configuration) 
+                : service.configuration || {};
+            } catch (e) {
+              config = service.configuration || {};
+            }
+            
+            if (config && (config as any).projectKey === issueProjectKey) {
               hasMatchingService = true;
-              console.log(`✅ TICKET CREADO ACEPTADO: ${issueKey} pertenece a servicio: ${service.serviceName}`);
+              console.log(`✅ TICKET CREADO ACEPTADO: ${issueKey} pertenece a servicio: ${service.service_name}`);
               break;
             }
           }
@@ -1253,15 +1263,25 @@ Formato el reporte de manera clara y profesional.`;
       let hasMatchingService = false;
       
       try {
-        const { UserConfiguration } = await import('../models');
-        const userServices = await UserConfiguration.findAll({
-          where: { isActive: true }
-        });
+        const { sequelize } = await import('../config/database');
+        const [userServices] = await sequelize.query(`
+          SELECT * FROM unified_configurations 
+          WHERE is_active = true
+        `);
         
-        for (const service of userServices) {
-          if (service.configuration && service.configuration.projectKey === issueProjectKey) {
+        for (const service of userServices as any[]) {
+          let config = {};
+          try {
+            config = typeof service.configuration === 'string' 
+              ? JSON.parse(service.configuration) 
+              : service.configuration || {};
+          } catch (e) {
+            config = service.configuration || {};
+          }
+          
+          if (config && (config as any).projectKey === issueProjectKey) {
             hasMatchingService = true;
-            console.log(`✅ CAMBIO DE ESTADO ACEPTADO: ${issueKey} pertenece a servicio: ${service.serviceName}`);
+            console.log(`✅ CAMBIO DE ESTADO ACEPTADO: ${issueKey} pertenece a servicio: ${service.service_name}`);
             break;
           }
         }
