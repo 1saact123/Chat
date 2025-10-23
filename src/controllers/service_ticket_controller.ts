@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { JiraService } from '../services/jira_service';
 import { DatabaseService } from '../services/database_service';
+import { UserJiraService } from '../services/user_jira_service';
+import '../middleware/auth'; // Importar para cargar las definiciones de tipos
 
 interface CustomerInfo {
   name: string;
@@ -30,7 +32,8 @@ export class ServiceTicketController {
    */
   async createTicketForService(req: Request, res: Response): Promise<void> {
     try {
-      const { customerInfo, serviceId, userId } = req.body as ServiceTicketRequest;
+      const { customerInfo, serviceId } = req.body as ServiceTicketRequest;
+      const userId = req.user?.id; // Obtener userId del usuario autenticado
 
       // Validar campos requeridos
       if (!customerInfo || !serviceId) {
@@ -49,6 +52,24 @@ export class ServiceTicketController {
         return;
       }
 
+      // Validar que el usuario esté autenticado
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          error: 'User authentication required'
+        });
+        return;
+      }
+
+      // Validar que el usuario tenga tokens de Jira configurados
+      if (!req.user?.jiraToken || !req.user?.email) {
+        res.status(400).json({
+          success: false,
+          error: 'User Jira credentials not configured. Please configure Jira integration in your profile.'
+        });
+        return;
+      }
+
       // Validar formato de email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(customerInfo.email)) {
@@ -59,11 +80,12 @@ export class ServiceTicketController {
         return;
       }
 
-      console.log(`🎫 Creating ticket for service ${serviceId}:`, {
+      console.log(`🎫 Creating ticket for service ${serviceId} for user ${userId}:`, {
         name: customerInfo.name,
         email: customerInfo.email,
         company: customerInfo.company || 'N/A',
-        serviceId
+        serviceId,
+        userId
       });
 
       // Obtener configuración del servicio
@@ -71,7 +93,7 @@ export class ServiceTicketController {
       if (!serviceConfig) {
         res.status(404).json({
           success: false,
-          error: `Service '${serviceId}' not found or not configured`
+          error: `Service '${serviceId}' not found or not configured for user ${userId}`
         });
         return;
       }
@@ -108,10 +130,18 @@ export class ServiceTicketController {
         projectKey: projectKey
       };
 
-      console.log(`📋 Creating Jira ticket for service ${serviceId} in project ${projectKey}`);
+      console.log(`📋 Creating Jira ticket for service ${serviceId} in project ${projectKey} using user credentials`);
 
-      // Crear ticket en Jira usando el projectKey del servicio
-      const jiraResponse = await this.jiraService.createContactIssueForProject(formData, projectKey);
+      // Crear instancia de UserJiraService con las credenciales del usuario
+      const userJiraService = new UserJiraService(
+        userId,
+        req.user.jiraToken,
+        req.user.jiraUrl || process.env.JIRA_BASE_URL || 'https://movonte.atlassian.net',
+        req.user.email
+      );
+
+      // Crear ticket en Jira usando las credenciales del usuario
+      const jiraResponse = await this.createContactIssueForProjectWithUser(formData, projectKey, userJiraService);
 
       console.log(`✅ Ticket created successfully for service ${serviceId}:`, jiraResponse.key);
 
@@ -121,7 +151,7 @@ export class ServiceTicketController {
         jiraIssue: {
           id: jiraResponse.id,
           key: jiraResponse.key,
-          url: `${process.env.JIRA_BASE_URL}/browse/${jiraResponse.key}`
+          url: `${req.user.jiraUrl || process.env.JIRA_BASE_URL}/browse/${jiraResponse.key}`
         },
         service: {
           serviceId: serviceId,
@@ -213,6 +243,70 @@ export class ServiceTicketController {
       console.error('Error extracting projectKey from config:', error);
       return null;
     }
+  }
+
+  /**
+   * Crear ticket de contacto para un proyecto específico usando credenciales del usuario
+   */
+  private async createContactIssueForProjectWithUser(formData: any, projectKey: string, userJiraService: UserJiraService): Promise<any> {
+    try {
+      // Usar el método del UserJiraService para crear el ticket
+      const response = await userJiraService.createIssue({
+        projectKey: projectKey,
+        summary: `Service Contact: ${formData.name} - ${formData.company || 'No company'} (${formData.serviceName || formData.serviceId})`,
+        description: this.formatServiceContactDescriptionADF(formData),
+        issueType: 'Task',
+        priority: 'Medium',
+        labels: [
+          'service-contact', 
+          'widget-chat', 
+          `service-${formData.serviceId}`,
+          formData.source || 'unknown'
+        ]
+      });
+
+      return response;
+
+    } catch (error) {
+      console.error('Error creating ticket with user credentials:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Formatear descripción de contacto de servicio en ADF
+   */
+  private formatServiceContactDescriptionADF(formData: any): any {
+    const lines = [
+      `Contact from service: ${formData.serviceName || formData.serviceId}`,
+      '',
+      `Customer Information:`,
+      `• Name: ${formData.name}`,
+      `• Email: ${formData.email}`,
+      formData.phone ? `• Phone: ${formData.phone}` : null,
+      formData.company ? `• Company: ${formData.company}` : null,
+      '',
+      `Service Details:`,
+      `• Service ID: ${formData.serviceId}`,
+      `• Service Name: ${formData.serviceName || 'N/A'}`,
+      `• Project Key: ${formData.projectKey}`,
+      `• Source: ${formData.source || 'unknown'}`,
+      '',
+      formData.message ? `Message: ${formData.message}` : 'No additional message provided',
+      '',
+      `Created via widget integration for service ${formData.serviceId}`
+    ].filter(Boolean);
+
+    return {
+      version: 1 as const,
+      type: 'doc' as const,
+      content: lines.map((text) => ({
+        type: 'paragraph' as const,
+        content: text
+          ? [{ type: 'text' as const, text }]
+          : undefined
+      }))
+    };
   }
 
   /**

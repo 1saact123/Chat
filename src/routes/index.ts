@@ -264,8 +264,8 @@ router.post('/api/landing/validate-form', landingController.validateLandingForm.
 router.get('/api/landing/form-fields', landingController.getLandingFormFields.bind(landingController));
 
 // === SERVICE TICKET ROUTES ===
-router.post('/api/service/create-ticket', serviceTicketController.createTicketForService.bind(serviceTicketController));
-router.get('/api/service/:serviceId/info', serviceTicketController.getServiceInfo.bind(serviceTicketController));
+router.post('/api/service/create-ticket', authenticateToken, serviceTicketController.createTicketForService.bind(serviceTicketController));
+router.get('/api/service/:serviceId/info', authenticateToken, serviceTicketController.getServiceInfo.bind(serviceTicketController));
 
 // === CHATBOT ROUTES ===
 // Jira webhook

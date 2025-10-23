@@ -631,6 +631,7 @@ export class JiraService {
     ].filter(Boolean);
 
     return {
+      version: 1 as const,
       type: 'doc' as const,
       content: lines.map((text) => ({
         type: 'paragraph' as const,

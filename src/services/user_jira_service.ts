@@ -167,4 +167,54 @@ export class UserJiraService {
       throw error;
     }
   }
+
+  // Crear issue
+  async createIssue(issueData: {
+    projectKey: string;
+    summary: string;
+    description: any;
+    issueType: string;
+    priority: string;
+    labels?: string[];
+  }): Promise<any> {
+    try {
+      const fields: any = {
+        project: {
+          key: issueData.projectKey
+        },
+        summary: issueData.summary,
+        description: issueData.description,
+        issuetype: {
+          name: issueData.issueType
+        },
+        priority: {
+          name: issueData.priority
+        }
+      };
+
+      // Agregar labels si se proporcionan
+      if (issueData.labels && issueData.labels.length > 0) {
+        fields.labels = issueData.labels;
+      }
+
+      const requestData = { fields };
+
+      const response = await axios.post(
+        `${this.baseUrl}/rest/api/3/issue`,
+        requestData,
+        {
+          headers: {
+            'Authorization': `Basic ${this.auth}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error creating issue for user ${this.userId}:`, error);
+      throw error;
+    }
+  }
 }

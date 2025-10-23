@@ -280,6 +280,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public permissions?: UserPermissions;
   public lastLogin?: Date;
   public jiraToken?: string;
+  public jiraUrl?: string;
   public openaiToken?: string;
   public isInitialSetupComplete?: boolean;
   public adminId?: number;
