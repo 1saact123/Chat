@@ -500,8 +500,18 @@ export class ChatbotController {
             
             console.log(`📤 Agregando comentario a Jira: "${response.response.substring(0, 50)}..."`);
             
-            // Agregar comentario de la IA a Jira
-            const jiraResponse = await jiraService.addCommentToIssue(payload.issue.key, response.response);
+            // Agregar comentario de la IA a Jira usando las credenciales del usuario
+            const jiraResponse = await jiraService.addCommentToIssue(
+              payload.issue.key, 
+              response.response, 
+              { 
+                source: 'ai-response',
+                userId: user.id,
+                userEmail: user.email,
+                jiraToken: user.jiraToken,
+                jiraUrl: (user as any).jiraUrl
+              }
+            );
             this.webhookStats.successfulResponses++;
             
             console.log(`✅ Comentario agregado exitosamente a Jira`);

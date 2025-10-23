@@ -132,7 +132,15 @@ export class JiraService {
   /**
    * Add comment to issue (enhanced for widget integration)
    */
-  async addCommentToIssue(issueKey: string, commentText: string, authorInfo?: { name: string; email?: string; source: 'widget' | 'jira' }): Promise<any> {
+  async addCommentToIssue(issueKey: string, commentText: string, authorInfo?: { 
+    name?: string; 
+    email?: string; 
+    source?: 'widget' | 'jira' | 'ai-response';
+    userId?: number;
+    userEmail?: string;
+    jiraToken?: string;
+    jiraUrl?: string;
+  }): Promise<any> {
     try {
       console.log(`Adding comment to issue ${issueKey}: ${commentText}`);
       
@@ -145,10 +153,14 @@ export class JiraService {
         // Use JIRA_WIDGET credentials for widget messages
         authToken = Buffer.from(`${process.env.JIRA_WIDGET}:${process.env.JIRA_WIDGET_TOKEN}`).toString('base64');
         console.log(`Using JIRA_WIDGET credentials for widget message`);
+      } else if (authorInfo?.source === 'ai-response' && authorInfo?.jiraToken && authorInfo?.userEmail) {
+        // Use user's credentials for AI responses when available
+        authToken = Buffer.from(`${authorInfo.userEmail}:${authorInfo.jiraToken}`).toString('base64');
+        console.log(`Using user credentials for AI response: ${authorInfo.userEmail}`);
       } else {
-        // Use JIRA_EMAIL credentials for AI responses
+        // Fallback to JIRA_EMAIL credentials for AI responses
         authToken = Buffer.from(`${process.env.JIRA_EMAIL}:${process.env.JIRA_API_TOKEN}`).toString('base64');
-        console.log(`Using JIRA_EMAIL credentials for AI response`);
+        console.log(`Using JIRA_EMAIL credentials for AI response (fallback)`);
       }
       
       const commentData = {
@@ -169,8 +181,10 @@ export class JiraService {
         }
       };
 
+      // Use user's Jira URL if available, otherwise use default
+      const jiraUrl = authorInfo?.jiraUrl || this.baseUrl;
       const response = await axios.post(
-        `${this.baseUrl}/rest/api/3/issue/${issueKey}/comment`,
+        `${jiraUrl}/rest/api/3/issue/${issueKey}/comment`,
         commentData,
         {
           headers: {
