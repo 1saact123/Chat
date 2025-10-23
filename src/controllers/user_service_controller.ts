@@ -569,7 +569,7 @@ export class UserServiceController {
     const { sequelize } = await import('../config/database');
     const [configurations] = await sequelize.query(`
       SELECT * FROM unified_configurations 
-      WHERE user_id = ? AND service_id = ? AND is_active = TRUE
+      WHERE user_id = ? AND service_id = ?
       LIMIT 1
     `, {
       replacements: [userId, serviceId]
