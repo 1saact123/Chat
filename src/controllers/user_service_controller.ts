@@ -298,31 +298,18 @@ export class UserServiceController {
 
       // Actualizar configuración en tabla unificada
       const { sequelize } = await import('../config/database');
-      
-      // Preparar valores para la actualización
-      const newAssistantId = assistantId || existingConfig.assistantId;
-      const newAssistantName = assistantName || existingConfig.assistantName;
-      const newIsActive = isActive !== undefined ? isActive : existingConfig.isActive;
-      
-      console.log(`🔄 Actualizando servicio ${serviceId}:`, {
-        assistantId: newAssistantId,
-        assistantName: newAssistantName,
-        isActive: newIsActive,
-        userId: user.id
-      });
-      
       await sequelize.query(`
         UPDATE unified_configurations 
-        SET assistant_id = ?, assistant_name = ?, is_active = ?, last_updated = NOW(), updated_at = NOW()
-        WHERE user_id = ? AND service_id = ?
+        SET assistant_id = :assistantId, assistant_name = :assistantName, is_active = :isActive, last_updated = NOW(), updated_at = NOW()
+        WHERE user_id = :userId AND service_id = :serviceId
       `, {
-        replacements: [
-          newAssistantId,
-          newAssistantName,
-          newIsActive,
-          user.id,
-          serviceId
-        ]
+        replacements: {
+          assistantId: assistantId || existingConfig.assistantId,
+          assistantName: assistantName || existingConfig.assistantName,
+          isActive: isActive !== undefined ? isActive : existingConfig.isActive,
+          userId: user.id,
+          serviceId: serviceId
+        }
       });
 
       console.log(`✅ Configuración actualizada en tabla unificada para ${serviceId}`);
