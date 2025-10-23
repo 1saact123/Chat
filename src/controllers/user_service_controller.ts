@@ -260,7 +260,7 @@ export class UserServiceController {
       }
 
       const { serviceId } = req.params;
-      const { assistantId, assistantName, isActive } = req.body;
+      const { assistantId, assistantName, isActive, configuration } = req.body;
 
       const user = await User.findByPk(req.user.id);
       if (!user || !user.openaiToken) {
@@ -298,15 +298,30 @@ export class UserServiceController {
 
       // Actualizar configuración en tabla unificada
       const { sequelize } = await import('../config/database');
+      
+      // Preparar la configuración actualizada
+      let updatedConfiguration = existingConfig.configuration || {};
+      if (configuration) {
+        // Si se proporciona una nueva configuración, fusionarla con la existente
+        console.log('🔄 Updating configuration:', {
+          existing: updatedConfiguration,
+          new: configuration,
+          merged: { ...updatedConfiguration, ...configuration }
+        });
+        updatedConfiguration = { ...updatedConfiguration, ...configuration };
+      }
+      
       await sequelize.query(`
         UPDATE unified_configurations 
-        SET assistant_id = :assistantId, assistant_name = :assistantName, is_active = :isActive, last_updated = NOW(), updated_at = NOW()
+        SET assistant_id = :assistantId, assistant_name = :assistantName, is_active = :isActive, 
+            configuration = :configuration, last_updated = NOW(), updated_at = NOW()
         WHERE user_id = :userId AND service_id = :serviceId
       `, {
         replacements: {
           assistantId: assistantId || existingConfig.assistantId,
           assistantName: assistantName || existingConfig.assistantName,
           isActive: isActive !== undefined ? isActive : existingConfig.isActive,
+          configuration: JSON.stringify(updatedConfiguration),
           userId: user.id,
           serviceId: serviceId
         }
