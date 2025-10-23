@@ -304,9 +304,9 @@ export class UserServiceController {
         WHERE user_id = ? AND service_id = ?
       `, {
         replacements: [
-          assistantId || existingConfig.assistant_id,
-          assistantName || existingConfig.assistant_name,
-          isActive !== undefined ? isActive : existingConfig.is_active,
+          assistantId || existingConfig.assistantId,
+          assistantName || existingConfig.assistantName,
+          isActive !== undefined ? isActive : existingConfig.isActive,
           user.id,
           serviceId
         ]
