@@ -238,33 +238,86 @@ export class ServiceValidationController {
   // Generar token protegido para un servicio
   public async generateProtectedToken(req: Request, res: Response): Promise<void> {
     try {
+      console.log('🔐 Generating protected token for user:', req.user?.id);
+      
       if (!req.user) {
+        console.log('❌ No user in request');
         res.status(401).json({ success: false, error: 'Usuario no autenticado' });
         return;
       }
 
-      const { serviceId } = req.body;
+      const { serviceId, expirationHours } = req.body;
+      console.log('🔍 Service ID requested:', serviceId);
+      console.log('⏰ Expiration hours requested:', expirationHours);
 
       if (!serviceId) {
+        console.log('❌ No serviceId provided');
         res.status(400).json({ success: false, error: 'Se requiere serviceId' });
         return;
       }
 
-      // Verificar que el usuario tenga acceso al servicio
-      const userConfigService = this.validationService.getUserConfigurationService(req.user.id);
-      const userServices = userConfigService.getAllServiceConfigurations();
+      // Validar tiempo de expiración (entre 1 hora y 30 días)
+      const minHours = 1;
+      const maxHours = 24 * 30; // 30 días
+      const defaultHours = 24; // 24 horas por defecto
       
-      const userService = userServices.find(service => service.serviceId === serviceId);
-      if (!userService) {
+      let validExpirationHours = defaultHours;
+      if (expirationHours && typeof expirationHours === 'number') {
+        if (expirationHours < minHours || expirationHours > maxHours) {
+          res.status(400).json({ 
+            success: false, 
+            error: `El tiempo de expiración debe estar entre ${minHours} y ${maxHours} horas` 
+          });
+          return;
+        }
+        validExpirationHours = expirationHours;
+      }
+      
+      console.log('✅ Using expiration hours:', validExpirationHours);
+
+      // Verificar que el usuario tenga acceso al servicio usando unified_configurations
+      const { sequelize } = await import('../config/database');
+      const [configurations] = await sequelize.query(`
+        SELECT * FROM unified_configurations 
+        WHERE user_id = ? AND service_id = ? AND is_active = TRUE
+        LIMIT 1
+      `, {
+        replacements: [req.user.id, serviceId]
+      });
+      
+      console.log('🔍 Found configurations:', (configurations as any[]).length);
+      
+      if (!configurations || (configurations as any[]).length === 0) {
+        console.log('❌ No service found for user:', req.user.id, 'service:', serviceId);
         res.status(403).json({ 
           success: false, 
           error: 'No tienes acceso a este servicio o el servicio no existe' 
         });
         return;
       }
+      
+      const config = (configurations as any[])[0];
+      const userService = {
+        serviceId: config.service_id,
+        serviceName: config.service_name,
+        assistantId: config.assistant_id,
+        assistantName: config.assistant_name,
+        isActive: Boolean(config.is_active),
+        configuration: typeof config.configuration === 'string' 
+          ? JSON.parse(config.configuration) 
+          : config.configuration
+      };
+
+      console.log('📋 Service details:', {
+        serviceId: userService.serviceId,
+        serviceName: userService.serviceName,
+        isActive: userService.isActive,
+        adminApproved: userService.configuration?.adminApproved
+      });
 
       // Verificar que el servicio esté activo
       if (!userService.isActive) {
+        console.log('❌ Service is not active');
         res.status(400).json({ 
           success: false, 
           error: 'El servicio no está activo. Actívalo primero para generar el token.' 
@@ -275,6 +328,7 @@ export class ServiceValidationController {
       // Verificar que el servicio esté aprobado por el administrador
       const isAdminApproved = userService.configuration?.adminApproved;
       if (!isAdminApproved) {
+        console.log('❌ Service is not admin approved');
         res.status(403).json({ 
           success: false, 
           error: 'El servicio no ha sido aprobado por el administrador. Contacta al administrador para aprobar tu servicio.' 
@@ -282,7 +336,8 @@ export class ServiceValidationController {
         return;
       }
 
-      const protectedToken = this.validationService.generateProtectedToken(serviceId, req.user.id);
+      const protectedToken = this.validationService.generateProtectedToken(serviceId, req.user.id, validExpirationHours);
+      console.log('✅ Protected token generated successfully with expiration:', validExpirationHours, 'hours');
 
       res.json({
         success: true,
@@ -290,7 +345,9 @@ export class ServiceValidationController {
           protectedToken,
           serviceId,
           userId: req.user.id,
-          message: 'Token protegido generado. Este token no expone credenciales reales.'
+          expirationHours: validExpirationHours,
+          expiresAt: new Date(Date.now() + validExpirationHours * 60 * 60 * 1000).toISOString(),
+          message: `Token protegido generado con expiración de ${validExpirationHours} horas. Este token no expone credenciales reales.`
         }
       });
     } catch (error) {

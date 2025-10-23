@@ -442,31 +442,60 @@ export class ServiceValidationService {
   }
 
   // Generar token protegido para el servicio (no expone el token real)
-  public generateProtectedToken(serviceId: string, userId: number): string {
-    // Generar un token que no exponga el token real de la API
-    // Este token se usaría para identificar el servicio sin exponer credenciales
-    const timestamp = Date.now();
-    const randomPart = Math.random().toString(36).substring(2, 15);
-    return `svc_${userId}_${serviceId}_${timestamp}_${randomPart}`;
+  public generateProtectedToken(serviceId: string, userId: number, expirationHours: number = 24): string {
+    const jwt = require('jsonwebtoken');
+    
+    // Crear payload del token
+    const payload = {
+      serviceId,
+      userId,
+      type: 'protected',
+      timestamp: Date.now()
+    };
+    
+    // Generar token JWT con tiempo de expiración personalizable
+    const token = jwt.sign(
+      payload,
+      process.env.JWT_SECRET || 'fallback-secret',
+      { 
+        expiresIn: `${expirationHours}h`,
+        issuer: 'movonte-chatbot',
+        audience: 'protected-service'
+      }
+    );
+    
+    return token;
   }
 
   // Validar token protegido
   public validateProtectedToken(protectedToken: string): { userId: number; serviceId: string; isValid: boolean } {
     try {
-      const parts = protectedToken.split('_');
-      if (parts.length !== 5 || parts[0] !== 'svc') {
-        return { userId: 0, serviceId: '', isValid: false };
-      }
-
-      const userId = parseInt(parts[1]);
-      const serviceId = parts[2];
+      const jwt = require('jsonwebtoken');
       
-      return {
-        userId,
-        serviceId,
-        isValid: !isNaN(userId) && serviceId.length > 0
-      };
+      // Verificar si es un token JWT
+      if (protectedToken.startsWith('eyJ')) {
+        const decoded = jwt.verify(protectedToken, process.env.JWT_SECRET || 'fallback-secret');
+        
+        if (decoded.type === 'protected' && decoded.serviceId && decoded.userId) {
+          return { 
+            userId: decoded.userId, 
+            serviceId: decoded.serviceId, 
+            isValid: true 
+          };
+        }
+      }
+      
+      // Fallback para tokens antiguos (formato svc_)
+      const parts = protectedToken.split('_');
+      if (parts.length === 5 && parts[0] === 'svc') {
+        const userId = parseInt(parts[1]);
+        const serviceId = parts[2];
+        return { userId, serviceId, isValid: true };
+      }
+      
+      return { userId: 0, serviceId: '', isValid: false };
     } catch (error) {
+      console.error('Error validating protected token:', error);
       return { userId: 0, serviceId: '', isValid: false };
     }
   }
