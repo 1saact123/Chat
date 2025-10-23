@@ -546,4 +546,98 @@ export class JiraService {
       }))
     };
   }
+
+  /**
+   * Crear ticket de contacto para un proyecto específico
+   */
+  async createContactIssueForProject(formData: any, projectKey: string): Promise<JiraResponse> {
+    const fields: JiraIssueRequest['fields'] = {
+      project: {
+        key: projectKey
+      },
+      summary: `Service Contact: ${formData.name} - ${formData.company || 'No company'} (${formData.serviceName || formData.serviceId})`,
+      description: this.formatServiceContactDescriptionADF(formData),
+      issuetype: {
+        name: 'Task'
+      },
+      priority: {
+        name: 'Medium'
+      },
+      labels: [
+        'service-contact', 
+        'widget-chat', 
+        `service-${formData.serviceId}`,
+        formData.source || 'unknown'
+      ]
+    };
+
+    // Optional custom fields, only add if they exist in the project
+    const emailFieldId = process.env.JIRA_FIELD_EMAIL;
+    const phoneFieldId = process.env.JIRA_FIELD_PHONE;
+    const companyFieldId = process.env.JIRA_FIELD_COMPANY;
+
+    // Only add custom fields if they are configured and exist
+    if (emailFieldId && emailFieldId.trim() !== '') {
+      (fields as any)[emailFieldId] = formData.email;
+    }
+    if (phoneFieldId && phoneFieldId.trim() !== '' && formData.phone) {
+      (fields as any)[phoneFieldId] = formData.phone;
+    }
+    if (companyFieldId && companyFieldId.trim() !== '' && formData.company) {
+      (fields as any)[companyFieldId] = formData.company;
+    }
+
+    const issueData: JiraIssueRequest = { fields };
+
+    console.log(`Creating Jira issue in project ${projectKey} for service ${formData.serviceId}`);
+
+    const response = await axios.post(
+      `${this.baseUrl}/rest/api/3/issue`,
+      issueData,
+      {
+        headers: {
+          'Authorization': `Basic ${this.auth}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    return response.data;
+  }
+
+  /**
+   * Formatear descripción de contacto de servicio en ADF
+   */
+  private formatServiceContactDescriptionADF(formData: any): any {
+    const lines = [
+      `Contact from service: ${formData.serviceName || formData.serviceId}`,
+      '',
+      `Customer Information:`,
+      `• Name: ${formData.name}`,
+      `• Email: ${formData.email}`,
+      formData.phone ? `• Phone: ${formData.phone}` : null,
+      formData.company ? `• Company: ${formData.company}` : null,
+      '',
+      `Service Details:`,
+      `• Service ID: ${formData.serviceId}`,
+      `• Service Name: ${formData.serviceName || 'N/A'}`,
+      `• Project Key: ${formData.projectKey}`,
+      `• Source: ${formData.source || 'unknown'}`,
+      '',
+      formData.message ? `Message: ${formData.message}` : 'No additional message provided',
+      '',
+      `Created via widget integration for service ${formData.serviceId}`
+    ].filter(Boolean);
+
+    return {
+      type: 'doc' as const,
+      content: lines.map((text) => ({
+        type: 'paragraph' as const,
+        content: text
+          ? [{ type: 'text' as const, text }]
+          : undefined
+      }))
+    };
+  }
 }

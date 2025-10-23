@@ -12,6 +12,7 @@ import { UserWebhooksController } from '../controllers/user_webhooks_controller'
 import { ServiceValidationController } from '../controllers/service_validation_controller';
 import { ChatKitController } from '../controllers/chatkit_controller';
 import { CorsController } from '../controllers/cors_controller';
+import { ServiceTicketController } from '../controllers/service_ticket_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
@@ -47,6 +48,7 @@ const userTicketsController = new UserTicketsController();
 const userWebhooksController = new UserWebhooksController();
 const serviceValidationController = new ServiceValidationController();
 const chatKitController = new ChatKitController();
+const serviceTicketController = new ServiceTicketController();
 const corsController = new CorsController();
 
 // Function to set WebSocket server reference
@@ -260,6 +262,10 @@ router.get('/api/contact/test-jira', contactController.testJiraConnection.bind(c
 router.post('/api/landing/create-ticket', landingController.createTicketFromLanding.bind(landingController));
 router.post('/api/landing/validate-form', landingController.validateLandingForm.bind(landingController));
 router.get('/api/landing/form-fields', landingController.getLandingFormFields.bind(landingController));
+
+// === SERVICE TICKET ROUTES ===
+router.post('/api/service/create-ticket', serviceTicketController.createTicketForService.bind(serviceTicketController));
+router.get('/api/service/:serviceId/info', serviceTicketController.getServiceInfo.bind(serviceTicketController));
 
 // === CHATBOT ROUTES ===
 // Jira webhook
