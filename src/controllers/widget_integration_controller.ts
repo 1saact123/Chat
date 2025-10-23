@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import { JiraService } from '../services/jira_service';
+import { UserJiraService } from '../services/user_jira_service';
 import { OpenAIService } from '../services/openAI_service';
 import { ConfigurationService } from '../services/configuration_service';
+import '../middleware/auth';
 
 export class WidgetIntegrationController {
   private jiraService: JiraService;
@@ -31,8 +33,24 @@ export class WidgetIntegrationController {
 
       console.log(`🔗 Connecting widget to ticket ${issueKey} for customer ${customerInfo.email}`);
 
-      // Verify the ticket exists
-      const issue = await this.jiraService.getIssueByKey(issueKey);
+      // Use user's Jira credentials to verify the ticket exists
+      if (!req.user?.jiraToken || !req.user?.jiraUrl || !req.user?.email) {
+        res.status(401).json({
+          success: false,
+          error: 'User Jira credentials not found'
+        });
+        return;
+      }
+
+      const userJiraService = new UserJiraService(
+        req.user.id,
+        req.user.jiraToken,
+        req.user.jiraUrl,
+        req.user.email
+      );
+
+      // Verify the ticket exists using user's credentials
+      const issue = await userJiraService.getIssueByKey(issueKey);
       
       if (!issue) {
         res.status(404).json({
@@ -42,10 +60,10 @@ export class WidgetIntegrationController {
         return;
       }
 
-      // Create chat session
+      // Create chat session using system service (this might need to be updated too)
       await this.jiraService.createChatSession(issueKey, customerInfo);
 
-      // Get conversation history
+      // Get conversation history using system service
       const history = await this.jiraService.getConversationHistory(issueKey);
 
       res.json({
@@ -54,7 +72,7 @@ export class WidgetIntegrationController {
           key: issueKey,
           summary: issue.fields.summary,
           status: issue.fields.status.name,
-          url: `${process.env.JIRA_BASE_URL}/browse/${issueKey}`
+          url: `${req.user.jiraUrl}/browse/${issueKey}`
         },
         conversationHistory: history,
         message: 'Widget connected successfully to Jira ticket'
