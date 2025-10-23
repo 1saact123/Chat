@@ -285,7 +285,16 @@ export class ServiceValidationService {
         adminNotes: adminNotes
       });
 
-      console.log(`❌ Service validation rejected: ${validation.serviceName} for domain ${validation.requestedDomain}`);
+      // Eliminar el servicio de unified_configurations ya que fue rechazado
+      const { sequelize } = await import('../config/database');
+      await sequelize.query(`
+        DELETE FROM unified_configurations 
+        WHERE user_id = ? AND service_name = ?
+      `, {
+        replacements: [validation.userId, validation.serviceName]
+      });
+
+      console.log(`❌ Service validation rejected and service deleted: ${validation.serviceName} for domain ${validation.requestedDomain}`);
 
       return {
         id: validation.id,
