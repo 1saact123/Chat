@@ -534,11 +534,7 @@ export class ChatbotController {
               );
               jiraResponse = await assistantJiraService.addCommentToIssue(
                 payload.issue.key,
-                response.response,
-                {
-                  source: 'ai-response',
-                  name: 'AI Assistant'
-                }
+                response.response
               );
             } else {
               // Usar JiraService con credenciales del usuario
