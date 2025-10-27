@@ -496,22 +496,65 @@ export class ChatbotController {
           try {
             // Importar JiraService dinámicamente para evitar dependencias circulares
             const { JiraService } = await import('../services/jira_service');
-            const jiraService = JiraService.getInstance();
+            const { ServiceJiraAccountsController } = await import('./service_jira_accounts_controller');
+            const { UserJiraService } = await import('../services/user_jira_service');
             
             console.log(`📤 Agregando comentario a Jira: "${response.response.substring(0, 50)}..."`);
             
-            // Agregar comentario de la IA a Jira usando las credenciales del usuario
-            const jiraResponse = await jiraService.addCommentToIssue(
-              payload.issue.key, 
-              response.response, 
-              { 
-                source: 'ai-response',
-                userId: user.id,
-                userEmail: user.email,
-                jiraToken: user.jiraToken,
-                jiraUrl: (user as any).jiraUrl
-              }
+            // Intentar obtener cuenta del asistente configurada para este servicio
+            let jiraEmail = user.email;
+            let jiraToken = user.jiraToken;
+            let jiraUrl = (user as any).jiraUrl;
+            
+            const assistantAccount = await ServiceJiraAccountsController.getAssistantJiraAccount(
+              userServiceInfo.userId, 
+              userServiceInfo.serviceId
             );
+            
+            if (assistantAccount) {
+              console.log(`✅ Usando cuenta del asistente configurada para servicio ${userServiceInfo.serviceId}`);
+              console.log(`   Email: ${assistantAccount.email}`);
+              jiraEmail = assistantAccount.email;
+              jiraToken = assistantAccount.token;
+              jiraUrl = assistantAccount.url;
+            } else {
+              console.log(`ℹ️  No hay cuenta del asistente configurada, usando credenciales del usuario`);
+              console.log(`   Email: ${user.email}`);
+            }
+            
+            // Agregar comentario de la IA a Jira usando las credenciales correctas
+            let jiraResponse;
+            if (assistantAccount) {
+              // Usar UserJiraService con credenciales del asistente
+              const assistantJiraService = new UserJiraService(
+                user.id,
+                jiraToken!,
+                jiraUrl!,
+                jiraEmail!
+              );
+              jiraResponse = await assistantJiraService.addCommentToIssue(
+                payload.issue.key,
+                response.response,
+                {
+                  source: 'ai-response',
+                  name: 'AI Assistant'
+                }
+              );
+            } else {
+              // Usar JiraService con credenciales del usuario
+              const jiraService = JiraService.getInstance();
+              jiraResponse = await jiraService.addCommentToIssue(
+                payload.issue.key, 
+                response.response, 
+                { 
+                  source: 'ai-response',
+                  userId: user.id,
+                  userEmail: user.email,
+                  jiraToken: user.jiraToken,
+                  jiraUrl: (user as any).jiraUrl
+                }
+              );
+            }
             this.webhookStats.successfulResponses++;
             
             console.log(`✅ Comentario agregado exitosamente a Jira`);

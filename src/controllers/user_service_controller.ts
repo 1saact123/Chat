@@ -2,16 +2,9 @@ import { Request, Response } from 'express';
 import { User, UserConfiguration } from '../models';
 import { UserOpenAIService } from '../services/user_openai_service';
 import { UserJiraService } from '../services/user_jira_service';
-import { DatabaseService } from '../services/database_service';
-import { CorsService } from '../services/cors_service';
 import '../middleware/auth'; // Importar para cargar las definiciones de tipos
 
 export class UserServiceController {
-  private dbService: DatabaseService;
-
-  constructor() {
-    this.dbService = DatabaseService.getInstance();
-  }
 
   // Dashboard del usuario con sus propios datos
   async getUserDashboard(req: Request, res: Response): Promise<void> {
@@ -35,7 +28,7 @@ export class UserServiceController {
 
       // Crear servicios con tokens del usuario
       const openaiService = new UserOpenAIService(user.id, user.openaiToken);
-      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl || '', user.email);
+      const jiraService = new UserJiraService(user.id, user.jiraToken, user.jiraUrl || '');
 
       // Obtener datos del usuario
       const assistants = await openaiService.listAssistants();
@@ -74,12 +67,12 @@ export class UserServiceController {
         return;
       }
 
-      const { serviceId, serviceName, assistantId, assistantName, projectKey } = req.body;
+      const { serviceId, serviceName, assistantId, assistantName } = req.body;
 
-      if (!serviceId || !serviceName || !assistantId || !assistantName || !projectKey) {
+      if (!serviceId || !serviceName || !assistantId || !assistantName) {
         res.status(400).json({
           success: false,
-          error: 'Se requieren serviceId, serviceName, assistantId, assistantName y projectKey'
+          error: 'Se requieren serviceId, serviceName, assistantId y assistantName'
         });
         return;
       }
@@ -116,95 +109,27 @@ export class UserServiceController {
         return;
       }
 
-      // Verificar que no hay otro servicio usando el mismo proyecto
-      const { sequelize } = await import('../config/database');
-      const [allActiveServices] = await sequelize.query(`
-        SELECT * FROM unified_configurations 
-        WHERE is_active = TRUE
-      `);
-      
-      const existingProjectService = allActiveServices.find((service: any) => {
-        let config = {};
-        try {
-          config = typeof service.configuration === 'string' 
-            ? JSON.parse(service.configuration) 
-            : service.configuration || {};
-        } catch (e) {
-          config = service.configuration || {};
-        }
-        return (config as any)?.projectKey === projectKey;
-      });
-
-      if (existingProjectService) {
-        res.status(400).json({
-          success: false,
-          error: `El proyecto '${projectKey}' ya está siendo usado por el servicio '${(existingProjectService as any).service_id}'. Cada proyecto solo puede tener un servicio activo.`
-        });
-        return;
-      }
-
-      // Determinar si el usuario es admin (no necesita aprobación)
-      const isAdmin = user.role === 'admin';
-      
-      // Crear servicio - activo inmediatamente si es admin, pendiente si es usuario regular
-      await this.createUserServiceConfiguration(user.id, {
+      // Crear servicio
+      const success = await this.createUserServiceConfiguration(user.id, {
         serviceId,
         serviceName,
         assistantId,
         assistantName,
-        isActive: isAdmin, // Activo inmediatamente si es admin
-        configuration: {
-          projectKey: projectKey,
-          adminApproved: isAdmin, // Aprobado automáticamente si es admin
-          adminApprovedAt: isAdmin ? new Date().toISOString() : undefined
-        }
+        isActive: true
       });
 
-      // Si es usuario regular, crear solicitud de validación automáticamente
-      if (!isAdmin) {
-        try {
-          const { ServiceValidationService } = await import('../services/service_validation_service');
-          const validationService = ServiceValidationService.getInstance();
-          
-          await validationService.createValidationRequest(user.id, {
-            serviceName,
-            serviceDescription: req.body.serviceDescription || `Servicio ${serviceName}`,
-            websiteUrl: req.body.websiteUrl || `https://${req.body.requestedDomain || 'example.com'}`,
-            requestedDomain: req.body.requestedDomain || new URL(req.body.websiteUrl || 'https://example.com').hostname,
-            adminId: user.adminId // Asignar al administrador del usuario
-          });
-          
-          console.log(`✅ Solicitud de validación creada automáticamente para servicio ${serviceName}`);
-        } catch (validationError) {
-          console.error('⚠️ Error creando solicitud de validación:', validationError);
-          // No fallar la creación del servicio por este error
-        }
+      if (success) {
+        res.json({
+          success: true,
+          message: `Servicio '${serviceName}' creado exitosamente`,
+          data: await this.getUserServiceConfiguration(user.id, serviceId)
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: 'Error interno al crear servicio'
+        });
       }
-
-      // Si llegamos aquí, el servicio se creó exitosamente
-      // Si es admin y se proporcionó un dominio, agregarlo automáticamente a CORS
-      if (isAdmin && (req.body.requestedDomain || req.body.websiteUrl)) {
-        try {
-          const corsService = CorsService.getInstance();
-          const domain = req.body.requestedDomain || new URL(req.body.websiteUrl).hostname;
-          await corsService.addApprovedDomain(domain);
-          console.log(`✅ Dominio ${domain} agregado automáticamente a CORS (Admin)`);
-        } catch (corsError) {
-          console.error('⚠️ Error agregando dominio a CORS:', corsError);
-          // No fallar la creación del servicio por este error
-        }
-      }
-      
-      const message = isAdmin 
-        ? `Servicio '${serviceName}' creado y activado exitosamente (Admin - Sin aprobación requerida)`
-        : `Servicio '${serviceName}' creado exitosamente (Pendiente de aprobación de administrador)`;
-      
-      res.json({
-        success: true,
-        message: message,
-        data: await this.getUserServiceConfiguration(user.id, serviceId),
-        isAdmin: isAdmin
-      });
     } catch (error) {
       console.error('Error creando servicio del usuario:', error);
       res.status(500).json({
@@ -235,8 +160,7 @@ export class UserServiceController {
           assistantId: config.assistantId,
           assistantName: config.assistantName,
           isActive: config.isActive,
-          lastUpdated: config.lastUpdated,
-          configuration: config.configuration
+          lastUpdated: config.lastUpdated
         }))
       });
     } catch (error) {
@@ -260,7 +184,7 @@ export class UserServiceController {
       }
 
       const { serviceId } = req.params;
-      const { assistantId, assistantName, isActive, configuration } = req.body;
+      const { assistantId, assistantName, isActive } = req.body;
 
       const user = await User.findByPk(req.user.id);
       if (!user || !user.openaiToken) {
@@ -296,42 +220,19 @@ export class UserServiceController {
         }
       }
 
-      // Actualizar configuración en tabla unificada
-      const { sequelize } = await import('../config/database');
-      
-      // Preparar la configuración actualizada
-      let updatedConfiguration = existingConfig.configuration || {};
-      if (configuration) {
-        // Si se proporciona una nueva configuración, fusionarla con la existente
-        console.log('🔄 Updating configuration:', {
-          existing: updatedConfiguration,
-          new: configuration,
-          merged: { ...updatedConfiguration, ...configuration }
-        });
-        updatedConfiguration = { ...updatedConfiguration, ...configuration };
-      }
-      
-      await sequelize.query(`
-        UPDATE unified_configurations 
-        SET assistant_id = :assistantId, assistant_name = :assistantName, is_active = :isActive, 
-            configuration = :configuration, last_updated = NOW(), updated_at = NOW()
-        WHERE user_id = :userId AND service_id = :serviceId
-      `, {
-        replacements: {
-          assistantId: assistantId || existingConfig.assistantId,
-          assistantName: assistantName || existingConfig.assistantName,
-          isActive: isActive !== undefined ? isActive : existingConfig.isActive,
-          configuration: JSON.stringify(updatedConfiguration),
-          userId: user.id,
-          serviceId: serviceId
-        }
+      // Actualizar configuración
+      await UserConfiguration.update({
+        assistantId: assistantId || existingConfig.assistantId,
+        assistantName: assistantName || existingConfig.assistantName,
+        isActive: isActive !== undefined ? isActive : existingConfig.isActive,
+        lastUpdated: new Date()
+      }, {
+        where: { userId: user.id, serviceId }
       });
-
-      console.log(`✅ Configuración actualizada en tabla unificada para ${serviceId}`);
 
       res.json({
         success: true,
-        message: `Servicio '${serviceId}' actualizado y sincronizado exitosamente`,
+        message: `Servicio '${serviceId}' actualizado exitosamente`,
         data: await this.getUserServiceConfiguration(user.id, serviceId)
       });
     } catch (error) {
@@ -366,13 +267,9 @@ export class UserServiceController {
         return;
       }
 
-      // Eliminar servicio de la tabla unificada
-      const { sequelize } = await import('../config/database');
-      await sequelize.query(`
-        DELETE FROM unified_configurations 
-        WHERE user_id = ? AND service_id = ?
-      `, {
-        replacements: [req.user.id, serviceId]
+      // Eliminar servicio
+      await UserConfiguration.destroy({
+        where: { userId: req.user.id, serviceId }
       });
 
       res.json({
@@ -502,7 +399,7 @@ export class UserServiceController {
         return;
       }
 
-      const jiraService = new UserJiraService(user.id, user.jiraToken, (user as any).jiraUrl || '', user.email);
+      const jiraService = new UserJiraService(user.id, user.jiraToken, user.jiraUrl || '');
       const projects = await jiraService.listProjects();
 
       res.json({
@@ -555,91 +452,32 @@ export class UserServiceController {
   }
 
   private async getUserServiceConfigurations(userId: number): Promise<any[]> {
-    const { sequelize } = await import('../config/database');
-    const [configurations] = await sequelize.query(`
-      SELECT * FROM unified_configurations 
-      WHERE user_id = ?
-      ORDER BY service_name
-    `, {
-      replacements: [userId]
+    return await UserConfiguration.findAll({
+      where: { userId }
     });
-    
-    // Mapear nombres de columnas de snake_case a camelCase para el frontend
-    return (configurations as any[]).map((config: any) => ({
-      serviceId: config.service_id,
-      serviceName: config.service_name,
-      assistantId: config.assistant_id,
-      assistantName: config.assistant_name,
-      isActive: Boolean(config.is_active),
-      lastUpdated: config.last_updated,
-      configuration: typeof config.configuration === 'string' 
-        ? JSON.parse(config.configuration) 
-        : config.configuration,
-      createdAt: config.created_at,
-      updatedAt: config.updated_at
-    }));
   }
 
   private async getUserServiceConfiguration(userId: number, serviceId: string): Promise<any> {
-    const { sequelize } = await import('../config/database');
-    const [configurations] = await sequelize.query(`
-      SELECT * FROM unified_configurations 
-      WHERE user_id = ? AND service_id = ?
-      LIMIT 1
-    `, {
-      replacements: [userId, serviceId]
+    return await UserConfiguration.findOne({
+      where: { userId, serviceId }
     });
-    
-    if (configurations.length === 0) return null;
-    
-    const config: any = configurations[0];
-    
-    // Mapear nombres de columnas de snake_case a camelCase para el frontend
-    return {
-      serviceId: config.service_id,
-      serviceName: config.service_name,
-      assistantId: config.assistant_id,
-      assistantName: config.assistant_name,
-      isActive: Boolean(config.is_active),
-      lastUpdated: config.last_updated,
-      configuration: typeof config.configuration === 'string' 
-        ? JSON.parse(config.configuration) 
-        : config.configuration,
-      createdAt: config.created_at,
-      updatedAt: config.updated_at
-    };
   }
 
-  private async createUserServiceConfiguration(userId: number, config: any): Promise<void> {
+  private async createUserServiceConfiguration(userId: number, config: any): Promise<boolean> {
     try {
-      const { sequelize } = await import('../config/database');
-      await sequelize.query(`
-        INSERT INTO unified_configurations 
-        (service_id, service_name, user_id, assistant_id, assistant_name, is_active, configuration, last_updated, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())
-      `, {
-        replacements: [
-          config.serviceId,
-          config.serviceName,
-          userId,
-          config.assistantId,
-          config.assistantName,
-          config.isActive,
-          JSON.stringify(config.configuration || {})
-        ]
+      await UserConfiguration.create({
+        userId,
+        serviceId: config.serviceId,
+        serviceName: config.serviceName,
+        assistantId: config.assistantId,
+        assistantName: config.assistantName,
+        isActive: config.isActive,
+        lastUpdated: new Date()
       });
-    } catch (error: any) {
+      return true;
+    } catch (error) {
       console.error('Error creating user service configuration:', error);
-      
-      // Si es un error de duplicado de Sequelize, lanzar un error específico
-      if (error.name === 'SequelizeUniqueConstraintError' && 
-          error.original?.code === 'ER_DUP_ENTRY' && 
-          error.original?.sqlMessage?.includes('unique_user_service')) {
-        throw new Error(`Ya existe un servicio con el ID '${config.serviceId}'. Por favor, elige un ID diferente.`);
-      }
-      
-      // Para otros errores, lanzar el error original
-      throw error;
+      return false;
     }
   }
 }
