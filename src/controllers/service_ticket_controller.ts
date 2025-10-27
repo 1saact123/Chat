@@ -166,7 +166,7 @@ export class ServiceTicketController {
         jiraIssue: {
           id: jiraResponse.id,
           key: jiraResponse.key,
-          url: `${req.user.jiraUrl || process.env.JIRA_BASE_URL}/browse/${jiraResponse.key}`
+          url: `${jiraUrl || process.env.JIRA_BASE_URL}/browse/${jiraResponse.key}`
         },
         service: {
           serviceId: serviceId,

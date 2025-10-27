@@ -92,7 +92,7 @@ export class WidgetIntegrationController {
           key: issueKey,
           summary: issue.fields.summary,
           status: issue.fields.status.name,
-          url: `${req.user.jiraUrl}/browse/${issueKey}`
+          url: `${jiraUrl}/browse/${issueKey}`
         },
         conversationHistory: history,
         message: 'Widget connected successfully to Jira ticket'

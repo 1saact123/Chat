@@ -4,14 +4,12 @@
 
 import { Request, Response } from 'express';
 import { Sequelize } from 'sequelize';
-import { DatabaseService } from '../services/database_service';
 import '../middleware/auth'; // Para tipos de Request.user
 
 export class ServiceJiraAccountsController {
-  private sequelize: Sequelize;
-
-  constructor() {
-    this.sequelize = DatabaseService.getInstance().getSequelize();
+  private async getSequelize(): Promise<Sequelize> {
+    const { sequelize } = await import('../config/database');
+    return sequelize;
   }
 
   /**
@@ -29,7 +27,8 @@ export class ServiceJiraAccountsController {
 
       console.log('🔍 Obteniendo cuentas de Jira:', { userId, serviceId });
 
-      const [accounts] = await this.sequelize.query(`
+      const sequelize = await this.getSequelize();
+      const [accounts] = await sequelize.query(`
         SELECT 
           id,
           user_id,
@@ -100,8 +99,10 @@ export class ServiceJiraAccountsController {
         hasWidgetAccount: !!widgetJiraEmail
       });
 
+      const sequelize = await this.getSequelize();
+
       // Verificar que el usuario tiene acceso al servicio
-      const [services] = await this.sequelize.query(`
+      const [services] = await sequelize.query(`
         SELECT id FROM unified_configurations
         WHERE user_id = :userId AND service_id = :serviceId
         LIMIT 1
@@ -118,7 +119,7 @@ export class ServiceJiraAccountsController {
       }
 
       // Verificar si ya existe una configuración
-      const [existing] = await this.sequelize.query(`
+      const [existing] = await sequelize.query(`
         SELECT id FROM service_jira_accounts
         WHERE user_id = :userId AND service_id = :serviceId
         LIMIT 1
@@ -128,7 +129,7 @@ export class ServiceJiraAccountsController {
 
       if (existing.length > 0) {
         // Actualizar
-        await this.sequelize.query(`
+        await sequelize.query(`
           UPDATE service_jira_accounts
           SET 
             assistant_jira_email = :assistantJiraEmail,
@@ -157,7 +158,7 @@ export class ServiceJiraAccountsController {
         console.log('✅ Cuentas de Jira actualizadas');
       } else {
         // Insertar
-        await this.sequelize.query(`
+        await sequelize.query(`
           INSERT INTO service_jira_accounts (
             user_id,
             service_id,
@@ -197,7 +198,7 @@ export class ServiceJiraAccountsController {
       }
 
       // Obtener la configuración actualizada
-      const [updated] = await this.sequelize.query(`
+      const [updated] = await sequelize.query(`
         SELECT 
           id,
           user_id,
@@ -246,7 +247,8 @@ export class ServiceJiraAccountsController {
 
       console.log('🗑️ Eliminando cuentas de Jira:', { userId, serviceId });
 
-      await this.sequelize.query(`
+      const sequelize = await this.getSequelize();
+      await sequelize.query(`
         DELETE FROM service_jira_accounts
         WHERE user_id = :userId AND service_id = :serviceId
       `, {
@@ -278,7 +280,7 @@ export class ServiceJiraAccountsController {
     url: string;
   } | null> {
     try {
-      const sequelize = DatabaseService.getInstance().getSequelize();
+      const { sequelize } = await import('../config/database');
 
       const [accounts] = await sequelize.query(`
         SELECT 
@@ -320,7 +322,7 @@ export class ServiceJiraAccountsController {
     url: string;
   } | null> {
     try {
-      const sequelize = DatabaseService.getInstance().getSequelize();
+      const { sequelize } = await import('../config/database');
 
       const [accounts] = await sequelize.query(`
         SELECT 
