@@ -298,3 +298,4 @@ npx ts-node src/scripts/test_api_response_format.ts
 **Estado:** ✅ Todos los problemas corregidos
 
 
+

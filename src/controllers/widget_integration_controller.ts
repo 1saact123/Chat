@@ -3,6 +3,7 @@ import { JiraService } from '../services/jira_service';
 import { UserJiraService } from '../services/user_jira_service';
 import { OpenAIService } from '../services/openAI_service';
 import { ConfigurationService } from '../services/configuration_service';
+import { ServiceJiraAccountsController } from './service_jira_accounts_controller';
 import '../middleware/auth';
 
 export class WidgetIntegrationController {
@@ -33,20 +34,39 @@ export class WidgetIntegrationController {
 
       console.log(`🔗 Connecting widget to ticket ${issueKey} for customer ${customerInfo.email}`);
 
-      // Use user's Jira credentials to verify the ticket exists
-      if (!req.user?.jiraToken || !req.user?.jiraUrl || !req.user?.email) {
+      // Try to get widget-specific Jira account first
+      let jiraEmail = req.user?.email;
+      let jiraToken = req.user?.jiraToken;
+      let jiraUrl = req.user?.jiraUrl;
+
+      // Extract serviceId from the issue key to look up service-specific credentials
+      // Note: This assumes the request includes serviceId or we can derive it from the ticket
+      const serviceId = req.body.serviceId; // Should be passed by the widget
+      
+      if (serviceId && req.user?.id) {
+        const widgetAccount = await ServiceJiraAccountsController.getWidgetJiraAccount(req.user.id, serviceId);
+        if (widgetAccount) {
+          console.log(`✅ Using widget-specific Jira account for service ${serviceId}`);
+          jiraEmail = widgetAccount.email;
+          jiraToken = widgetAccount.token;
+          jiraUrl = widgetAccount.url;
+        }
+      }
+
+      // Verify we have Jira credentials
+      if (!jiraToken || !jiraUrl || !jiraEmail) {
         res.status(401).json({
           success: false,
-          error: 'User Jira credentials not found'
+          error: 'Jira credentials not found. Please configure widget Jira account.'
         });
         return;
       }
 
       const userJiraService = new UserJiraService(
-        req.user.id,
-        req.user.jiraToken,
-        req.user.jiraUrl,
-        req.user.email
+        req.user!.id,
+        jiraToken,
+        jiraUrl,
+        jiraEmail
       );
 
       // Verify the ticket exists using user's credentials
@@ -104,13 +124,33 @@ export class WidgetIntegrationController {
 
       console.log(`📤 Sending message to Jira ticket ${issueKey}: ${message}`);
 
+      // Try to get widget-specific Jira account first
+      let jiraService = this.jiraService;
+      const serviceId = req.body.serviceId; // Should be passed by the widget
+      
+      if (serviceId && req.user?.id) {
+        const widgetAccount = await ServiceJiraAccountsController.getWidgetJiraAccount(req.user.id, serviceId);
+        if (widgetAccount) {
+          console.log(`✅ Using widget-specific Jira account for service ${serviceId}`);
+          // Create a temporary UserJiraService with the widget account
+          const widgetJiraService = new UserJiraService(
+            req.user.id,
+            widgetAccount.token,
+            widgetAccount.url,
+            widgetAccount.email
+          );
+          // Use the widget account to add the comment
+          jiraService = widgetJiraService as any;
+        }
+      }
+
       // Check if assistant is disabled for this ticket
       if (this.configService.isTicketDisabled(issueKey)) {
         const disabledInfo = this.configService.getDisabledTicketInfo(issueKey);
         console.log(`🚫 AI Assistant disabled for ticket ${issueKey}: ${disabledInfo?.reason || 'No reason provided'}`);
         
         // Add message to Jira but don't process with AI
-        await this.jiraService.addCommentToIssue(issueKey, message, {
+        await jiraService.addCommentToIssue(issueKey, message, {
           name: customerInfo.name,
           email: customerInfo.email,
           source: 'widget'
@@ -130,7 +170,7 @@ export class WidgetIntegrationController {
       }
 
       // Add message to Jira
-      await this.jiraService.addCommentToIssue(issueKey, message, {
+      await jiraService.addCommentToIssue(issueKey, message, {
         name: customerInfo.name,
         email: customerInfo.email,
         source: 'widget'

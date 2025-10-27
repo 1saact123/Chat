@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { JiraService } from '../services/jira_service';
 import { DatabaseService } from '../services/database_service';
 import { UserJiraService } from '../services/user_jira_service';
+import { ServiceJiraAccountsController } from './service_jira_accounts_controller';
 import '../middleware/auth'; // Importar para cargar las definiciones de tipos
 
 interface CustomerInfo {
@@ -61,11 +62,25 @@ export class ServiceTicketController {
         return;
       }
 
-      // Validar que el usuario tenga tokens de Jira configurados
-      if (!req.user?.jiraToken || !req.user?.email) {
+      // Try to get assistant-specific Jira account first
+      let jiraEmail = req.user?.email;
+      let jiraToken = req.user?.jiraToken;
+      let jiraUrl = req.user?.jiraUrl;
+
+      // Look for service-specific assistant credentials
+      const assistantAccount = await ServiceJiraAccountsController.getAssistantJiraAccount(userId, serviceId);
+      if (assistantAccount) {
+        console.log(`✅ Using assistant-specific Jira account for service ${serviceId}`);
+        jiraEmail = assistantAccount.email;
+        jiraToken = assistantAccount.token;
+        jiraUrl = assistantAccount.url;
+      }
+
+      // Validar que tengamos credenciales de Jira (propias o configuradas)
+      if (!jiraToken || !jiraEmail) {
         res.status(400).json({
           success: false,
-          error: 'User Jira credentials not configured. Please configure Jira integration in your profile.'
+          error: 'Jira credentials not configured. Please configure assistant Jira account in service settings or your profile.'
         });
         return;
       }
@@ -132,12 +147,12 @@ export class ServiceTicketController {
 
       console.log(`📋 Creating Jira ticket for service ${serviceId} in project ${projectKey} using user credentials`);
 
-      // Crear instancia de UserJiraService con las credenciales del usuario
+      // Crear instancia de UserJiraService con las credenciales correctas (propias o configuradas)
       const userJiraService = new UserJiraService(
         userId,
-        req.user.jiraToken,
-        req.user.jiraUrl || process.env.JIRA_BASE_URL || 'https://movonte.atlassian.net',
-        req.user.email
+        jiraToken,
+        jiraUrl || process.env.JIRA_BASE_URL || 'https://movonte.atlassian.net',
+        jiraEmail
       );
 
       // Crear ticket en Jira usando las credenciales del usuario

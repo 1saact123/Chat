@@ -13,6 +13,7 @@ import { ServiceValidationController } from '../controllers/service_validation_c
 import { ChatKitController } from '../controllers/chatkit_controller';
 import { CorsController } from '../controllers/cors_controller';
 import { ServiceTicketController } from '../controllers/service_ticket_controller';
+import { ServiceJiraAccountsController } from '../controllers/service_jira_accounts_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
@@ -49,6 +50,7 @@ const userWebhooksController = new UserWebhooksController();
 const serviceValidationController = new ServiceValidationController();
 const chatKitController = new ChatKitController();
 const serviceTicketController = new ServiceTicketController();
+const serviceJiraAccountsController = new ServiceJiraAccountsController();
 const corsController = new CorsController();
 
 // Function to set WebSocket server reference
@@ -266,6 +268,12 @@ router.get('/api/landing/form-fields', landingController.getLandingFormFields.bi
 // === SERVICE TICKET ROUTES ===
 router.post('/api/service/create-ticket', authenticateToken, serviceTicketController.createTicketForService.bind(serviceTicketController));
 router.get('/api/service/:serviceId/info', authenticateToken, serviceTicketController.getServiceInfo.bind(serviceTicketController));
+
+// === SERVICE JIRA ACCOUNTS ROUTES ===
+router.get('/api/service/:serviceId/jira-accounts', authenticateToken, serviceJiraAccountsController.getServiceJiraAccounts.bind(serviceJiraAccountsController));
+router.post('/api/service/:serviceId/jira-accounts', authenticateToken, serviceJiraAccountsController.upsertServiceJiraAccounts.bind(serviceJiraAccountsController));
+router.put('/api/service/:serviceId/jira-accounts', authenticateToken, serviceJiraAccountsController.upsertServiceJiraAccounts.bind(serviceJiraAccountsController));
+router.delete('/api/service/:serviceId/jira-accounts', authenticateToken, serviceJiraAccountsController.deleteServiceJiraAccounts.bind(serviceJiraAccountsController));
 
 // === CHATBOT ROUTES ===
 // Jira webhook
