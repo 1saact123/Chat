@@ -4,6 +4,7 @@ import { EmailService } from '../services/email_service';
 import { DatabaseService } from '../services/database_service';
 import { ConfigurationService } from '../services/configuration_service';
 import { WebhookService } from '../services/webhook_service';
+import { UserWebhookService } from '../services/user_webhook_service';
 import { ChatKitJiraService } from '../services/chatkit_jira_service';
 import { JiraWebhookPayload } from '../types';
 
@@ -580,7 +581,7 @@ export class ChatbotController {
           }
 
           // 🚀 FLUJO PARALELO: ENVIAR DATOS AL WEBHOOK CONFIGURADO
-          this.sendToWebhookInParallel(issueKey, this.extractTextFromADF(payload.comment.body), payload.comment.author.displayName, payload.comment.created, response, enrichedContext);
+          this.sendToWebhookInParallel(issueKey, this.extractTextFromADF(payload.comment.body), payload.comment.author.displayName, payload.comment.created, response, enrichedContext, userServiceInfo.serviceId);
         } else {
           console.log(`❌ Respuesta de asistente tradicional fallida o vacía:`, {
             success: response.success,
@@ -1157,17 +1158,35 @@ Formato el reporte de manera clara y profesional.`;
     author: string, 
     timestamp: string, 
     aiResponse: any, 
-    context: any
+    context: any,
+    serviceId: string
   ): Promise<void> {
     try {
       console.log(`🚀 Iniciando flujo paralelo de webhook para ${issueKey}...`);
       
-      // Verificar si el webhook está configurado y habilitado
-      const configService = ConfigurationService.getInstance();
-      if (!configService.isWebhookEnabled() || !configService.getWebhookUrl()) {
-        console.log(`⚠️ Webhook no configurado o deshabilitado, saltando envío paralelo`);
+      // Obtener el userId del contexto
+      const userId = context.userId || context.user?.id;
+      if (!userId) {
+        console.log(`⚠️ No se pudo obtener userId del contexto, saltando envío paralelo`);
         return;
       }
+
+      // Verificar si hay webhooks configurados para este usuario y servicio específico
+      const { UserWebhook } = await import('../models');
+      const userWebhooks = await UserWebhook.findAll({
+        where: { 
+          userId: userId, 
+          serviceId: serviceId,
+          isEnabled: true 
+        }
+      });
+
+      if (!userWebhooks || userWebhooks.length === 0) {
+        console.log(`⚠️ No hay webhooks configurados para el usuario ${userId} y servicio ${serviceId}, saltando envío paralelo`);
+        return;
+      }
+
+      console.log(`✅ Encontrados ${userWebhooks.length} webhook(s) activo(s) para el usuario ${userId} y servicio ${serviceId}`);
 
       // El filtro se aplicará después de generar la respuesta del asistente paralelo
 
@@ -1175,6 +1194,7 @@ Formato el reporte de manera clara y profesional.`;
       const webhookThreadId = `webhook_${issueKey}_${Date.now()}`;
       
       // Obtener asistentes para ambos servicios
+      const configService = ConfigurationService.getInstance();
       const landingAssistantId = configService.getActiveAssistantForService('landing-page');
       const webhookAssistantId = configService.getActiveAssistantForService('webhook-parallel');
       
@@ -1199,6 +1219,8 @@ Formato el reporte de manera clara y profesional.`;
         originalIssueKey: issueKey,
         webhookThreadId: webhookThreadId,
         source: 'webhook-parallel',
+        serviceId: serviceId, // Incluir el serviceId en el contexto
+        userId: userId, // Incluir el userId en el contexto
         // NO incluir conversationHistory para evitar interferencia
         conversationHistory: [], // Historial vacío para webhook
         previousResponses: [] // Sin respuestas previas
@@ -1233,30 +1255,31 @@ Formato el reporte de manera clara y profesional.`;
             responseLength: webhookResponse.response.length
           });
           
-          // Verificar filtro del webhook con la respuesta del asistente paralelo
+          // Verificar filtro de cada webhook con la respuesta del asistente paralelo
           console.log(`🔍 === WEBHOOK FILTER CHECK IN PARALLEL FLOW ===`);
           console.log(`📝 Parallel AI Response for filter check:`, webhookResponse.response);
-          const shouldSend = configService.shouldSendWebhook(webhookResponse.response);
-          console.log(`🔍 Should send webhook:`, shouldSend);
           
-          if (!shouldSend) {
-            console.log(`🚫 Webhook filtrado: respuesta no cumple con los criterios del filtro`);
-            console.log(`🔍 === WEBHOOK FILTER CHECK END (FILTERED) ===`);
-            return;
+          // Procesar cada webhook del usuario
+          for (const webhook of userWebhooks) {
+            const shouldSend = this.shouldSendToUserWebhook(webhook, webhookResponse.response);
+            console.log(`🔍 Webhook ${webhook.id} (${webhook.name}): shouldSend=${shouldSend}`);
+            
+            if (shouldSend) {
+              console.log(`✅ Enviando a webhook ${webhook.id} (${webhook.name})`);
+              await webhookService.sendAIResponseToWebhook(
+                issueKey,
+                originalMessage,
+                webhookResponse.response,
+                webhookThreadId,
+                webhookResponse.assistantId || finalWebhookAssistantId || 'default',
+                webhookResponse.assistantName || 'Webhook Assistant',
+                webhookContext,
+                webhook.url // Usar la URL específica del webhook
+              );
+            } else {
+              console.log(`🚫 Webhook ${webhook.id} (${webhook.name}) filtrado: respuesta no cumple con los criterios del filtro`);
+            }
           }
-          console.log(`✅ Webhook filter passed, proceeding with webhook send`);
-          console.log(`🔍 === WEBHOOK FILTER CHECK END (PASSED) ===`);
-          
-          // Enviar datos al webhook
-          await webhookService.sendAIResponseToWebhook(
-            issueKey,
-            originalMessage,
-            webhookResponse.response,
-            webhookThreadId,
-            webhookResponse.assistantId || finalWebhookAssistantId || 'default',
-            webhookResponse.assistantName || 'Webhook Assistant',
-            webhookContext
-          );
         }
       } else {
         // Usar la misma respuesta de IA pero enviar al webhook
@@ -1269,29 +1292,31 @@ Formato el reporte de manera clara y profesional.`;
           responsePreview: aiResponse.response ? aiResponse.response.substring(0, 100) + '...' : 'No response'
         });
         
-        // Verificar filtro del webhook con la respuesta reutilizada
+        // Verificar filtro de cada webhook con la respuesta reutilizada
         console.log(`🔍 === WEBHOOK FILTER CHECK IN PARALLEL FLOW (REUSED) ===`);
         console.log(`📝 Reused AI Response for filter check:`, aiResponse.response);
-        const shouldSend = configService.shouldSendWebhook(aiResponse.response);
-        console.log(`🔍 Should send webhook:`, shouldSend);
         
-        if (!shouldSend) {
-          console.log(`🚫 Webhook filtrado: respuesta no cumple con los criterios del filtro`);
-          console.log(`🔍 === WEBHOOK FILTER CHECK END (FILTERED) ===`);
-          return;
+        // Procesar cada webhook del usuario
+        for (const webhook of userWebhooks) {
+          const shouldSend = this.shouldSendToUserWebhook(webhook, aiResponse.response);
+          console.log(`🔍 Webhook ${webhook.id} (${webhook.name}): shouldSend=${shouldSend}`);
+          
+          if (shouldSend) {
+            console.log(`✅ Enviando a webhook ${webhook.id} (${webhook.name})`);
+            await webhookService.sendAIResponseToWebhook(
+              issueKey,
+              originalMessage,
+              aiResponse.response,
+              webhookThreadId,
+              aiResponse.assistantId || finalWebhookAssistantId || 'default',
+              aiResponse.assistantName || 'AI Assistant',
+              webhookContext,
+              webhook.url // Usar la URL específica del webhook
+            );
+          } else {
+            console.log(`🚫 Webhook ${webhook.id} (${webhook.name}) filtrado: respuesta no cumple con los criterios del filtro`);
+          }
         }
-        console.log(`✅ Webhook filter passed, proceeding with webhook send`);
-        console.log(`🔍 === WEBHOOK FILTER CHECK END (PASSED) ===`);
-        
-        await webhookService.sendAIResponseToWebhook(
-          issueKey,
-          originalMessage,
-          aiResponse.response,
-          webhookThreadId,
-          aiResponse.assistantId || finalWebhookAssistantId || 'default',
-          aiResponse.assistantName || 'AI Assistant',
-          webhookContext
-        );
       }
 
       console.log(`✅ Flujo paralelo de webhook completado para ${issueKey}`);
@@ -1384,5 +1409,52 @@ Formato el reporte de manera clara y profesional.`;
     } catch (error) {
       console.error('❌ Error procesando cambio de estado:', error);
     }
+  }
+
+  // 🔍 MÉTODO HELPER PARA VERIFICAR SI DEBE ENVIAR A UN WEBHOOK ESPECÍFICO
+  private shouldSendToUserWebhook(webhook: any, assistantResponse: any): boolean {
+    console.log(`🔍 === USER WEBHOOK FILTER CHECK START (Webhook ${webhook.id}) ===`);
+    console.log(`📋 Webhook config:`, {
+      id: webhook.id,
+      name: webhook.name,
+      isEnabled: webhook.isEnabled,
+      filterEnabled: webhook.filterEnabled,
+      filterCondition: webhook.filterCondition,
+      filterValue: webhook.filterValue
+    });
+    console.log(`📝 Assistant response:`, assistantResponse);
+
+    if (!webhook.isEnabled) {
+      console.log(`❌ Webhook not enabled`);
+      return false;
+    }
+
+    if (!webhook.filterEnabled) {
+      console.log(`✅ Filter disabled, sending webhook`);
+      return true;
+    }
+
+    // Extraer el valor del JSON de respuesta del asistente
+    let responseValue = null;
+    try {
+      if (typeof assistantResponse === 'string') {
+        const parsed = JSON.parse(assistantResponse);
+        responseValue = parsed.value;
+      } else if (typeof assistantResponse === 'object' && assistantResponse?.value) {
+        responseValue = assistantResponse.value;
+      }
+    } catch (error) {
+      console.log(`⚠️ Could not parse assistant response as JSON`);
+    }
+
+    console.log(`📝 Extracted response value: "${responseValue}"`);
+    
+    // LÓGICA: Solo enviar si el valor de la respuesta coincide con el filtro configurado
+    const shouldSend = responseValue === webhook.filterValue;
+    
+    console.log(`🔍 Filter logic: responseValue="${responseValue}", filterValue="${webhook.filterValue}", shouldSend=${shouldSend}`);
+    console.log(`🔍 === USER WEBHOOK FILTER CHECK END ===`);
+    
+    return shouldSend;
   }
 }

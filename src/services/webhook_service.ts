@@ -32,9 +32,9 @@ export class WebhookService {
   /**
    * Envía datos al webhook configurado
    */
-  async sendToWebhook(payload: WebhookPayload): Promise<{ success: boolean; error?: string }> {
+  async sendToWebhook(payload: WebhookPayload, customWebhookUrl?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const webhookUrl = this.configService.getWebhookUrl();
+      const webhookUrl = customWebhookUrl || this.configService.getWebhookUrl();
       
       if (!webhookUrl) {
         console.log('⚠️ No webhook URL configured, skipping webhook send');
@@ -189,7 +189,8 @@ export class WebhookService {
     threadId: string,
     assistantId: string,
     assistantName: string,
-    context?: any
+    context?: any,
+    customWebhookUrl?: string
   ): Promise<{ success: boolean; error?: string }> {
     const payload: WebhookPayload = {
       issueKey,
@@ -204,6 +205,6 @@ export class WebhookService {
       context
     };
 
-    return await this.sendToWebhook(payload);
+    return await this.sendToWebhook(payload, customWebhookUrl);
   }
 }
