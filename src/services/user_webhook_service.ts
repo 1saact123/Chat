@@ -149,44 +149,41 @@ export class UserWebhookService {
         headers['X-Webhook-Token'] = webhook.token;
       }
 
-      // Crear payload compatible con webhooks de Atlassian Automation
+      // Crear payload simple y compatible con webhooks de Atlassian Automation
       const webhookPayload = {
-        // Información básica del evento
-        eventType: 'jira_comment_created',
+        // Datos básicos del evento
+        event: 'comment_created',
         timestamp: new Date().toISOString(),
         
         // Información del issue
         issue: {
           key: payload.issueKey,
-          summary: 'Ticket from Movonte ChatBot',
+          id: payload.issue?.id || null,
+          summary: payload.issue?.fields?.summary || 'No summary',
           project: {
-            key: payload.issueKey?.split('-')[0] || 'TEST'
+            key: payload.issue?.fields?.project?.key || 'TEST',
+            name: payload.issue?.fields?.project?.name || 'Test Project'
           }
         },
         
-        // Información del comentario/autor
+        // Información del comentario
         comment: {
+          id: payload.comment?.id || null,
+          body: payload.originalMessage || payload.comment?.body || '',
           author: {
-            displayName: payload.authorName,
-            accountId: payload.authorName // Usar el nombre como accountId temporal
+            displayName: payload.authorName || payload.comment?.author?.displayName || 'Unknown',
+            accountId: payload.comment?.author?.accountId || null
           },
-          body: payload.originalMessage,
-          created: payload.timestamp
+          created: payload.timestamp || payload.comment?.created || new Date().toISOString()
         },
         
-        // Información del servicio Movonte
+        // Información de Movonte
         movonte: {
           userId: payload.userId,
           serviceId: payload.serviceId,
           webhookId: webhook.id,
-          webhookName: webhook.name
-        },
-        
-        // Datos adicionales para automatización
-        automation: {
-          trigger: 'chatbot_response',
-          source: 'movonte_chatbot',
-          action: 'process_comment'
+          webhookName: webhook.name,
+          source: 'chatbot_parallel_webhook'
         }
       };
 
