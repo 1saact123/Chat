@@ -447,14 +447,14 @@ router.post('/api/admin/webhook/filter', authenticateToken, requirePermission('w
 // Probar filtro del webhook
 router.post('/api/admin/webhook/test-filter', authenticateToken, requirePermission('webhookConfiguration'), adminController.testWebhookFilter.bind(adminController));
 
-// Obtener webhooks guardados
-router.get('/api/admin/webhooks/saved', authenticateToken, requirePermission('webhookConfiguration'), adminController.getSavedWebhooks.bind(adminController));
+// Obtener webhooks guardados (admin)
+router.get('/api/admin/webhooks/saved', authenticateToken, requirePermission('webhookConfiguration'), adminWebhooksController.getAllWebhooks.bind(adminWebhooksController));
 
-// Guardar nuevo webhook
-router.post('/api/admin/webhooks/save', authenticateToken, requirePermission('webhookConfiguration'), adminController.saveWebhook.bind(adminController));
+// Guardar nuevo webhook (admin)
+router.post('/api/admin/webhooks/save', authenticateToken, requirePermission('webhookConfiguration'), adminWebhooksController.createWebhook.bind(adminWebhooksController));
 
-// Eliminar webhook guardado
-router.delete('/api/admin/webhooks/:id', authenticateToken, requirePermission('webhookConfiguration'), adminController.deleteSavedWebhook.bind(adminController));
+// Eliminar webhook guardado (admin)
+router.delete('/api/admin/webhooks/:id', authenticateToken, requirePermission('webhookConfiguration'), adminWebhooksController.deleteWebhook.bind(adminWebhooksController));
 
 // === STATUS-BASED DISABLE ROUTES - PROTECTED ===
 // Configurar deshabilitación basada en estados

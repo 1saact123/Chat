@@ -1064,15 +1064,42 @@ export class AdminController {
     }
   }
 
-  // Obtener webhooks guardados
+  // Obtener webhooks guardados (ahora usando user_webhooks)
   async getSavedWebhooks(req: Request, res: Response): Promise<void> {
     try {
-      const dbService = DatabaseService.getInstance();
-      const savedWebhooks = await dbService.getAllSavedWebhooks();
+      const { UserWebhook } = await import('../models');
+      const { sequelize } = await import('../config/database');
+
+      // Obtener todos los webhooks con información de servicios
+      const [webhooks] = await sequelize.query(`
+        SELECT 
+          uw.id,
+          uw.user_id as userId,
+          uw.service_id as serviceId,
+          uw.assistant_id as assistantId,
+          uw.token,
+          uw.name,
+          uw.url,
+          uw.description,
+          uw.is_enabled as isEnabled,
+          uw.filter_enabled as filterEnabled,
+          uw.filter_condition as filterCondition,
+          uw.filter_value as filterValue,
+          uw.created_at as createdAt,
+          uw.updated_at as updatedAt,
+          uc.service_name as serviceName,
+          u.email as userEmail
+        FROM user_webhooks uw
+        LEFT JOIN unified_configurations uc 
+          ON CAST(uw.service_id AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(uc.service_id AS CHAR) COLLATE utf8mb4_unicode_ci
+          AND uw.user_id = uc.user_id
+        LEFT JOIN users u ON uw.user_id = u.id
+        ORDER BY uw.is_enabled DESC, uw.created_at DESC
+      `);
 
       res.json({
         success: true,
-        data: savedWebhooks,
+        data: { webhooks },
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -1084,10 +1111,28 @@ export class AdminController {
     }
   }
 
-  // Guardar nuevo webhook
+  // Guardar nuevo webhook (ahora usando user_webhooks)
   async saveWebhook(req: Request, res: Response): Promise<void> {
     try {
-      const { name, url, description } = req.body;
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: 'Usuario no autenticado'
+        });
+        return;
+      }
+
+      const { 
+        name, 
+        url, 
+        description, 
+        serviceId, 
+        assistantId, 
+        token, 
+        filterEnabled, 
+        filterCondition, 
+        filterValue 
+      } = req.body;
 
       if (!name || !url) {
         res.status(400).json({
@@ -1097,12 +1142,19 @@ export class AdminController {
         return;
       }
 
-      const dbService = DatabaseService.getInstance();
-      const savedWebhook = await dbService.createSavedWebhook({
+      const { UserWebhook } = await import('../models');
+      const savedWebhook = await UserWebhook.create({
+        userId: req.user.id, // Admin's ID
+        serviceId: serviceId || null,
+        assistantId: assistantId || null,
+        token: token || null,
         name,
         url,
         description: description || null,
-        isActive: true
+        isEnabled: true,
+        filterEnabled: filterEnabled || false,
+        filterCondition: filterCondition || null,
+        filterValue: filterValue || null
       });
 
       res.json({
@@ -1120,7 +1172,7 @@ export class AdminController {
     }
   }
 
-  // Eliminar webhook guardado
+  // Eliminar webhook guardado (ahora usando user_webhooks)
   async deleteSavedWebhook(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
@@ -1133,21 +1185,24 @@ export class AdminController {
         return;
       }
 
-      const dbService = DatabaseService.getInstance();
-      const deleted = await dbService.deleteSavedWebhook(Number(id));
+      const { UserWebhook } = await import('../models');
+      const webhook = await UserWebhook.findByPk(id);
 
-      if (deleted) {
-        res.json({
-          success: true,
-          message: 'Webhook deleted successfully',
-          timestamp: new Date().toISOString()
-        });
-      } else {
+      if (!webhook) {
         res.status(404).json({
           success: false,
           error: 'Webhook not found'
         });
+        return;
       }
+
+      await webhook.destroy();
+
+      res.json({
+        success: true,
+        message: 'Webhook deleted successfully',
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       console.error('❌ Error eliminando webhook:', error);
       res.status(500).json({
