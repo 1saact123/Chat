@@ -315,7 +315,12 @@ export class UserWebhooksController {
           uc.service_name as serviceName
         FROM user_webhooks uw
         LEFT JOIN unified_configurations uc 
-          ON uw.service_id = uc.service_id AND uw.user_id = uc.user_id
+          ON (
+            (uw.service_id IS NULL AND uc.service_id IS NULL)
+            OR (uw.service_id IS NOT NULL AND uc.service_id IS NOT NULL 
+                AND uw.service_id COLLATE utf8mb4_unicode_ci = uc.service_id COLLATE utf8mb4_unicode_ci)
+          )
+          AND uw.user_id = uc.user_id
         WHERE uw.user_id = ?
         ORDER BY uw.is_enabled DESC, uw.created_at DESC
       `, {
