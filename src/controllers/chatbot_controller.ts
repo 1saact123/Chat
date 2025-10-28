@@ -350,6 +350,39 @@ export class ChatbotController {
           return;
         }
         
+        // 🚀 EJECUTAR WEBHOOKS PARALELOS ANTES DEL THROTTLING
+        // Los webhooks paralelos deben ejecutarse independientemente del throttling
+        try {
+          console.log(`🚀 Ejecutando webhooks paralelos para ${issueKey}...`);
+          const userWebhookService = UserWebhookService.getInstance();
+          
+          // Obtener información del usuario y servicio
+          const { User } = await import('../models');
+          const user = await User.findByPk(userServiceInfo.userId);
+          if (user) {
+            // Crear contexto para webhooks
+            const webhookContext = {
+              userId: user.id,
+              serviceId: userServiceInfo.serviceId,
+              issueKey: issueKey,
+              authorName: payload.comment.author.displayName,
+              originalMessage: this.extractTextFromADF(payload.comment.body),
+              timestamp: payload.comment.created
+            };
+            
+            // Ejecutar webhooks paralelos (sin esperar respuesta del asistente)
+            await userWebhookService.executeUserWebhooks(
+              user.id,
+              userServiceInfo.serviceId,
+              { value: 'Yes' }, // Respuesta simulada para webhooks que no requieren filtro
+              webhookContext
+            );
+          }
+        } catch (webhookError) {
+          console.error('❌ Error ejecutando webhooks paralelos:', webhookError);
+          // No fallar el webhook principal por errores en webhooks paralelos
+        }
+
         // Sistema de throttling para evitar respuestas muy rápidas
         const nowTimestamp = Date.now();
         const lastResponse = this.lastResponseTime.get(issueKey) || 0;
