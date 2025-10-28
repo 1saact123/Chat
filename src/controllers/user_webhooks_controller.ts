@@ -274,7 +274,7 @@ export class UserWebhooksController {
     }
   }
 
-  // Obtener webhooks guardados del usuario
+  // Obtener webhooks guardados del usuario (ahora incluyendo webhooks paralelos activos)
   async getSavedWebhooks(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -294,19 +294,43 @@ export class UserWebhooksController {
         return;
       }
 
-      // Obtener webhooks guardados específicos del usuario
-      const dbService = DatabaseService.getInstance();
-      const savedWebhooks = await dbService.getUserSavedWebhooks(user.id);
+      // Obtener TODOS los webhooks del usuario (activos e inactivos) desde user_webhooks
+      const { sequelize } = await import('../config/database');
+      const [webhooks] = await sequelize.query(`
+        SELECT 
+          uw.id,
+          uw.user_id as userId,
+          uw.service_id as serviceId,
+          uw.jira_project_key as jiraProjectKey,
+          uw.assistant_id as assistantId,
+          uw.name,
+          uw.url,
+          uw.description,
+          uw.is_enabled as isEnabled,
+          uw.filter_enabled as filterEnabled,
+          uw.filter_condition as filterCondition,
+          uw.filter_value as filterValue,
+          uw.created_at as createdAt,
+          uw.updated_at as updatedAt,
+          uc.service_name as serviceName
+        FROM user_webhooks uw
+        LEFT JOIN unified_configurations uc 
+          ON uw.service_id = uc.service_id AND uw.user_id = uc.user_id
+        WHERE uw.user_id = ?
+        ORDER BY uw.is_enabled DESC, uw.created_at DESC
+      `, {
+        replacements: [user.id]
+      });
 
       res.json({
         success: true,
         data: {
-          webhooks: savedWebhooks
+          webhooks: webhooks
         },
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      console.error('❌ Error obteniendo webhooks guardados del usuario:', error);
+      console.error('❌ Error obteniendo webhooks del usuario:', error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
@@ -314,7 +338,7 @@ export class UserWebhooksController {
     }
   }
 
-  // Guardar webhook del usuario
+  // Guardar webhook del usuario con soporte para servicios y proyectos específicos
   async saveWebhook(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -325,7 +349,17 @@ export class UserWebhooksController {
         return;
       }
 
-      const { name, url, description } = req.body;
+      const { 
+        name, 
+        url, 
+        description, 
+        serviceId, 
+        jiraProjectKey, 
+        assistantId,
+        filterEnabled,
+        filterCondition,
+        filterValue 
+      } = req.body;
 
       if (!name || !url) {
         res.status(400).json({
@@ -344,24 +378,188 @@ export class UserWebhooksController {
         return;
       }
 
-      const dbService = DatabaseService.getInstance();
-      const savedWebhook = await dbService.saveUserWebhook(user.id, {
+      // Verificar que el servicio pertenece al usuario si se especifica
+      if (serviceId) {
+        const { sequelize } = await import('../config/database');
+        const [services] = await sequelize.query(`
+          SELECT id FROM unified_configurations
+          WHERE user_id = ? AND service_id = ?
+          LIMIT 1
+        `, {
+          replacements: [user.id, serviceId]
+        });
+
+        if ((services as any[]).length === 0) {
+          res.status(400).json({
+            success: false,
+            error: 'El servicio especificado no existe o no pertenece a tu usuario'
+          });
+          return;
+        }
+      }
+
+      // Crear webhook en user_webhooks
+      const { UserWebhook } = await import('../models');
+      const savedWebhook = await UserWebhook.create({
+        userId: user.id,
+        serviceId: serviceId || null,
+        jiraProjectKey: jiraProjectKey || null,
+        assistantId: assistantId || null,
         name,
         url,
-        description: description || '',
-        isActive: true
+        description: description || null,
+        isEnabled: true,
+        filterEnabled: filterEnabled || false,
+        filterCondition: filterCondition || null,
+        filterValue: filterValue || null
+      });
+
+      console.log(`✅ Webhook creado para usuario ${user.id}:`, {
+        id: savedWebhook.id,
+        name,
+        serviceId,
+        jiraProjectKey
       });
 
       res.json({
         success: true,
         message: 'Webhook guardado exitosamente',
         data: {
-          webhook: savedWebhook
+          id: savedWebhook.id,
+          userId: savedWebhook.userId,
+          serviceId: savedWebhook.serviceId,
+          jiraProjectKey: savedWebhook.jiraProjectKey,
+          assistantId: savedWebhook.assistantId,
+          name: savedWebhook.name,
+          url: savedWebhook.url,
+          description: savedWebhook.description,
+          isEnabled: savedWebhook.isEnabled,
+          filterEnabled: savedWebhook.filterEnabled,
+          createdAt: savedWebhook.createdAt
         },
         timestamp: new Date().toISOString()
       });
     } catch (error) {
       console.error('❌ Error guardando webhook del usuario:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      });
+    }
+  }
+
+  // Actualizar webhook del usuario
+  async updateWebhook(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: 'Usuario no autenticado'
+        });
+        return;
+      }
+
+      const { id } = req.params;
+      const { 
+        name, 
+        url, 
+        description, 
+        serviceId, 
+        jiraProjectKey, 
+        assistantId,
+        isEnabled,
+        filterEnabled,
+        filterCondition,
+        filterValue 
+      } = req.body;
+
+      if (!id || isNaN(Number(id))) {
+        res.status(400).json({
+          success: false,
+          error: 'ID de webhook inválido'
+        });
+        return;
+      }
+
+      const user = await User.findByPk(req.user.id);
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: 'Usuario no encontrado'
+        });
+        return;
+      }
+
+      // Verificar que el webhook pertenece al usuario
+      const { UserWebhook } = await import('../models');
+      const existingWebhook = await UserWebhook.findOne({
+        where: { id: Number(id), userId: user.id }
+      });
+
+      if (!existingWebhook) {
+        res.status(404).json({
+          success: false,
+          error: 'Webhook no encontrado o no pertenece al usuario'
+        });
+        return;
+      }
+
+      // Verificar que el servicio pertenece al usuario si se especifica
+      if (serviceId) {
+        const { sequelize } = await import('../config/database');
+        const [services] = await sequelize.query(`
+          SELECT id FROM unified_configurations
+          WHERE user_id = ? AND service_id = ?
+          LIMIT 1
+        `, {
+          replacements: [user.id, serviceId]
+        });
+
+        if ((services as any[]).length === 0) {
+          res.status(400).json({
+            success: false,
+            error: 'El servicio especificado no existe o no pertenece a tu usuario'
+          });
+          return;
+        }
+      }
+
+      // Actualizar webhook
+      await existingWebhook.update({
+        name: name !== undefined ? name : existingWebhook.name,
+        url: url !== undefined ? url : existingWebhook.url,
+        description: description !== undefined ? description : existingWebhook.description,
+        serviceId: serviceId !== undefined ? (serviceId || null) : existingWebhook.serviceId,
+        jiraProjectKey: jiraProjectKey !== undefined ? (jiraProjectKey || null) : existingWebhook.jiraProjectKey,
+        assistantId: assistantId !== undefined ? (assistantId || null) : existingWebhook.assistantId,
+        isEnabled: isEnabled !== undefined ? isEnabled : existingWebhook.isEnabled,
+        filterEnabled: filterEnabled !== undefined ? filterEnabled : existingWebhook.filterEnabled,
+        filterCondition: filterCondition !== undefined ? (filterCondition || null) : existingWebhook.filterCondition,
+        filterValue: filterValue !== undefined ? (filterValue || null) : existingWebhook.filterValue
+      });
+
+      console.log(`✅ Webhook ${id} actualizado para usuario ${user.id}`);
+
+      res.json({
+        success: true,
+        message: 'Webhook actualizado exitosamente',
+        data: {
+          id: existingWebhook.id,
+          userId: existingWebhook.userId,
+          serviceId: existingWebhook.serviceId,
+          jiraProjectKey: existingWebhook.jiraProjectKey,
+          assistantId: existingWebhook.assistantId,
+          name: existingWebhook.name,
+          url: existingWebhook.url,
+          description: existingWebhook.description,
+          isEnabled: existingWebhook.isEnabled,
+          filterEnabled: existingWebhook.filterEnabled,
+          updatedAt: existingWebhook.updatedAt
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error actualizando webhook del usuario:', error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'

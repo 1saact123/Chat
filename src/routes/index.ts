@@ -159,6 +159,9 @@ router.get('/api/user/webhooks/saved', authenticateToken, userWebhooksController
 // Guardar webhook del usuario
 router.post('/api/user/webhooks/save', authenticateToken, userWebhooksController.saveWebhook.bind(userWebhooksController));
 
+// Actualizar webhook del usuario
+router.put('/api/user/webhooks/:id', authenticateToken, userWebhooksController.updateWebhook.bind(userWebhooksController));
+
 // Eliminar webhook guardado del usuario
 router.delete('/api/user/webhooks/:id', authenticateToken, userWebhooksController.deleteWebhook.bind(userWebhooksController));
 
