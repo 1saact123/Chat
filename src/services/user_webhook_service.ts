@@ -149,7 +149,48 @@ export class UserWebhookService {
         headers['X-Webhook-Token'] = webhook.token;
       }
 
-      const response = await axios.default.post(webhook.url, payload, {
+      // Crear payload compatible con webhooks de Atlassian Automation
+      const webhookPayload = {
+        // Información básica del evento
+        eventType: 'jira_comment_created',
+        timestamp: new Date().toISOString(),
+        
+        // Información del issue
+        issue: {
+          key: payload.issueKey,
+          summary: 'Ticket from Movonte ChatBot',
+          project: {
+            key: payload.issueKey?.split('-')[0] || 'TEST'
+          }
+        },
+        
+        // Información del comentario/autor
+        comment: {
+          author: {
+            displayName: payload.authorName,
+            accountId: payload.authorName // Usar el nombre como accountId temporal
+          },
+          body: payload.originalMessage,
+          created: payload.timestamp
+        },
+        
+        // Información del servicio Movonte
+        movonte: {
+          userId: payload.userId,
+          serviceId: payload.serviceId,
+          webhookId: webhook.id,
+          webhookName: webhook.name
+        },
+        
+        // Datos adicionales para automatización
+        automation: {
+          trigger: 'chatbot_response',
+          source: 'movonte_chatbot',
+          action: 'process_comment'
+        }
+      };
+
+      const response = await axios.default.post(webhook.url, webhookPayload, {
         headers,
         timeout: 10000 // 10 segundos timeout
       });
