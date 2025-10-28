@@ -143,49 +143,77 @@ export class UserWebhookService {
         'X-Webhook-Id': webhook.id.toString()
       };
 
-      // Agregar token de autenticación si está configurado
-      if (webhook.token) {
-        headers['Authorization'] = `Bearer ${webhook.token}`;
-        headers['X-Webhook-Token'] = webhook.token;
-      }
 
-      // Crear payload simple y compatible con webhooks de Atlassian Automation
-      const webhookPayload = {
-        // Datos básicos del evento
-        event: 'comment_created',
-        timestamp: new Date().toISOString(),
-        
-        // Información del issue
-        issue: {
-          key: payload.issueKey,
-          id: payload.issue?.id || null,
-          summary: payload.issue?.fields?.summary || 'No summary',
-          project: {
-            key: payload.issue?.fields?.project?.key || 'TEST',
-            name: payload.issue?.fields?.project?.name || 'Test Project'
+      // Determinar si es un webhook de Jira Automation
+      const isJiraAutomation = webhook.url.includes('api-private.atlassian.com/automation/webhooks');
+      
+      let webhookPayload: any;
+      
+      if (isJiraAutomation) {
+        // Formato para Jira Automation webhook (que funcionaba antes)
+        webhookPayload = {
+          issues: [payload.issueKey],
+          webhookData: {
+            message: payload.originalMessage,
+            author: payload.authorName,
+            timestamp: payload.timestamp,
+            source: 'jira-comment',
+            threadId: `webhook_${payload.issueKey}_${Date.now()}`,
+            assistantId: webhook.assistantId || 'default',
+            assistantName: webhook.name,
+            response: 'Webhook triggered by Movonte ChatBot',
+            context: {
+              isWebhookFlow: true,
+              originalIssueKey: payload.issueKey,
+              userId: payload.userId,
+              serviceId: payload.serviceId,
+              webhookId: webhook.id
+            },
+            originalIssueKey: payload.issueKey,
+            shouldUpdateExisting: true,
+            action: 'add_comment',
+            instruction: 'Add this as a comment to the existing ticket, do not create a new ticket'
           }
-        },
+        };
         
-        // Información del comentario
-        comment: {
-          id: payload.comment?.id || null,
-          body: payload.originalMessage || payload.comment?.body || '',
-          author: {
-            displayName: payload.authorName || payload.comment?.author?.displayName || 'Unknown',
-            accountId: payload.comment?.author?.accountId || null
-          },
-          created: payload.timestamp || payload.comment?.created || new Date().toISOString()
-        },
-        
-        // Información de Movonte
-        movonte: {
-          userId: payload.userId,
-          serviceId: payload.serviceId,
-          webhookId: webhook.id,
-          webhookName: webhook.name,
-          source: 'chatbot_parallel_webhook'
+        // Agregar token de automation si está configurado
+        if (webhook.token) {
+          headers['X-Automation-Webhook-Token'] = webhook.token;
         }
-      };
+        
+        console.log(`🤖 Enviando a Jira Automation webhook con formato especial`);
+      } else {
+        // Formato estándar para webhooks REST
+        webhookPayload = {
+          event: 'comment_created',
+          timestamp: new Date().toISOString(),
+          issue: {
+            key: payload.issueKey,
+            summary: 'Ticket from Movonte ChatBot'
+          },
+          comment: {
+            body: payload.originalMessage,
+            author: {
+              displayName: payload.authorName
+            },
+            created: payload.timestamp
+          },
+          movonte: {
+            userId: payload.userId,
+            serviceId: payload.serviceId,
+            webhookId: webhook.id,
+            webhookName: webhook.name
+          }
+        };
+        
+        // Agregar token de autenticación si está configurado
+        if (webhook.token) {
+          headers['Authorization'] = `Bearer ${webhook.token}`;
+          headers['X-Webhook-Token'] = webhook.token;
+        }
+        
+        console.log(`📡 Enviando a webhook REST estándar`);
+      }
 
       const response = await axios.default.post(webhook.url, webhookPayload, {
         headers,
