@@ -9,6 +9,7 @@ import { UserController } from '../controllers/user_controller';
 import { UserServiceController } from '../controllers/user_service_controller';
 import { UserTicketsController } from '../controllers/user_tickets_controller';
 import { UserWebhooksController } from '../controllers/user_webhooks_controller';
+import { AdminWebhooksController } from '../controllers/admin_webhooks_controller';
 import { ServiceValidationController } from '../controllers/service_validation_controller';
 import { ChatKitController } from '../controllers/chatkit_controller';
 import { CorsController } from '../controllers/cors_controller';
@@ -47,6 +48,7 @@ const userController = new UserController();
 const userServiceController = new UserServiceController();
 const userTicketsController = new UserTicketsController();
 const userWebhooksController = new UserWebhooksController();
+const adminWebhooksController = new AdminWebhooksController();
 const serviceValidationController = new ServiceValidationController();
 const chatKitController = new ChatKitController();
 const serviceTicketController = new ServiceTicketController();
@@ -164,6 +166,19 @@ router.put('/api/user/webhooks/:id', authenticateToken, userWebhooksController.u
 
 // Eliminar webhook guardado del usuario
 router.delete('/api/user/webhooks/:id', authenticateToken, userWebhooksController.deleteWebhook.bind(userWebhooksController));
+
+// === ADMIN WEBHOOKS ROUTES ===
+// Obtener todos los webhooks (admin)
+router.get('/api/admin/webhooks/all', authenticateToken, requirePermission('webhookConfiguration'), adminWebhooksController.getAllWebhooks.bind(adminWebhooksController));
+
+// Crear webhook como admin
+router.post('/api/admin/webhooks/create', authenticateToken, requirePermission('webhookConfiguration'), adminWebhooksController.createWebhook.bind(adminWebhooksController));
+
+// Actualizar webhook como admin
+router.put('/api/admin/webhooks/:id', authenticateToken, requirePermission('webhookConfiguration'), adminWebhooksController.updateWebhook.bind(adminWebhooksController));
+
+// Eliminar webhook como admin
+router.delete('/api/admin/webhooks/:id', authenticateToken, requirePermission('webhookConfiguration'), adminWebhooksController.deleteWebhook.bind(adminWebhooksController));
 
 // === SERVICE VALIDATION ROUTES ===
 // Crear solicitud de validación de servicio

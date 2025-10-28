@@ -520,8 +520,8 @@ export interface UserWebhookAttributes {
   id?: number;
   userId: number;
   serviceId?: string; // Vinculación con unified_configurations
-  jiraProjectKey?: string; // Proyecto de Jira destino
   assistantId?: string; // Asistente específico (opcional)
+  token?: string; // Token de autenticación para el webhook
   name: string;
   url: string;
   description?: string;
@@ -540,8 +540,8 @@ export class UserWebhook extends Model<UserWebhookAttributes, UserWebhookCreatio
   public id!: number;
   public userId!: number;
   public serviceId?: string;
-  public jiraProjectKey?: string;
   public assistantId?: string;
+  public token?: string;
   public name!: string;
   public url!: string;
   public description?: string;
@@ -634,15 +634,15 @@ UserWebhook.init({
     allowNull: true,
     comment: 'ID del servicio al que pertenece este webhook'
   },
-  jiraProjectKey: {
-    type: DataTypes.STRING(50),
-    allowNull: true,
-    comment: 'Clave del proyecto de Jira destino'
-  },
   assistantId: {
     type: DataTypes.STRING(255),
     allowNull: true,
     comment: 'ID del asistente específico para este webhook'
+  },
+  token: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    comment: 'Token de autenticación para el webhook'
   },
   name: {
     type: DataTypes.STRING(255),

@@ -5,8 +5,8 @@ export interface UserWebhook {
   userId: number;
   serviceId?: string;
   serviceName?: string;
-  jiraProjectKey?: string;
   assistantId?: string;
+  token?: string;
   name: string;
   url: string;
   description?: string;
@@ -34,11 +34,10 @@ export class UserWebhookService {
    */
   async getActiveWebhooksForUser(
     userId: number, 
-    serviceId?: string, 
-    jiraProjectKey?: string
+    serviceId?: string
   ): Promise<UserWebhook[]> {
     try {
-      console.log(`🔍 Buscando webhooks activos para usuario ${userId}, servicio: ${serviceId}, proyecto: ${jiraProjectKey}`);
+      console.log(`🔍 Buscando webhooks activos para usuario ${userId}, servicio: ${serviceId}`);
       
       let whereClause = 'uw.user_id = ? AND uw.is_enabled = true';
       const replacements: any[] = [userId];
@@ -48,18 +47,13 @@ export class UserWebhookService {
         replacements.push(serviceId);
       }
 
-      if (jiraProjectKey) {
-        whereClause += ' AND (uw.jira_project_key IS NULL OR uw.jira_project_key = ?)';
-        replacements.push(jiraProjectKey);
-      }
-
       const [webhooks] = await sequelize.query(`
         SELECT 
           uw.id,
           uw.user_id as userId,
           uw.service_id as serviceId,
-          uw.jira_project_key as jiraProjectKey,
           uw.assistant_id as assistantId,
+          uw.token,
           uw.name,
           uw.url,
           uw.description,
@@ -142,13 +136,21 @@ export class UserWebhookService {
       console.log(`🚀 Ejecutando webhook: ${webhook.name} (${webhook.url})`);
       
       const axios = await import('axios');
+      const headers: any = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Movonte-User-Webhook/1.0',
+        'X-Webhook-Name': webhook.name,
+        'X-Webhook-Id': webhook.id.toString()
+      };
+
+      // Agregar token de autenticación si está configurado
+      if (webhook.token) {
+        headers['Authorization'] = `Bearer ${webhook.token}`;
+        headers['X-Webhook-Token'] = webhook.token;
+      }
+
       const response = await axios.default.post(webhook.url, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Movonte-User-Webhook/1.0',
-          'X-Webhook-Name': webhook.name,
-          'X-Webhook-Id': webhook.id.toString()
-        },
+        headers,
         timeout: 10000 // 10 segundos timeout
       });
 
@@ -171,15 +173,14 @@ export class UserWebhookService {
   async executeUserWebhooks(
     userId: number,
     serviceId: string,
-    jiraProjectKey: string,
     assistantResponse: any,
     payload: any
   ): Promise<void> {
     try {
-      console.log(`🚀 Ejecutando webhooks paralelos para usuario ${userId}, servicio ${serviceId}, proyecto ${jiraProjectKey}`);
+      console.log(`🚀 Ejecutando webhooks paralelos para usuario ${userId}, servicio ${serviceId}`);
       
       // Obtener webhooks activos para este contexto
-      const activeWebhooks = await this.getActiveWebhooksForUser(userId, serviceId, jiraProjectKey);
+      const activeWebhooks = await this.getActiveWebhooksForUser(userId, serviceId);
       
       if (activeWebhooks.length === 0) {
         console.log(`⚠️ No hay webhooks activos para este contexto`);

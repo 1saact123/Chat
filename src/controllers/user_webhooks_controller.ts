@@ -301,8 +301,8 @@ export class UserWebhooksController {
           uw.id,
           uw.user_id as userId,
           uw.service_id as serviceId,
-          uw.jira_project_key as jiraProjectKey,
           uw.assistant_id as assistantId,
+          uw.token,
           uw.name,
           uw.url,
           uw.description,
@@ -350,16 +350,16 @@ export class UserWebhooksController {
         return;
       }
 
-      const { 
-        name, 
-        url, 
-        description, 
-        serviceId, 
-        jiraProjectKey, 
+      const {
+        name,
+        url,
+        description,
+        serviceId,
         assistantId,
+        token,
         filterEnabled,
         filterCondition,
-        filterValue 
+        filterValue
       } = req.body;
 
       if (!name || !url) {
@@ -404,8 +404,8 @@ export class UserWebhooksController {
       const savedWebhook = await UserWebhook.create({
         userId: user.id,
         serviceId: serviceId || null,
-        jiraProjectKey: jiraProjectKey || null,
         assistantId: assistantId || null,
+        token: token || null,
         name,
         url,
         description: description || null,
@@ -419,7 +419,7 @@ export class UserWebhooksController {
         id: savedWebhook.id,
         name,
         serviceId,
-        jiraProjectKey
+        token
       });
 
       res.json({
@@ -429,8 +429,8 @@ export class UserWebhooksController {
           id: savedWebhook.id,
           userId: savedWebhook.userId,
           serviceId: savedWebhook.serviceId,
-          jiraProjectKey: savedWebhook.jiraProjectKey,
           assistantId: savedWebhook.assistantId,
+          token: savedWebhook.token,
           name: savedWebhook.name,
           url: savedWebhook.url,
           description: savedWebhook.description,
@@ -466,8 +466,8 @@ export class UserWebhooksController {
         url, 
         description, 
         serviceId, 
-        jiraProjectKey, 
         assistantId,
+        token,
         isEnabled,
         filterEnabled,
         filterCondition,
@@ -531,8 +531,8 @@ export class UserWebhooksController {
         url: url !== undefined ? url : existingWebhook.url,
         description: description !== undefined ? description : existingWebhook.description,
         serviceId: serviceId !== undefined ? (serviceId || null) : existingWebhook.serviceId,
-        jiraProjectKey: jiraProjectKey !== undefined ? (jiraProjectKey || null) : existingWebhook.jiraProjectKey,
         assistantId: assistantId !== undefined ? (assistantId || null) : existingWebhook.assistantId,
+        token: token !== undefined ? (token || null) : existingWebhook.token,
         isEnabled: isEnabled !== undefined ? isEnabled : existingWebhook.isEnabled,
         filterEnabled: filterEnabled !== undefined ? filterEnabled : existingWebhook.filterEnabled,
         filterCondition: filterCondition !== undefined ? (filterCondition || null) : existingWebhook.filterCondition,
@@ -548,8 +548,8 @@ export class UserWebhooksController {
           id: existingWebhook.id,
           userId: existingWebhook.userId,
           serviceId: existingWebhook.serviceId,
-          jiraProjectKey: existingWebhook.jiraProjectKey,
           assistantId: existingWebhook.assistantId,
+          token: existingWebhook.token,
           name: existingWebhook.name,
           url: existingWebhook.url,
           description: existingWebhook.description,
