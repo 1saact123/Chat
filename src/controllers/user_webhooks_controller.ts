@@ -315,11 +315,7 @@ export class UserWebhooksController {
           uc.service_name as serviceName
         FROM user_webhooks uw
         LEFT JOIN unified_configurations uc 
-          ON (
-            (uw.service_id IS NULL AND uc.service_id IS NULL)
-            OR (uw.service_id IS NOT NULL AND uc.service_id IS NOT NULL 
-                AND uw.service_id COLLATE utf8mb4_unicode_ci = uc.service_id COLLATE utf8mb4_unicode_ci)
-          )
+          ON CAST(uw.service_id AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(uc.service_id AS CHAR) COLLATE utf8mb4_unicode_ci
           AND uw.user_id = uc.user_id
         WHERE uw.user_id = ?
         ORDER BY uw.is_enabled DESC, uw.created_at DESC
@@ -388,7 +384,7 @@ export class UserWebhooksController {
         const { sequelize } = await import('../config/database');
         const [services] = await sequelize.query(`
           SELECT id FROM unified_configurations
-          WHERE user_id = ? AND service_id = ?
+          WHERE user_id = ? AND CAST(service_id AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci
           LIMIT 1
         `, {
           replacements: [user.id, serviceId]
@@ -514,7 +510,7 @@ export class UserWebhooksController {
         const { sequelize } = await import('../config/database');
         const [services] = await sequelize.query(`
           SELECT id FROM unified_configurations
-          WHERE user_id = ? AND service_id = ?
+          WHERE user_id = ? AND CAST(service_id AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci
           LIMIT 1
         `, {
           replacements: [user.id, serviceId]
