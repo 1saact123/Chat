@@ -176,15 +176,32 @@ export class UserServiceController {
 
       res.json({
         success: true,
-        data: serviceConfigs.map((config: any) => ({
-          serviceId: config.serviceId,
-          serviceName: config.serviceName,
-          assistantId: config.assistantId,
-          assistantName: config.assistantName,
-          isActive: Boolean(config.isActive),
-          lastUpdated: config.lastUpdated,
-          configuration: config.configuration
-        }))
+        data: serviceConfigs.map((config: any) => {
+          // Parsear configuration si es string JSON
+          let parsedConfiguration = {};
+          if (config.configuration) {
+            if (typeof config.configuration === 'string') {
+              try {
+                parsedConfiguration = JSON.parse(config.configuration);
+              } catch (e) {
+                console.warn('Error parsing configuration JSON:', e);
+                parsedConfiguration = {};
+              }
+            } else {
+              parsedConfiguration = config.configuration;
+            }
+          }
+          
+          return {
+            serviceId: config.serviceId,
+            serviceName: config.serviceName,
+            assistantId: config.assistantId,
+            assistantName: config.assistantName,
+            isActive: Boolean(config.isActive),
+            lastUpdated: config.lastUpdated,
+            configuration: parsedConfiguration
+          };
+        })
       });
     } catch (error) {
       console.error('Error obteniendo servicios del usuario:', error);
@@ -207,7 +224,7 @@ export class UserServiceController {
       }
 
       const { serviceId } = req.params;
-      const { assistantId, assistantName, isActive } = req.body;
+      const { assistantId, assistantName, isActive, configuration } = req.body;
 
       const user = await User.findByPk(req.user.id);
       if (!user || !user.openaiToken) {
@@ -243,6 +260,16 @@ export class UserServiceController {
         }
       }
 
+      // Preparar configuración actualizada
+      let updatedConfiguration = existingConfig.configuration || {};
+      if (configuration) {
+        // Si viene una nueva configuración, mergear con la existente
+        updatedConfiguration = {
+          ...updatedConfiguration,
+          ...configuration
+        };
+      }
+
       // Actualizar configuración en tabla unificada
       const { sequelize } = await import('../config/database');
       await sequelize.query(`
@@ -251,13 +278,15 @@ export class UserServiceController {
           assistant_id = ?,
           assistant_name = ?,
           is_active = ?,
+          configuration = ?,
           last_updated = ?
-        WHERE user_id = ? AND service_id = ?
+        WHERE user_id = ? AND CAST(service_id AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci
       `, {
         replacements: [
           assistantId || existingConfig.assistantId,
           assistantName || existingConfig.assistantName,
           isActive !== undefined ? isActive : existingConfig.isActive,
+          JSON.stringify(updatedConfiguration),
           new Date(),
           user.id,
           serviceId
@@ -520,7 +549,21 @@ export class UserServiceController {
     `, {
       replacements: [userId]
     });
-    return configs as any[];
+    
+    // Parsear configuration JSON para cada configuración
+    return (configs as any[]).map(config => {
+      if (config.configuration && typeof config.configuration === 'string') {
+        try {
+          config.configuration = JSON.parse(config.configuration);
+        } catch (e) {
+          console.warn('Error parsing configuration JSON:', e);
+          config.configuration = {};
+        }
+      } else if (!config.configuration) {
+        config.configuration = {};
+      }
+      return config;
+    });
   }
 
   private async getUserServiceConfiguration(userId: number, serviceId: string): Promise<any> {
@@ -535,12 +578,28 @@ export class UserServiceController {
         last_updated as lastUpdated,
         configuration
       FROM unified_configurations 
-      WHERE user_id = ? AND service_id = ?
+      WHERE user_id = ? AND CAST(service_id AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci
       LIMIT 1
     `, {
       replacements: [userId, serviceId]
     });
-    return configs && configs.length > 0 ? configs[0] : null;
+    
+    if (configs && configs.length > 0) {
+      const config: any = configs[0];
+      // Parsear configuration si es string JSON
+      if (config.configuration && typeof config.configuration === 'string') {
+        try {
+          config.configuration = JSON.parse(config.configuration);
+        } catch (e) {
+          console.warn('Error parsing configuration JSON:', e);
+          config.configuration = {};
+        }
+      } else if (!config.configuration) {
+        config.configuration = {};
+      }
+      return config;
+    }
+    return null;
   }
 
   private async createUserServiceConfiguration(userId: number, config: any): Promise<boolean> {
