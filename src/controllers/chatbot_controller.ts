@@ -404,12 +404,16 @@ export class ChatbotController {
                     const assistantMessage = messages.data[0];
                     const response = (assistantMessage.content[0] as any).text.value;
                     
+                    // IMPORTANTE: Para el flujo paralelo, SIEMPRE usar value: 'Yes'
                     assistantResponse = {
                       success: true,
                       response: response,
                       threadId: webhookThreadId,
                       assistantId: webhook.assistantId,
-                      assistantName: webhook.name
+                      assistantName: webhook.name,
+                      value: 'Yes', // SIEMPRE 'Yes' en el flujo paralelo
+                      reason: 'Webhook triggered by Movonte ChatBot',
+                      confidence: 1.0
                     };
                     
                     console.log(`✅ Respuesta del asistente para webhook ${webhook.name}:`, assistantResponse);
@@ -433,6 +437,7 @@ export class ChatbotController {
                   };
                   
                   // Ejecutar el webhook con la respuesta real del asistente
+                  // IMPORTANTE: Usar solo assistantResponse.value para el filtro
                   await userWebhookService.executeUserWebhooks(
                     user.id,
                     userServiceInfo.serviceId,
@@ -481,6 +486,22 @@ export class ChatbotController {
         console.log(`🔍 DEBUG - Email: ${payload.comment.author.emailAddress}`);
         console.log(`🔍 DEBUG - Account ID: ${payload.comment.author.accountId}`);
         console.log(`🔍 DEBUG - Contenido: ${this.extractTextFromADF(payload.comment.body).substring(0, 100)}...`);
+        
+        // 🛡️ PROTECCIÓN ADICIONAL: Verificar si ya estamos procesando este issue
+        if (this.lastResponseTime.has(issueKey)) {
+          const lastTime = this.lastResponseTime.get(issueKey)!;
+          const timeSinceLastResponse = Date.now() - lastTime;
+          
+          // Si se está procesando actualmente (menos de 1 segundo), ignorar
+          if (timeSinceLastResponse < 1000) {
+            console.log(`⚠️ PROTECCIÓN: Ya se está procesando ${issueKey}, ignorando duplicado (${Math.round(timeSinceLastResponse)}ms)`);
+            res.json({ success: true, message: 'Already processing', duplicate: true });
+            return;
+          }
+        }
+        
+        // Marcar que empezamos a procesar
+        this.lastResponseTime.set(issueKey, Date.now());
         
         // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET (SOLO SI NO ES DE IA)
         if (!this.isAIComment(payload.comment)) {
