@@ -182,6 +182,7 @@ export class UserWebhookService {
         }
         
         console.log(`🤖 Enviando a Jira Automation webhook con formato especial`);
+        console.log(`📦 PAYLOAD COMPLETO ENVIADO:`, JSON.stringify(webhookPayload, null, 2));
       } else {
         // Formato estándar para webhooks REST
         webhookPayload = {
@@ -213,7 +214,11 @@ export class UserWebhookService {
         }
         
         console.log(`📡 Enviando a webhook REST estándar`);
+        console.log(`📦 PAYLOAD COMPLETO ENVIADO:`, JSON.stringify(webhookPayload, null, 2));
       }
+
+      console.log(`📤 HEADERS ENVIADOS:`, JSON.stringify(headers, null, 2));
+      console.log(`🔗 URL DEL WEBHOOK: ${webhook.url}`);
 
       const response = await axios.default.post(webhook.url, webhookPayload, {
         headers,

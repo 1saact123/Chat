@@ -664,10 +664,14 @@ export class ChatbotController {
                 });
 
                 // Ejecutar cada webhook del usuario con la respuesta del asistente paralelo
+                console.log(`📝 RESPUESTA DEL ASISTENTE DE ESCALACIÓN:`, webhookResponse.response);
+                console.log(`📝 TIPO DE RESPUESTA:`, typeof webhookResponse.response);
+                
                 for (const webhook of userWebhooks) {
                   // Obtener la respuesta del asistente de escalación
                   const assistantResponseValue = webhookResponse.response;
                   
+                  console.log(`🔄 Enviando respuesta al webhook ${webhook.id}:`, assistantResponseValue);
                   await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), assistantResponseValue, webhookThreadId, webhookContext);
                 }
               }
