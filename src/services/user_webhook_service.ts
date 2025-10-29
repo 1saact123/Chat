@@ -161,7 +161,7 @@ export class UserWebhookService {
             threadId: `webhook_${payload.issueKey}_${Date.now()}`,
             assistantId: webhook.assistantId || 'default',
             assistantName: webhook.name,
-            response: payload.assistantResponse || { value: 'Yes', reason: 'Webhook triggered by Movonte ChatBot', confidence: 1.0 },
+            response: payload.assistantResponse || 'Webhook triggered by Movonte ChatBot',
             context: {
               isWebhookFlow: true,
               originalIssueKey: payload.issueKey,

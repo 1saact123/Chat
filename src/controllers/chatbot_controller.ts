@@ -131,9 +131,7 @@ export class ChatbotController {
     // Check by display name for AI assistant (more reliable)
     const isFromAIDisplayName = authorDisplayName.includes('ai assistant') ||
                                 authorDisplayName.includes('contact service account') ||
-                                authorDisplayName.includes('contact service') ||
-                                authorDisplayName.includes('chat user') ||
-                                authorDisplayName.includes('isaactoledocastillo');
+                                authorDisplayName.includes('contact service');
     
     // Patrones en el contenido que indican comentarios de IA
     const aiContentPatterns = [
@@ -141,11 +139,7 @@ export class ChatbotController {
       '🎯 **chat session started**', 'chat widget connected',
       'as an atlassian solution partner', 'offers integration services',
       'estoy aquí para ayudarte', '¿sobre qué tema te gustaría saber',
-      'basada en los documentos disponibles',
-      // Detectar respuestas genéricas de la IA
-      'v3e', 'v4', 'hpla',
-      'soy movonte', 'movonte es', 'services-movonte',
-      'hola! ¿en qué puedo ayudarte'
+      'basada en los documentos disponibles'
     ];
     
     // Detectar por contenido
@@ -356,115 +350,6 @@ export class ChatbotController {
           return;
         }
         
-        // 🚀 EJECUTAR WEBHOOKS PARALELOS ANTES DEL THROTTLING
-        // Los webhooks paralelos deben ejecutarse independientemente del throttling
-        try {
-          console.log(`🚀 Ejecutando webhooks paralelos para ${issueKey}...`);
-          const userWebhookService = UserWebhookService.getInstance();
-          
-          // Obtener información del usuario y servicio
-          const { User } = await import('../models');
-          const user = await User.findByPk(userServiceInfo.userId);
-          if (user) {
-            // Obtener webhooks activos para este usuario y servicio
-            const activeWebhooks = await userWebhookService.getActiveWebhooksForUser(user.id, userServiceInfo.serviceId);
-            
-            if (activeWebhooks.length > 0) {
-              console.log(`📋 Encontrados ${activeWebhooks.length} webhooks activos para ejecutar`);
-              
-              // Ejecutar cada webhook con su asistente asignado
-              for (const webhook of activeWebhooks) {
-                try {
-                  console.log(`🤖 Ejecutando asistente para webhook: ${webhook.name} (${webhook.assistantId})`);
-                  
-                  // Usar OpenAI directamente para ejecutar el asistente del webhook
-                  const openai = this.openaiService['openai']; // Acceder al cliente OpenAI
-                  
-                  // Crear threadId único para este webhook
-                  const webhookThreadId = `webhook_${issueKey}_${webhook.id}_${Date.now()}`;
-                  
-                  // Crear nuevo thread para el webhook
-                  const thread = await openai.beta.threads.create();
-                  
-                  // Crear mensaje en el thread
-                  await openai.beta.threads.messages.create(thread.id, {
-                    role: 'user',
-                    content: this.extractTextFromADF(payload.comment.body)
-                  });
-                  
-                  // Ejecutar el asistente asignado al webhook (no el del servicio)
-                  const run = await openai.beta.threads.runs.create(thread.id, {
-                    assistant_id: webhook.assistantId || ''
-                  });
-                  
-                  // Esperar respuesta
-                  let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-                  while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-                  }
-                  
-                  let assistantResponse;
-                  if (runStatus.status === 'completed') {
-                    const messages = await openai.beta.threads.messages.list(thread.id);
-                    const assistantMessage = messages.data[0];
-                    const response = (assistantMessage.content[0] as any).text.value;
-                    
-                    // IMPORTANTE: Para el flujo paralelo, SIEMPRE usar value: 'Yes'
-                    assistantResponse = {
-                      success: true,
-                      response: response,
-                      threadId: webhookThreadId,
-                      assistantId: webhook.assistantId,
-                      assistantName: webhook.name,
-                      value: 'Yes', // SIEMPRE 'Yes' en el flujo paralelo
-                      reason: 'Webhook triggered by Movonte ChatBot',
-                      confidence: 1.0
-                    };
-                    
-                    console.log(`✅ Respuesta del asistente para webhook ${webhook.name}:`, assistantResponse);
-                  } else {
-                    console.error(`❌ Error ejecutando asistente: ${runStatus.status}`);
-                    assistantResponse = {
-                      success: false,
-                      error: `Assistant run failed with status: ${runStatus.status}`
-                    };
-                  }
-                  
-                  // Crear contexto para webhook con la respuesta real del asistente
-                  const webhookContext = {
-                    userId: user.id,
-                    serviceId: userServiceInfo.serviceId,
-                    issueKey: issueKey,
-                    authorName: payload.comment.author.displayName,
-                    originalMessage: this.extractTextFromADF(payload.comment.body),
-                    timestamp: payload.comment.created,
-                    assistantResponse: assistantResponse
-                  };
-                  
-                  // Ejecutar el webhook con la respuesta real del asistente
-                  // IMPORTANTE: Usar solo assistantResponse.value para el filtro
-                  await userWebhookService.executeUserWebhooks(
-                    user.id,
-                    userServiceInfo.serviceId,
-                    assistantResponse,
-                    webhookContext
-                  );
-                  
-                } catch (webhookError) {
-                  console.error(`❌ Error ejecutando webhook ${webhook.name}:`, webhookError);
-                  // Continuar con otros webhooks aunque uno falle
-                }
-              }
-            } else {
-              console.log(`⚠️ No hay webhooks activos para este usuario y servicio`);
-            }
-          }
-        } catch (webhookError) {
-          console.error('❌ Error ejecutando webhooks paralelos:', webhookError);
-          // No fallar el webhook principal por errores en webhooks paralelos
-        }
-
         // Sistema de throttling para evitar respuestas muy rápidas
         const nowTimestamp = Date.now();
         const lastResponse = this.lastResponseTime.get(issueKey) || 0;
@@ -492,22 +377,6 @@ export class ChatbotController {
         console.log(`🔍 DEBUG - Email: ${payload.comment.author.emailAddress}`);
         console.log(`🔍 DEBUG - Account ID: ${payload.comment.author.accountId}`);
         console.log(`🔍 DEBUG - Contenido: ${this.extractTextFromADF(payload.comment.body).substring(0, 100)}...`);
-        
-        // 🛡️ PROTECCIÓN ADICIONAL: Verificar si ya estamos procesando este issue
-        if (this.lastResponseTime.has(issueKey)) {
-          const lastTime = this.lastResponseTime.get(issueKey)!;
-          const timeSinceLastResponse = Date.now() - lastTime;
-          
-          // Si se está procesando actualmente (menos de 1 segundo), ignorar
-          if (timeSinceLastResponse < 1000) {
-            console.log(`⚠️ PROTECCIÓN: Ya se está procesando ${issueKey}, ignorando duplicado (${Math.round(timeSinceLastResponse)}ms)`);
-            res.json({ success: true, message: 'Already processing', duplicate: true });
-            return;
-          }
-        }
-        
-        // Marcar que empezamos a procesar
-        this.lastResponseTime.set(issueKey, Date.now());
         
         // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET (SOLO SI NO ES DE IA)
         if (!this.isAIComment(payload.comment)) {
@@ -711,8 +580,40 @@ export class ChatbotController {
             // No fallar el webhook si no se puede agregar el comentario
           }
 
-          // 🚀 FLUJO PARALELO: Ya se ejecutó ANTES del throttling (líneas 353-384)
-          // NO ejecutar aquí para evitar duplicados - los webhooks paralelos ya se ejecutaron
+          // 🚀 EJECUTAR WEBHOOKS PARALELOS DESPUÉS DE LA RESPUESTA DEL ASISTENTE
+          try {
+            console.log(`🚀 Ejecutando webhooks paralelos para ${issueKey}...`);
+            const userWebhookService = UserWebhookService.getInstance();
+            
+            // Obtener información del usuario
+            const { User } = await import('../models');
+            const user = await User.findByPk(userServiceInfo.userId);
+            if (user) {
+              // Crear contexto para webhooks
+              const webhookContext = {
+                userId: user.id,
+                serviceId: userServiceInfo.serviceId,
+                issueKey: issueKey,
+                authorName: payload.comment.author.displayName,
+                originalMessage: this.extractTextFromADF(payload.comment.body),
+                timestamp: payload.comment.created,
+                issue: payload.issue,
+                comment: payload.comment,
+                assistantResponse: response.response // Incluir la respuesta del asistente
+              };
+              
+              // Ejecutar webhooks paralelos con la respuesta del asistente
+              await userWebhookService.executeUserWebhooks(
+                user.id,
+                userServiceInfo.serviceId,
+                response, // Usar la respuesta real del asistente
+                webhookContext
+              );
+            }
+          } catch (webhookError) {
+            console.error('❌ Error ejecutando webhooks paralelos:', webhookError);
+            // No fallar el webhook principal por errores en webhooks paralelos
+          }
         } else {
           console.log(`❌ Respuesta de asistente tradicional fallida o vacía:`, {
             success: response.success,
