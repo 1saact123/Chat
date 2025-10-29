@@ -646,13 +646,54 @@ export class ChatbotController {
             // Procesar con asistente separado SI existe webhookAssistantId
             if (webhookAssistantId && user.openaiToken) {
               console.log(`🤖 PROCESANDO CON ASISTENTE DE ESCALACIÓN: ${webhookAssistantId}`);
-              const userOpenAIService = new UserOpenAIService(user.id, user.openaiToken);
-              const webhookResponse = await userOpenAIService.processChatForService(
-                this.extractTextFromADF(payload.comment.body),
-                'webhook-parallel', // Servicio específico para webhook
-                webhookThreadId,
-                webhookContext
-              );
+              
+              // Llamar directamente al asistente de escalación usando OpenAI
+              const OpenAI = await import('openai');
+              const openai = new OpenAI.default({
+                apiKey: user.openaiToken,
+                dangerouslyAllowBrowser: true
+              });
+
+              const response = await openai.beta.threads.messages.create(webhookThreadId, {
+                role: 'user',
+                content: this.extractTextFromADF(payload.comment.body)
+              });
+
+              const run = await openai.beta.threads.runs.create(webhookThreadId, {
+                assistant_id: webhookAssistantId
+              });
+
+              // Esperar a que termine el run
+              let runStatus = await openai.beta.threads.runs.retrieve(webhookThreadId, run.id);
+              let attempts = 0;
+              const maxAttempts = 30;
+
+              while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
+                if (attempts >= maxAttempts) {
+                  console.error('Timeout esperando respuesta del asistente de escalación');
+                  break;
+                }
+                await new Promise(resolve => setTimeout(resolve, 500));
+                runStatus = await openai.beta.threads.runs.retrieve(webhookThreadId, run.id);
+                attempts++;
+              }
+
+              // Obtener la respuesta
+              const messages = await openai.beta.threads.messages.list(webhookThreadId);
+              const assistantMessage = messages.data.find((m: any) => m.role === 'assistant');
+              
+              const assistantResponse = assistantMessage?.content[0]?.type === 'text' 
+                ? assistantMessage.content[0].text.value 
+                : '';
+
+              console.log(`🔍 RESPUESTA DEL ASISTENTE DE ESCALACIÓN: ${assistantResponse}`);
+
+              const webhookResponse = {
+                success: true,
+                response: assistantResponse,
+                assistantId: webhookAssistantId,
+                assistantName: 'Escalate agent'
+              };
 
               console.log(`🔍 RESPUESTA DEL ASISTENTE DE ESCALACIÓN RECIBIDA:`, webhookResponse);
 
