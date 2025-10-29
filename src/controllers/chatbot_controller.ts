@@ -609,8 +609,8 @@ export class ChatbotController {
 
             console.log(`✅ Encontrados ${userWebhooks.length} webhook(s) activo(s) para el usuario ${user.id} y servicio ${userServiceInfo.serviceId}`);
 
-            // Crear thread separado para el webhook
-            const webhookThreadId = `webhook_${issueKey}_${Date.now()}`;
+            // Crear thread separado para el webhook (debe comenzar con 'thread_')
+            const webhookThreadId = `thread_webhook_${issueKey}_${Date.now()}`;
             console.log(`🧵 Thread separado para webhook: ${webhookThreadId}`);
 
             // Crear contexto específico para el webhook
