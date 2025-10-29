@@ -131,7 +131,9 @@ export class ChatbotController {
     // Check by display name for AI assistant (more reliable)
     const isFromAIDisplayName = authorDisplayName.includes('ai assistant') ||
                                 authorDisplayName.includes('contact service account') ||
-                                authorDisplayName.includes('contact service');
+                                authorDisplayName.includes('contact service') ||
+                                authorDisplayName.includes('chat user') ||
+                                authorDisplayName.includes('isaactoledocastillo');
     
     // Patrones en el contenido que indican comentarios de IA
     const aiContentPatterns = [
@@ -139,7 +141,11 @@ export class ChatbotController {
       '🎯 **chat session started**', 'chat widget connected',
       'as an atlassian solution partner', 'offers integration services',
       'estoy aquí para ayudarte', '¿sobre qué tema te gustaría saber',
-      'basada en los documentos disponibles'
+      'basada en los documentos disponibles',
+      // Detectar respuestas genéricas de la IA
+      'v3e', 'v4', 'hpla',
+      'soy movonte', 'movonte es', 'services-movonte',
+      'hola! ¿en qué puedo ayudarte'
     ];
     
     // Detectar por contenido
