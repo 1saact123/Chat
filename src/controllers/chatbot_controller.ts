@@ -360,24 +360,66 @@ export class ChatbotController {
           const { User } = await import('../models');
           const user = await User.findByPk(userServiceInfo.userId);
           if (user) {
-            // Crear contexto para webhooks
-            const webhookContext = {
-              userId: user.id,
-              serviceId: userServiceInfo.serviceId,
-              issueKey: issueKey,
-              authorName: payload.comment.author.displayName,
-              originalMessage: this.extractTextFromADF(payload.comment.body),
-              timestamp: payload.comment.created,
-              assistantResponse: { value: 'Yes', reason: 'Webhook triggered by Movonte ChatBot', confidence: 1.0 }
-            };
+            // Obtener webhooks activos para este usuario y servicio
+            const activeWebhooks = await userWebhookService.getActiveWebhooksForUser(user.id, userServiceInfo.serviceId);
             
-            // Ejecutar webhooks paralelos (sin esperar respuesta del asistente)
-            await userWebhookService.executeUserWebhooks(
-              user.id,
-              userServiceInfo.serviceId,
-              { value: 'Yes' }, // Respuesta simulada para webhooks que no requieren filtro
-              webhookContext
-            );
+            if (activeWebhooks.length > 0) {
+              console.log(`📋 Encontrados ${activeWebhooks.length} webhooks activos para ejecutar`);
+              
+              // Ejecutar cada webhook con su asistente asignado
+              for (const webhook of activeWebhooks) {
+                try {
+                  console.log(`🤖 Ejecutando asistente para webhook: ${webhook.name} (${webhook.assistantId})`);
+                  
+                  // Usar UserOpenAIService para procesar con el asistente específico
+                  const { UserOpenAIService } = await import('../services/user_openai_service');
+                  const userOpenAIService = new UserOpenAIService(user.id, user.openaiToken || process.env.OPENAI_API_KEY || '');
+                  
+                  // Crear threadId único para este webhook
+                  const webhookThreadId = `webhook_${issueKey}_${webhook.id}_${Date.now()}`;
+                  
+                  // Procesar mensaje con el asistente asignado al webhook
+                  const assistantResponse = await userOpenAIService.processChatForService(
+                    this.extractTextFromADF(payload.comment.body),
+                    userServiceInfo.serviceId,
+                    webhookThreadId,
+                    {
+                      jiraIssueKey: issueKey,
+                      webhookId: webhook.id,
+                      webhookName: webhook.name,
+                      assistantId: webhook.assistantId
+                    }
+                  );
+                  
+                  console.log(`✅ Respuesta del asistente para webhook ${webhook.name}:`, assistantResponse);
+                  
+                  // Crear contexto para webhook con la respuesta real del asistente
+                  const webhookContext = {
+                    userId: user.id,
+                    serviceId: userServiceInfo.serviceId,
+                    issueKey: issueKey,
+                    authorName: payload.comment.author.displayName,
+                    originalMessage: this.extractTextFromADF(payload.comment.body),
+                    timestamp: payload.comment.created,
+                    assistantResponse: assistantResponse
+                  };
+                  
+                  // Ejecutar el webhook con la respuesta real del asistente
+                  await userWebhookService.executeUserWebhooks(
+                    user.id,
+                    userServiceInfo.serviceId,
+                    assistantResponse,
+                    webhookContext
+                  );
+                  
+                } catch (webhookError) {
+                  console.error(`❌ Error ejecutando webhook ${webhook.name}:`, webhookError);
+                  // Continuar con otros webhooks aunque uno falle
+                }
+              }
+            } else {
+              console.log(`⚠️ No hay webhooks activos para este usuario y servicio`);
+            }
           }
         } catch (webhookError) {
           console.error('❌ Error ejecutando webhooks paralelos:', webhookError);
