@@ -582,34 +582,103 @@ export class ChatbotController {
 
           // 🚀 EJECUTAR WEBHOOKS PARALELOS DESPUÉS DE LA RESPUESTA DEL ASISTENTE
           try {
-            console.log(`🚀 Ejecutando webhooks paralelos para ${issueKey}...`);
-            const userWebhookService = UserWebhookService.getInstance();
+            console.log(`🚀 Iniciando flujo paralelo de webhook para ${issueKey}...`);
             
             // Obtener información del usuario
             const { User } = await import('../models');
             const user = await User.findByPk(userServiceInfo.userId);
-            if (user) {
-              // Crear contexto para webhooks
-              const webhookContext = {
-                userId: user.id,
+            if (!user) {
+              console.log(`⚠️ No se pudo obtener userId, saltando envío paralelo`);
+              return;
+            }
+
+            // Verificar si hay webhooks configurados para este usuario y servicio específico
+            const { UserWebhook } = await import('../models');
+            const userWebhooks = await UserWebhook.findAll({
+              where: { 
+                userId: user.id, 
                 serviceId: userServiceInfo.serviceId,
-                issueKey: issueKey,
-                authorName: payload.comment.author.displayName,
-                originalMessage: this.extractTextFromADF(payload.comment.body),
-                timestamp: payload.comment.created,
-                issue: payload.issue,
-                comment: payload.comment,
-                assistantResponse: response.response // Incluir la respuesta del asistente
-              };
-              
-              // Ejecutar webhooks paralelos con la respuesta del asistente
-              await userWebhookService.executeUserWebhooks(
-                user.id,
-                userServiceInfo.serviceId,
-                response, // Usar la respuesta real del asistente
+                isEnabled: true 
+              }
+            });
+
+            if (!userWebhooks || userWebhooks.length === 0) {
+              console.log(`⚠️ No hay webhooks configurados para el usuario ${user.id} y servicio ${userServiceInfo.serviceId}, saltando envío paralelo`);
+              return;
+            }
+
+            console.log(`✅ Encontrados ${userWebhooks.length} webhook(s) activo(s) para el usuario ${user.id} y servicio ${userServiceInfo.serviceId}`);
+
+            // Crear thread separado para el webhook
+            const webhookThreadId = `webhook_${issueKey}_${Date.now()}`;
+            console.log(`🧵 Thread separado para webhook: ${webhookThreadId}`);
+
+            // Crear contexto específico para el webhook
+            const webhookContext = {
+              jiraIssueKey: issueKey,
+              issueSummary: enrichedContext.issueSummary,
+              issueStatus: enrichedContext.issueStatus,
+              authorName: payload.comment.author.displayName,
+              isJiraComment: true,
+              conversationType: 'webhook-parallel',
+              isWebhookFlow: true,
+              originalIssueKey: issueKey,
+              webhookThreadId: webhookThreadId,
+              source: 'webhook-parallel',
+              serviceId: userServiceInfo.serviceId,
+              userId: user.id,
+              conversationHistory: [],
+              previousResponses: []
+            };
+
+            // Obtener configuración de servicios
+            const configService = ConfigurationService.getInstance();
+            const landingAssistantId = configService.getActiveAssistantForService('landing-page');
+            const webhookAssistantId = configService.getActiveAssistantForService('webhook-parallel');
+            
+            console.log(`🔍 Asistente landing-page: ${landingAssistantId || 'NO CONFIGURADO'}`);
+            console.log(`🔍 Asistente webhook-parallel: ${webhookAssistantId || 'NO CONFIGURADO'}`);
+
+            // Si hay asistente específico para webhook, usarlo
+            const finalWebhookAssistantId = webhookAssistantId || landingAssistantId;
+            console.log(`🤖 Asistente final para webhook: ${finalWebhookAssistantId || 'default'}`);
+
+            // Procesar con asistente separado
+            if (finalWebhookAssistantId && user.openaiToken) {
+              const userOpenAIService = new UserOpenAIService(user.id, user.openaiToken);
+              const webhookResponse = await userOpenAIService.processChatForService(
+                this.extractTextFromADF(payload.comment.body),
+                'webhook-parallel', // Servicio específico para webhook
+                webhookThreadId,
                 webhookContext
               );
+
+              if (webhookResponse.success && webhookResponse.response) {
+                console.log(`🎯 RESPUESTA DEL FLUJO PARALELO (WEBHOOK) GENERADA:`, {
+                  success: webhookResponse.success,
+                  assistantId: webhookResponse.assistantId,
+                  assistantName: webhookResponse.assistantName,
+                  serviceUsed: 'webhook-parallel',
+                  threadId: webhookThreadId,
+                  responsePreview: webhookResponse.response.substring(0, 100) + '...'
+                });
+
+                // Ejecutar cada webhook del usuario
+                for (const webhook of userWebhooks) {
+                  await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), webhookResponse.response, webhookThreadId, webhookContext);
+                }
+              }
+            } else {
+              // Si no hay asistente específico, reutilizar la respuesta del asistente principal
+              console.log(`📡 REUTILIZANDO RESPUESTA DEL FLUJO PRINCIPAL PARA WEBHOOK`);
+              
+              // Ejecutar cada webhook del usuario
+              for (const webhook of userWebhooks) {
+                await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), response.response, webhookThreadId, webhookContext);
+              }
             }
+
+            console.log(`✅ Flujo paralelo de webhook completado para ${issueKey}`);
           } catch (webhookError) {
             console.error('❌ Error ejecutando webhooks paralelos:', webhookError);
             // No fallar el webhook principal por errores en webhooks paralelos
@@ -1444,6 +1513,38 @@ Formato el reporte de manera clara y profesional.`;
   }
 
   // 🔍 MÉTODO HELPER PARA VERIFICAR SI DEBE ENVIAR A UN WEBHOOK ESPECÍFICO
+  // Método helper para ejecutar webhook con filtro
+  private async executeWebhookWithFilter(webhook: any, issueKey: string, originalMessage: string, assistantResponse: string, webhookThreadId: string, context: any): Promise<void> {
+    try {
+      const shouldSend = this.shouldSendToUserWebhook(webhook, assistantResponse);
+      console.log(`🔍 Webhook ${webhook.id} (${webhook.name}): shouldSend=${shouldSend}`);
+      
+      if (shouldSend) {
+        console.log(`✅ Enviando a webhook ${webhook.id} (${webhook.name})`);
+        
+        // Usar UserWebhookService para ejecutar el webhook
+        const userWebhookService = UserWebhookService.getInstance();
+        const webhookPayload = {
+          userId: context.userId,
+          serviceId: context.serviceId,
+          issueKey: issueKey,
+          authorName: context.authorName,
+          originalMessage: originalMessage,
+          timestamp: context.timestamp || new Date().toISOString(),
+          issue: context.issue,
+          comment: context.comment,
+          assistantResponse: assistantResponse
+        };
+        
+        await userWebhookService.executeWebhook(webhook, webhookPayload);
+      } else {
+        console.log(`🚫 Webhook ${webhook.id} (${webhook.name}) filtrado: respuesta no cumple con los criterios del filtro`);
+      }
+    } catch (error) {
+      console.error(`❌ Error ejecutando webhook ${webhook.id}:`, error);
+    }
+  }
+
   private shouldSendToUserWebhook(webhook: any, assistantResponse: any): boolean {
     console.log(`🔍 === USER WEBHOOK FILTER CHECK START (Webhook ${webhook.id}) ===`);
     console.log(`📋 Webhook config:`, {
