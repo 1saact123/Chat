@@ -654,17 +654,33 @@ export class ChatbotController {
                 dangerouslyAllowBrowser: true
               });
 
-              const response = await openai.beta.threads.messages.create(webhookThreadId, {
+              // Primero crear el thread
+              const thread = await openai.beta.threads.create({
+                metadata: {
+                  issueKey: issueKey,
+                  source: 'webhook-parallel'
+                }
+              });
+
+              console.log(`✅ Thread creado: ${thread.id}`);
+
+              // Agregar el mensaje al thread
+              const message = await openai.beta.threads.messages.create(thread.id, {
                 role: 'user',
                 content: this.extractTextFromADF(payload.comment.body)
               });
 
-              const run = await openai.beta.threads.runs.create(webhookThreadId, {
+              console.log(`✅ Mensaje agregado al thread: ${message.id}`);
+
+              // Crear el run
+              const run = await openai.beta.threads.runs.create(thread.id, {
                 assistant_id: webhookAssistantId
               });
 
+              console.log(`✅ Run creado: ${run.id}`);
+
               // Esperar a que termine el run
-              let runStatus = await openai.beta.threads.runs.retrieve(webhookThreadId, run.id);
+              let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
               let attempts = 0;
               const maxAttempts = 30;
 
@@ -674,12 +690,12 @@ export class ChatbotController {
                   break;
                 }
                 await new Promise(resolve => setTimeout(resolve, 500));
-                runStatus = await openai.beta.threads.runs.retrieve(webhookThreadId, run.id);
+                runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
                 attempts++;
               }
 
               // Obtener la respuesta
-              const messages = await openai.beta.threads.messages.list(webhookThreadId);
+              const messages = await openai.beta.threads.messages.list(thread.id);
               const assistantMessage = messages.data.find((m: any) => m.role === 'assistant');
               
               const assistantResponse = assistantMessage?.content[0]?.type === 'text' 
