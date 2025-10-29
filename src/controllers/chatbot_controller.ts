@@ -371,27 +371,55 @@ export class ChatbotController {
                 try {
                   console.log(`🤖 Ejecutando asistente para webhook: ${webhook.name} (${webhook.assistantId})`);
                   
-                  // Usar UserOpenAIService para procesar con el asistente específico
-                  const { UserOpenAIService } = await import('../services/user_openai_service');
-                  const userOpenAIService = new UserOpenAIService(user.id, user.openaiToken || process.env.OPENAI_API_KEY || '');
+                  // Usar OpenAI directamente para ejecutar el asistente del webhook
+                  const openai = this.openaiService['openai']; // Acceder al cliente OpenAI
                   
                   // Crear threadId único para este webhook
                   const webhookThreadId = `webhook_${issueKey}_${webhook.id}_${Date.now()}`;
                   
-                  // Procesar mensaje con el asistente asignado al webhook
-                  const assistantResponse = await userOpenAIService.processChatForService(
-                    this.extractTextFromADF(payload.comment.body),
-                    userServiceInfo.serviceId,
-                    webhookThreadId,
-                    {
-                      jiraIssueKey: issueKey,
-                      webhookId: webhook.id,
-                      webhookName: webhook.name,
-                      assistantId: webhook.assistantId
-                    }
-                  );
+                  // Crear nuevo thread para el webhook
+                  const thread = await openai.beta.threads.create();
                   
-                  console.log(`✅ Respuesta del asistente para webhook ${webhook.name}:`, assistantResponse);
+                  // Crear mensaje en el thread
+                  await openai.beta.threads.messages.create(thread.id, {
+                    role: 'user',
+                    content: this.extractTextFromADF(payload.comment.body)
+                  });
+                  
+                  // Ejecutar el asistente asignado al webhook (no el del servicio)
+                  const run = await openai.beta.threads.runs.create(thread.id, {
+                    assistant_id: webhook.assistantId || ''
+                  });
+                  
+                  // Esperar respuesta
+                  let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+                  while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+                  }
+                  
+                  let assistantResponse;
+                  if (runStatus.status === 'completed') {
+                    const messages = await openai.beta.threads.messages.list(thread.id);
+                    const assistantMessage = messages.data[0];
+                    const response = (assistantMessage.content[0] as any).text.value;
+                    
+                    assistantResponse = {
+                      success: true,
+                      response: response,
+                      threadId: webhookThreadId,
+                      assistantId: webhook.assistantId,
+                      assistantName: webhook.name
+                    };
+                    
+                    console.log(`✅ Respuesta del asistente para webhook ${webhook.name}:`, assistantResponse);
+                  } else {
+                    console.error(`❌ Error ejecutando asistente: ${runStatus.status}`);
+                    assistantResponse = {
+                      success: false,
+                      error: `Assistant run failed with status: ${runStatus.status}`
+                    };
+                  }
                   
                   // Crear contexto para webhook con la respuesta real del asistente
                   const webhookContext = {
