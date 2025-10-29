@@ -643,8 +643,8 @@ export class ChatbotController {
             const finalWebhookAssistantId = webhookAssistantId || landingAssistantId;
             console.log(`🤖 Asistente final para webhook: ${finalWebhookAssistantId || 'default'}`);
 
-            // Procesar con asistente separado
-            if (finalWebhookAssistantId && user.openaiToken) {
+            // Procesar con asistente separado SI existe webhookAssistantId
+            if (webhookAssistantId && user.openaiToken) {
               const userOpenAIService = new UserOpenAIService(user.id, user.openaiToken);
               const webhookResponse = await userOpenAIService.processChatForService(
                 this.extractTextFromADF(payload.comment.body),
@@ -663,16 +663,16 @@ export class ChatbotController {
                   responsePreview: webhookResponse.response.substring(0, 100) + '...'
                 });
 
-                // Ejecutar cada webhook del usuario
+                // Ejecutar cada webhook del usuario con la respuesta del asistente paralelo
                 for (const webhook of userWebhooks) {
                   await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), webhookResponse.response, webhookThreadId, webhookContext);
                 }
               }
             } else {
-              // Si no hay asistente específico, reutilizar la respuesta del asistente principal
+              // Si no hay asistente específico para webhook-parallel, reutilizar la respuesta del asistente principal
               console.log(`📡 REUTILIZANDO RESPUESTA DEL FLUJO PRINCIPAL PARA WEBHOOK`);
               
-              // Ejecutar cada webhook del usuario
+              // Ejecutar cada webhook del usuario con la respuesta del asistente principal
               for (const webhook of userWebhooks) {
                 await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), response.response, webhookThreadId, webhookContext);
               }
