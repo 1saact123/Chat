@@ -665,7 +665,10 @@ export class ChatbotController {
 
                 // Ejecutar cada webhook del usuario con la respuesta del asistente paralelo
                 for (const webhook of userWebhooks) {
-                  await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), webhookResponse.response, webhookThreadId, webhookContext);
+                  // Obtener la respuesta del asistente de escalación
+                  const assistantResponseValue = webhookResponse.response;
+                  
+                  await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), assistantResponseValue, webhookThreadId, webhookContext);
                 }
               }
             } else {
@@ -674,7 +677,10 @@ export class ChatbotController {
               
               // Ejecutar cada webhook del usuario con la respuesta del asistente principal
               for (const webhook of userWebhooks) {
-                await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), response.response, webhookThreadId, webhookContext);
+                // Obtener la respuesta del asistente principal
+                const assistantResponseValue = response.response;
+                
+                await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), assistantResponseValue, webhookThreadId, webhookContext);
               }
             }
 
@@ -1516,30 +1522,24 @@ Formato el reporte de manera clara y profesional.`;
   // Método helper para ejecutar webhook con filtro
   private async executeWebhookWithFilter(webhook: any, issueKey: string, originalMessage: string, assistantResponse: string, webhookThreadId: string, context: any): Promise<void> {
     try {
-      const shouldSend = this.shouldSendToUserWebhook(webhook, assistantResponse);
-      console.log(`🔍 Webhook ${webhook.id} (${webhook.name}): shouldSend=${shouldSend}`);
+      // SIEMPRE enviar el webhook, independientemente de la respuesta del asistente
+      console.log(`✅ Enviando a webhook ${webhook.id} (${webhook.name}) - SIEMPRE enviar`);
       
-      if (shouldSend) {
-        console.log(`✅ Enviando a webhook ${webhook.id} (${webhook.name})`);
-        
-        // Usar UserWebhookService para ejecutar el webhook
-        const userWebhookService = UserWebhookService.getInstance();
-        const webhookPayload = {
-          userId: context.userId,
-          serviceId: context.serviceId,
-          issueKey: issueKey,
-          authorName: context.authorName,
-          originalMessage: originalMessage,
-          timestamp: context.timestamp || new Date().toISOString(),
-          issue: context.issue,
-          comment: context.comment,
-          assistantResponse: assistantResponse
-        };
-        
-        await userWebhookService.executeWebhook(webhook, webhookPayload);
-      } else {
-        console.log(`🚫 Webhook ${webhook.id} (${webhook.name}) filtrado: respuesta no cumple con los criterios del filtro`);
-      }
+      // Usar UserWebhookService para ejecutar el webhook
+      const userWebhookService = UserWebhookService.getInstance();
+      const webhookPayload = {
+        userId: context.userId,
+        serviceId: context.serviceId,
+        issueKey: issueKey,
+        authorName: context.authorName,
+        originalMessage: originalMessage,
+        timestamp: context.timestamp || new Date().toISOString(),
+        issue: context.issue,
+        comment: context.comment,
+        assistantResponse: assistantResponse
+      };
+      
+      await userWebhookService.executeWebhook(webhook, webhookPayload);
     } catch (error) {
       console.error(`❌ Error ejecutando webhook ${webhook.id}:`, error);
     }
