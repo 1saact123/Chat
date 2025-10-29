@@ -318,11 +318,11 @@ export class DatabaseService {
   }
 
   async deleteUserWebhook(id: number, userId: number): Promise<boolean> {
-    const [affectedCount] = await SavedWebhook.update(
-      { isActive: false }, 
-      { where: { id, userId } }
-    );
-    console.log(`${affectedCount > 0 ? '🗑️ Deleted' : '❌ Failed to delete'} user webhook: ${id} for user ${userId}`);
-    return affectedCount > 0;
+    const { UserWebhook } = await import('../models');
+    const deleted = await UserWebhook.destroy({
+      where: { id, userId }
+    });
+    console.log(`${deleted > 0 ? '🗑️ Deleted' : '❌ Failed to delete'} user webhook: ${id} for user ${userId}`);
+    return deleted > 0;
   }
 }

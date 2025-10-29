@@ -613,8 +613,8 @@ export class ChatbotController {
             // No fallar el webhook si no se puede agregar el comentario
           }
 
-          // 🚀 FLUJO PARALELO: ENVIAR DATOS AL WEBHOOK CONFIGURADO
-          this.sendToWebhookInParallel(issueKey, this.extractTextFromADF(payload.comment.body), payload.comment.author.displayName, payload.comment.created, response, enrichedContext, userServiceInfo.serviceId);
+          // 🚀 FLUJO PARALELO: Ya se ejecutó ANTES del throttling (líneas 353-384)
+          // NO ejecutar aquí para evitar duplicados - los webhooks paralelos ya se ejecutaron
         } else {
           console.log(`❌ Respuesta de asistente tradicional fallida o vacía:`, {
             success: response.success,
