@@ -367,7 +367,8 @@ export class ChatbotController {
               issueKey: issueKey,
               authorName: payload.comment.author.displayName,
               originalMessage: this.extractTextFromADF(payload.comment.body),
-              timestamp: payload.comment.created
+              timestamp: payload.comment.created,
+              assistantResponse: { value: 'Yes', reason: 'Webhook triggered by Movonte ChatBot', confidence: 1.0 }
             };
             
             // Ejecutar webhooks paralelos (sin esperar respuesta del asistente)
