@@ -645,6 +645,7 @@ export class ChatbotController {
 
             // Procesar con asistente separado SI existe webhookAssistantId
             if (webhookAssistantId && user.openaiToken) {
+              console.log(`🤖 PROCESANDO CON ASISTENTE DE ESCALACIÓN: ${webhookAssistantId}`);
               const userOpenAIService = new UserOpenAIService(user.id, user.openaiToken);
               const webhookResponse = await userOpenAIService.processChatForService(
                 this.extractTextFromADF(payload.comment.body),
@@ -652,6 +653,8 @@ export class ChatbotController {
                 webhookThreadId,
                 webhookContext
               );
+
+              console.log(`🔍 RESPUESTA DEL ASISTENTE DE ESCALACIÓN RECIBIDA:`, webhookResponse);
 
               if (webhookResponse.success && webhookResponse.response) {
                 console.log(`🎯 RESPUESTA DEL FLUJO PARALELO (WEBHOOK) GENERADA:`, {
@@ -674,6 +677,9 @@ export class ChatbotController {
                   console.log(`🔄 Enviando respuesta al webhook ${webhook.id}:`, assistantResponseValue);
                   await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), assistantResponseValue, webhookThreadId, webhookContext);
                 }
+              } else {
+                console.log(`⚠️ NO HAY RESPUESTA DEL ASISTENTE DE ESCALACIÓN`);
+                console.log(`   Success: ${webhookResponse.success}, Response: ${webhookResponse.response}`);
               }
             } else {
               // Si no hay asistente específico para webhook-parallel, reutilizar la respuesta del asistente principal
