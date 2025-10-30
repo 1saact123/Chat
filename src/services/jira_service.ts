@@ -257,27 +257,6 @@ export class JiraService {
   }
 
   /**
-   * Get issue details by key (status and project)
-   */
-  async getIssueByKey(issueKey: string): Promise<any> {
-    try {
-      const response = await axios.get(
-        `${this.baseUrl}/rest/api/3/issue/${issueKey}`,
-        {
-          headers: {
-            'Authorization': `Basic ${this.auth}`,
-            'Accept': 'application/json'
-          }
-        }
-      );
-      return response.data;
-    } catch (error) {
-      console.error(`Error getting issue ${issueKey}:`, error);
-      throw error;
-    }
-  }
-
-  /**
    * Search issues by customer email
    */
   async searchIssuesByEmail(email: string): Promise<any> {
