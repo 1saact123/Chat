@@ -166,7 +166,7 @@ export class UserWebhookService {
 
         // Formato para Jira Automation webhook (que funcionaba antes)
         webhookPayload = {
-          issues: [payload.issueKey],
+          issues: [{ key: payload.issueKey }],
           webhookData: {
             message: payload.originalMessage,
             author: payload.authorName,
