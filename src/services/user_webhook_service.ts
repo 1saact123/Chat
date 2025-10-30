@@ -172,7 +172,6 @@ export class UserWebhookService {
 
         // Formato para Jira Automation webhook (que funcionaba antes)
         webhookPayload = {
-          issues: [payload.issueKey],
           webhookData: {
             message: payload.originalMessage,
             author: payload.authorName,
@@ -193,7 +192,8 @@ export class UserWebhookService {
             shouldUpdateExisting: true,
             action: 'add_comment',
             instruction: 'Add this as a comment to the existing ticket, do not create a new ticket'
-          }
+          },
+          issue: payload.issueKey
         };
         
         // Agregar token de automation si está configurado
