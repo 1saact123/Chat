@@ -1614,7 +1614,12 @@ Formato el reporte de manera clara y profesional.`;
         timestamp: context.timestamp || new Date().toISOString(),
         issue: context.issue,
         comment: context.comment,
-        assistantResponse: assistantResponse
+        assistantResponse: assistantResponse,
+        jiraIssueKey: context.jiraIssueKey,
+        issueSummary: context.issueSummary,
+        issueStatus: context.issueStatus,
+        conversationHistory: context.conversationHistory,
+        previousResponses: context.previousResponses
       };
       
       await userWebhookService.executeWebhook(webhook, webhookPayload);

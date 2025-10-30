@@ -172,6 +172,7 @@ export class UserWebhookService {
 
         // Formato para Jira Automation webhook (que funcionaba antes)
         webhookPayload = {
+          issues: [payload.issueKey],
           webhookData: {
             message: payload.originalMessage,
             author: payload.authorName,
@@ -182,8 +183,18 @@ export class UserWebhookService {
             assistantName: webhook.name,
             response: responseString,
             context: {
+              jiraIssueKey: payload.jiraIssueKey || payload.issueKey,
+              issueSummary: payload.issueSummary,
+              issueStatus: payload.issueStatus,
+              authorName: payload.authorName,
+              isJiraComment: true,
+              conversationType: 'webhook-parallel',
               isWebhookFlow: true,
               originalIssueKey: payload.issueKey,
+              webhookThreadId: `webhook_${payload.issueKey}_${Date.now()}`,
+              source: 'webhook-parallel',
+              conversationHistory: payload.conversationHistory || [],
+              previousResponses: payload.previousResponses || [],
               userId: payload.userId,
               serviceId: payload.serviceId,
               webhookId: webhook.id
@@ -192,8 +203,7 @@ export class UserWebhookService {
             shouldUpdateExisting: true,
             action: 'add_comment',
             instruction: 'Add this as a comment to the existing ticket, do not create a new ticket'
-          },
-          issue: payload.issueKey
+          }
         };
         
         // Agregar token de automation si está configurado
