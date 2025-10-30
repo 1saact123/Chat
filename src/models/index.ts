@@ -263,7 +263,6 @@ export interface UserAttributes {
   openaiToken?: string;
   isInitialSetupComplete?: boolean;
   adminId?: number; // ID del administrador que gestiona este usuario
-  organizationLogo?: string; // URL del logo de la organización
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -285,7 +284,6 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public openaiToken?: string;
   public isInitialSetupComplete?: boolean;
   public adminId?: number;
-  public organizationLogo?: string;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -360,10 +358,6 @@ User.init({
       model: 'users',
       key: 'id'
     }
-  },
-  organizationLogo: {
-    type: DataTypes.TEXT,
-    allowNull: true
   }
 }, {
   sequelize,
