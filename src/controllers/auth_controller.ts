@@ -181,6 +181,52 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+// Actualizar perfil del usuario autenticado (e.g., organization_logo)
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+      return;
+    }
+
+    const { organizationLogo } = req.body;
+
+    // Buscar usuario
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+      return;
+    }
+
+    const updateData: any = {};
+    if (typeof organizationLogo !== 'undefined') {
+      (updateData as any).organizationLogo = organizationLogo;
+    }
+
+    await user.update(updateData);
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          isActive: user.isActive,
+          lastLogin: user.lastLogin,
+          isInitialSetupComplete: user.isInitialSetupComplete,
+          organizationLogo: (user as any).organizationLogo
+        }
+      },
+      message: 'Perfil actualizado correctamente'
+    });
+  } catch (error) {
+    console.error('Error actualizando perfil:', error);
+    res.status(500).json({ success: false, error: 'Error interno del servidor' });
+  }
+};
+
 // Cambiar password
 export const changePassword = async (req: Request, res: Response): Promise<void> => {
   try {

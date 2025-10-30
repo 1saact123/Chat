@@ -24,6 +24,7 @@ import {
   logout, 
   verifyToken, 
   getProfile, 
+  updateProfile,
   changePassword,
   getAllUsers,
   createUser,
@@ -68,6 +69,7 @@ router.post('/api/auth/login', login);
 router.post('/api/auth/logout', logout);
 router.get('/api/auth/verify', authenticateToken, verifyToken);
 router.get('/api/auth/profile', authenticateToken, getProfile);
+router.put('/api/auth/profile', authenticateToken, updateProfile);
 router.put('/api/auth/change-password', authenticateToken, changePassword);
 
 // === CHATKIT ROUTES ===
