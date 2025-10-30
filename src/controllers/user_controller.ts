@@ -105,6 +105,7 @@ export class UserController {
             role: user.role,
             permissions: user.permissions,
             lastLogin: user.lastLogin,
+            organizationLogo: user.organizationLogo,
             createdAt: user.createdAt
           }
         }
@@ -678,6 +679,54 @@ export class UserController {
       });
     } catch (error) {
       console.error('Error validando tokens:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Actualizar perfil del usuario actual
+  public async updateProfile(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: 'Usuario no autenticado'
+        });
+        return;
+      }
+
+      const { organizationLogo } = req.body;
+
+      const user = await User.findByPk(req.user.id);
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: 'Usuario no encontrado'
+        });
+        return;
+      }
+
+      // Actualizar logo de organización si se proporciona
+      if (organizationLogo !== undefined) {
+        await user.update({ organizationLogo });
+      }
+
+      // Obtener usuario actualizado
+      const updatedUser = await User.findByPk(req.user.id, {
+        attributes: { exclude: ['password'] }
+      });
+
+      res.json({
+        success: true,
+        data: {
+          user: updatedUser
+        },
+        message: 'Perfil actualizado exitosamente'
+      });
+    } catch (error) {
+      console.error('Error actualizando perfil:', error);
       res.status(500).json({
         success: false,
         error: 'Error interno del servidor'

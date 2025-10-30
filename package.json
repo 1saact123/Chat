@@ -23,7 +23,8 @@
     "test-final-redirect": "ts-node src/scripts/test-final-redirect.ts",
     "debug-app": "ts-node src/scripts/debug-app.ts",
     "test-login-loop": "ts-node src/scripts/test-login-loop.ts",
-    "test-no-loop": "ts-node src/scripts/test-no-loop.ts"
+    "test-no-loop": "ts-node src/scripts/test-no-loop.ts",
+    "add-organization-logo": "ts-node src/scripts/add_organization_logo_to_users.ts"
   },
   "dependencies": {
     "@types/bcrypt": "^6.0.0",
