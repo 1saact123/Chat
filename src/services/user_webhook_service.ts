@@ -150,19 +150,25 @@ export class UserWebhookService {
       let webhookPayload: any;
       
       if (isJiraAutomation) {
-        // Intentar parsear la respuesta del asistente si es JSON
-        let parsedResponse: any = payload.assistantResponse || 'Webhook triggered by Movonte ChatBot';
+        // La respuesta del asistente debe enviarse como string, no como objeto
+        let responseString = 'Webhook triggered by Movonte ChatBot';
         
         try {
-          // Si la respuesta es un string JSON, parsearlo
-          if (typeof parsedResponse === 'string') {
-            const parsed = JSON.parse(parsedResponse);
-            parsedResponse = parsed;
+          if (payload.assistantResponse) {
+            // Si es un objeto, convertirlo a string JSON
+            if (typeof payload.assistantResponse === 'object') {
+              responseString = JSON.stringify(payload.assistantResponse);
+            } else {
+              // Si ya es un string, usarlo directamente
+              responseString = payload.assistantResponse;
+            }
           }
         } catch (e) {
-          // Si no es JSON válido, dejar como está (string)
-          console.log(`📝 Respuesta no es JSON válido, usando como string`);
+          // Si hay error, usar valor por defecto
+          console.log(`📝 Error procesando respuesta, usando valor por defecto`);
         }
+
+        console.log(`📝 Response que se enviará:`, responseString);
 
         // Formato para Jira Automation webhook (que funcionaba antes)
         webhookPayload = {
@@ -175,7 +181,7 @@ export class UserWebhookService {
             threadId: `webhook_${payload.issueKey}_${Date.now()}`,
             assistantId: webhook.assistantId || 'default',
             assistantName: webhook.name,
-            response: parsedResponse,
+            response: responseString,
             context: {
               isWebhookFlow: true,
               originalIssueKey: payload.issueKey,
