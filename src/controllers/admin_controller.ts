@@ -1358,4 +1358,51 @@ export class AdminController {
       });
     }
   }
+
+  // Listar organizaciones agrupadas por dominio de jira_url (solo admin id=1)
+  async getOrganizations(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user || req.user.role !== 'admin' || req.user.id !== 1) {
+        res.status(403).json({ success: false, error: 'Acceso denegado' });
+        return;
+      }
+
+      const allUsers = await User.findAll({
+        attributes: ['id','username','email','role','isActive','jiraUrl'],
+        order: [['username','ASC']]
+      });
+
+      const parseHost = (url?: string | null): string | null => {
+        if (!url) return null;
+        try {
+          const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+          return u.hostname.toLowerCase();
+        } catch { return null; }
+      };
+
+      // Obtener logos por host desde SQL directo para columnas no mapeadas en el modelo
+      const { sequelize } = await import('../config/database');
+      const [logoRows] = await sequelize.query(
+        `SELECT organization_logo AS organizationLogo, jira_url AS jiraUrl FROM users WHERE organization_logo IS NOT NULL AND organization_logo != ''`
+      );
+      const logosByHost: Record<string,string> = {};
+      (logoRows as any[]).forEach(r => {
+        const host = parseHost(r.jiraUrl);
+        if (host && !logosByHost[host]) logosByHost[host] = r.organizationLogo;
+      });
+
+      const orgMap: Record<string, { name: string; logo: string | null; users: any[] }> = {};
+      for (const u of allUsers) {
+        const host = parseHost((u as any).jiraUrl);
+        if (!host) continue;
+        if (!orgMap[host]) orgMap[host] = { name: host, logo: logosByHost[host] || null, users: [] };
+        orgMap[host].users.push({ id: u.id, username: u.username, email: u.email, role: u.role, isActive: u.isActive });
+      }
+
+      res.json({ success: true, data: { organizations: Object.values(orgMap) } });
+    } catch (error) {
+      console.error('Error listando organizaciones:', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
+    }
+  }
 }

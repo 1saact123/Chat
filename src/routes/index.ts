@@ -364,6 +364,9 @@ router.get('/api/admin/projects/:projectKey', authenticateToken, requirePermissi
 // Probar conexión con Jira
 router.get('/api/admin/jira/test-connection', authenticateToken, requirePermission('aiEnabledProjects'), adminController.testJiraConnection.bind(adminController));
 
+// === ORGANIZATIONS (ADMIN USER 1 ONLY) ===
+router.get('/api/admin/organizations', authenticateToken, requireAdmin, adminController.getOrganizations.bind(adminController));
+
 // Endpoint público para obtener asistente activo de un servicio
 router.get('/api/services/:serviceId/assistant', adminController.getActiveAssistantForService.bind(adminController));
 
