@@ -620,6 +620,20 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
           const row = Array.isArray(rows) && (rows as any[])[0];
           const cfgRaw = row?.configuration;
           const cfg = cfgRaw && (typeof cfgRaw === 'string' ? JSON.parse(cfgRaw) : cfgRaw);
+          // Check 1: Is this specific ticket in the disabled_tickets list?
+          const disabledTickets: string[] = Array.isArray(cfg?.disabled_tickets) ? cfg.disabled_tickets : [];
+          if (disabledTickets.includes(issueKeyFromContext)) {
+            console.log(`🚫 Omitting AI response for ${issueKeyFromContext} - ticket is in disabled_tickets list (service ${serviceId})`);
+            return {
+              success: true,
+              response: '',
+              threadId: threadId || 'general',
+              assistantId: serviceAssistantId,
+              assistantName: serviceConfig?.assistantName
+            };
+          }
+
+          // Check 2: Is this ticket's status in the disable_tickets_state list for the configured project?
           const disableStates: string[] = Array.isArray(cfg?.disable_tickets_state) ? cfg.disable_tickets_state : [];
           const cfgProjectKey: string | undefined = cfg?.projectKey;
 
@@ -643,7 +657,7 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
           }
         }
       } catch (ignoreErr) {
-        console.warn('⚠️ Ignore-by-status check failed, continuing normally:', ignoreErr);
+        console.warn('⚠️ Per-service ignore check failed, continuing normally:', ignoreErr);
       }
 
       console.log(`🎯 Using assistant ${serviceAssistantId} for service ${serviceId}`);

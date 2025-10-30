@@ -46,6 +46,59 @@ export class UserOpenAIService {
         };
       }
 
+      // Per-service ignore checks: specific disabled tickets OR tickets with disabled status in configured project
+      try {
+        const issueKeyFromContext = context?.jiraIssueKey || threadId?.match(/([A-Z]+-\d+)/)?.[1];
+        if (issueKeyFromContext && serviceConfig.configuration) {
+          const cfg = serviceConfig.configuration;
+          
+          // Check 1: Is this specific ticket in the disabled_tickets list?
+          const disabledTickets: string[] = Array.isArray(cfg?.disabled_tickets) ? cfg.disabled_tickets : [];
+          if (disabledTickets.includes(issueKeyFromContext)) {
+            console.log(`🚫 Omitting AI response for ${issueKeyFromContext} - ticket is in disabled_tickets list (service ${serviceId}, user ${this.userId})`);
+            return {
+              success: true,
+              response: '',
+              threadId: threadId || `user_${this.userId}_${Date.now()}`,
+              assistantId: serviceConfig.assistantId,
+              assistantName: serviceConfig.assistantName
+            };
+          }
+
+          // Check 2: Is this ticket's status in the disable_tickets_state list for the configured project?
+          const disableStates: string[] = Array.isArray(cfg?.disable_tickets_state) ? cfg.disable_tickets_state : [];
+          const cfgProjectKey: string | undefined = cfg?.projectKey;
+
+          if (disableStates.length > 0 && cfgProjectKey && issueKeyFromContext) {
+            const user = await User.findByPk(this.userId);
+            if (user && user.jiraToken && (user as any).jiraUrl) {
+              const { UserJiraService } = await import('./user_jira_service');
+              const jira = new UserJiraService(this.userId, user.jiraToken, (user as any).jiraUrl, user.email);
+              try {
+                const issue = await jira.getIssueByKey(issueKeyFromContext);
+                const issueStatus: string | undefined = issue?.fields?.status?.name;
+                const issueProjectKey: string | undefined = issue?.fields?.project?.key;
+
+                if (issueStatus && issueProjectKey && issueProjectKey === cfgProjectKey && disableStates.includes(issueStatus)) {
+                  console.log(`🚫 Omitting AI response for ${issueKeyFromContext} due to status "${issueStatus}" in project ${cfgProjectKey} (service ${serviceId}, user ${this.userId})`);
+                  return {
+                    success: true,
+                    response: '',
+                    threadId: threadId || `user_${this.userId}_${Date.now()}`,
+                    assistantId: serviceConfig.assistantId,
+                    assistantName: serviceConfig.assistantName
+                  };
+                }
+              } catch (jiraErr) {
+                console.warn('⚠️ Failed to check issue status for ignore check:', jiraErr);
+              }
+            }
+          }
+        }
+      } catch (ignoreErr) {
+        console.warn('⚠️ Per-service ignore check failed, continuing normally:', ignoreErr);
+      }
+
       // Usar el asistente del usuario
       const assistant = await this.openai.beta.assistants.retrieve(serviceConfig.assistantId);
       const systemPrompt = assistant.instructions || "You are a helpful assistant.";
