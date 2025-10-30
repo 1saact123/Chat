@@ -60,6 +60,33 @@ export async function syncDatabase(): Promise<void> {
     // y alter: false para evitar conflictos con índices
     await sequelize.sync({ force: false, alter: false });
     console.log('✅ Base de datos sincronizada correctamente');
+
+    // Asegurar columnas críticas (logo organización) y tipo adecuado
+    try {
+      const dbName = process.env.DB_NAME || 'chatbot_db';
+      const [colRows] = await sequelize.query(
+        `SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS 
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' 
+         AND COLUMN_NAME = 'organization_logo'`,
+        { replacements: [dbName] }
+      );
+
+      const col = (colRows as any[])[0];
+      if (!col) {
+        console.log('🛠️ Adding missing column users.organization_logo...');
+        await sequelize.query('ALTER TABLE users ADD COLUMN organization_logo TEXT NULL');
+        console.log('✅ Column users.organization_logo added');
+      } else {
+        const type = String(col.DATA_TYPE || '').toLowerCase();
+        if (type === 'text' || type === 'tinytext') {
+          console.log('🛠️ Upgrading users.organization_logo to MEDIUMTEXT...');
+          await sequelize.query('ALTER TABLE users MODIFY COLUMN organization_logo MEDIUMTEXT NULL');
+          console.log('✅ Column users.organization_logo is now MEDIUMTEXT');
+        }
+      }
+    } catch (schemaErr) {
+      console.warn('⚠️ Schema check for organization_logo failed (continuing):', schemaErr);
+    }
   } catch (error) {
     console.error('❌ Error sincronizando base de datos:', error);
     // Si hay error con alter, intentar solo con force: false
