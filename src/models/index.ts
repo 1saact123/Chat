@@ -262,6 +262,7 @@ export interface UserAttributes {
   jiraUrl?: string;
   openaiToken?: string;
   isInitialSetupComplete?: boolean;
+  organizationLogo?: string;
   adminId?: number; // ID del administrador que gestiona este usuario
   createdAt?: Date;
   updatedAt?: Date;
@@ -283,6 +284,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public jiraUrl?: string;
   public openaiToken?: string;
   public isInitialSetupComplete?: boolean;
+  public organizationLogo?: string;
   public adminId?: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -350,6 +352,11 @@ User.init({
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false
+  },
+  organizationLogo: {
+    field: 'organization_logo',
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   adminId: {
     type: DataTypes.INTEGER,

@@ -16,6 +16,7 @@ declare global {
       jiraUrl?: string;
       openaiToken?: string;
       isInitialSetupComplete?: boolean;
+      organizationLogo?: string;
       };
     }
   }
@@ -59,7 +60,8 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       jiraToken: user.jiraToken,
       jiraUrl: user.jiraUrl,
       openaiToken: user.openaiToken,
-      isInitialSetupComplete: user.isInitialSetupComplete
+      isInitialSetupComplete: user.isInitialSetupComplete,
+      organizationLogo: (user as any).organizationLogo
     };
 
     next();

@@ -546,7 +546,7 @@ export class UserController {
         return;
       }
 
-      const { jiraToken, jiraUrl, openaiToken } = req.body;
+      const { jiraToken, jiraUrl, openaiToken, organizationLogo } = req.body;
 
       if (!jiraToken || !jiraUrl || !openaiToken) {
         res.status(400).json({
@@ -570,7 +570,9 @@ export class UserController {
         jiraToken,
         jiraUrl,
         openaiToken,
-        isInitialSetupComplete: true
+        isInitialSetupComplete: true,
+        // Guardar el logo de la organización si se proporciona
+        ...(organizationLogo ? { organizationLogo } : {})
       }, {
         where: { id: req.user.id }
       });
@@ -579,7 +581,8 @@ export class UserController {
         success: true,
         message: 'Configuración inicial completada correctamente',
         data: {
-          isInitialSetupComplete: true
+          isInitialSetupComplete: true,
+          organizationLogo: organizationLogo || (req.user as any).organizationLogo
         }
       });
     } catch (error) {
