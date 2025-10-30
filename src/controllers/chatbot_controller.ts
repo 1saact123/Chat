@@ -628,7 +628,10 @@ export class ChatbotController {
               serviceId: userServiceInfo.serviceId,
               userId: user.id,
               conversationHistory: [],
-              previousResponses: []
+              previousResponses: [],
+              issue: payload.issue,
+              comment: payload.comment,
+              timestamp: new Date().toISOString()
             };
 
             // Obtener configuración de servicios
@@ -684,6 +687,8 @@ export class ChatbotController {
               let attempts = 0;
               const maxAttempts = 30;
 
+              console.log(`⏳ Esperando respuesta del asistente de escalación... (Status: ${runStatus.status})`);
+
               while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
                 if (attempts >= maxAttempts) {
                   console.error('Timeout esperando respuesta del asistente de escalación');
@@ -692,17 +697,23 @@ export class ChatbotController {
                 await new Promise(resolve => setTimeout(resolve, 500));
                 runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
                 attempts++;
+                console.log(`⏳ Esperando... (Intento ${attempts}/${maxAttempts}, Status: ${runStatus.status})`);
               }
+
+              console.log(`✅ Run completado con status: ${runStatus.status}`);
 
               // Obtener la respuesta
               const messages = await openai.beta.threads.messages.list(thread.id);
+              console.log(`📋 Total de mensajes recibidos: ${messages.data.length}`);
+              
               const assistantMessage = messages.data.find((m: any) => m.role === 'assistant');
               
               const assistantResponse = assistantMessage?.content[0]?.type === 'text' 
                 ? assistantMessage.content[0].text.value 
                 : '';
 
-              console.log(`🔍 RESPUESTA DEL ASISTENTE DE ESCALACIÓN: ${assistantResponse}`);
+              console.log(`🔍 RESPUESTA DEL ASISTENTE DE ESCALACIÓN:`, assistantResponse);
+              console.log(`🔍 LONGITUD DE LA RESPUESTA: ${assistantResponse.length} caracteres`);
 
               const webhookResponse = {
                 success: true,
