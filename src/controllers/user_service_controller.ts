@@ -410,6 +410,43 @@ export class UserServiceController {
     }
   }
 
+  // Obtener estados disponibles (usuario)
+  async getUserAvailableStatuses(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+        return;
+      }
+      const user = await User.findByPk(req.user.id);
+      if (!user || !user.jiraToken || !(user as any).jiraUrl) {
+        // Fallback: usar listado global si el usuario no tiene Jira configurado
+        const { AdminController } = await import('./admin_controller');
+        const admin = new AdminController();
+        // Reutilizar método existente
+        return await admin.getAvailableStatuses(req, res);
+      }
+
+      const { projectKey } = req.query as { projectKey?: string };
+      const userJira = new (await import('../services/user_jira_service')).UserJiraService(
+        user.id,
+        user.jiraToken,
+        (user as any).jiraUrl,
+        user.email
+      );
+
+      // Consultar un issue para extraer estados actuales no es directo; devolveremos todos los posibles desde metadata
+      // o si se requiere por proyecto, podríamos realizar una búsqueda filtrada; por simplicidad, usar metadata global
+      const { JiraService } = await import('../services/jira_service');
+      const jira = JiraService.getInstance();
+      const statuses = await jira.getAllPossibleStatuses();
+
+      res.json({ success: true, data: statuses });
+    } catch (error) {
+      console.error('❌ Error getting user available statuses:', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
+    }
+  }
+
   // Listar asistentes del usuario
   async getUserAssistants(req: Request, res: Response): Promise<void> {
     try {

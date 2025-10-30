@@ -608,6 +608,44 @@ IMPORTANTE: Usa las preguntas y respuestas exactas de la conversación, no inven
         };
       }
 
+      // Per-service ignore by status: if thread/issue belongs to configured project and status is in disable list, omit response
+      try {
+        const issueKeyFromContext = context?.jiraIssueKey || this.extractIssueKeyFromThreadId(threadId);
+        if (issueKeyFromContext) {
+          const { sequelize } = await import('../config/database');
+          const [rows] = await sequelize.query(
+            `SELECT configuration FROM unified_configurations WHERE CAST(service_id AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci LIMIT 1`,
+            { replacements: [serviceId] }
+          );
+          const row = Array.isArray(rows) && (rows as any[])[0];
+          const cfgRaw = row?.configuration;
+          const cfg = cfgRaw && (typeof cfgRaw === 'string' ? JSON.parse(cfgRaw) : cfgRaw);
+          const disableStates: string[] = Array.isArray(cfg?.disable_tickets_state) ? cfg.disable_tickets_state : [];
+          const cfgProjectKey: string | undefined = cfg?.projectKey;
+
+          if (disableStates.length > 0 && cfgProjectKey) {
+            const { JiraService } = await import('./jira_service');
+            const jira = JiraService.getInstance();
+            const issue = await jira.getIssueByKey(issueKeyFromContext);
+            const issueStatus: string | undefined = issue?.fields?.status?.name;
+            const issueProjectKey: string | undefined = issue?.fields?.project?.key;
+
+            if (issueStatus && issueProjectKey && issueProjectKey === cfgProjectKey && disableStates.includes(issueStatus)) {
+              console.log(`🚫 Omitting AI response for ${issueKeyFromContext} due to status "${issueStatus}" in project ${cfgProjectKey} (service ${serviceId})`);
+              return {
+                success: true,
+                response: '',
+                threadId: threadId || 'general',
+                assistantId: serviceAssistantId,
+                assistantName: serviceConfig?.assistantName
+              };
+            }
+          }
+        }
+      } catch (ignoreErr) {
+        console.warn('⚠️ Ignore-by-status check failed, continuing normally:', ignoreErr);
+      }
+
       console.log(`🎯 Using assistant ${serviceAssistantId} for service ${serviceId}`);
       
       // Use the OpenAI Assistant API directly to get the assistant's instructions

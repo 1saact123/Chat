@@ -116,6 +116,9 @@ router.get('/api/user/services/list', authenticateToken, userServiceController.g
 router.put('/api/user/services/:serviceId', authenticateToken, userServiceController.updateUserService.bind(userServiceController));
 router.delete('/api/user/services/:serviceId', authenticateToken, userServiceController.deleteUserService.bind(userServiceController));
 
+// Estados disponibles (usuario)
+router.get('/api/user/statuses/available', authenticateToken, userServiceController.getUserAvailableStatuses.bind(userServiceController));
+
 // Chat con servicios del usuario
 router.post('/api/user/services/:serviceId/chat', authenticateToken, userServiceController.chatWithUserService.bind(userServiceController));
 
