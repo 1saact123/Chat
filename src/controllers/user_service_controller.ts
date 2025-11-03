@@ -67,7 +67,7 @@ export class UserServiceController {
         return;
       }
 
-      const { serviceId, serviceName, assistantId, assistantName } = req.body;
+      const { serviceId, serviceName, assistantId, assistantName, projectKey } = req.body;
 
       if (!serviceId || !serviceName || !assistantId || !assistantName) {
         res.status(400).json({
@@ -113,6 +113,12 @@ export class UserServiceController {
       // Si el usuario es admin, se aprueba automáticamente; si no, queda pendiente
       const approvalStatus = user.role === 'admin' ? 'approved' : 'pending';
 
+      // Preparar configuración inicial con projectKey si se proporciona
+      const initialConfiguration: any = {};
+      if (projectKey) {
+        initialConfiguration.projectKey = projectKey;
+      }
+
       // Crear servicio en tabla unificada
       const success = await this.createUserServiceConfiguration(user.id, {
         serviceId,
@@ -120,7 +126,7 @@ export class UserServiceController {
         assistantId,
         assistantName,
         isActive: true,
-        configuration: {},
+        configuration: initialConfiguration,
         approvalStatus
       });
 
@@ -169,6 +175,7 @@ export class UserServiceController {
           assistant_name as assistantName,
           is_active as isActive,
           last_updated as lastUpdated,
+          approval_status as approvalStatus,
           configuration
         FROM unified_configurations 
         WHERE user_id = ?
@@ -204,6 +211,7 @@ export class UserServiceController {
             assistantName: config.assistantName,
             isActive: Boolean(config.isActive),
             lastUpdated: config.lastUpdated,
+            approvalStatus: config.approvalStatus || 'pending',
             configuration: parsedConfiguration
           };
         })
@@ -605,6 +613,10 @@ export class UserServiceController {
       } else if (!config.configuration) {
         config.configuration = {};
       }
+      // Asegurar que approvalStatus tenga un valor por defecto
+      if (!config.approvalStatus) {
+        config.approvalStatus = 'pending';
+      }
       return config;
     });
   }
@@ -640,6 +652,10 @@ export class UserServiceController {
         }
       } else if (!config.configuration) {
         config.configuration = {};
+      }
+      // Asegurar que approvalStatus tenga un valor por defecto
+      if (!config.approvalStatus) {
+        config.approvalStatus = 'pending';
       }
       return config;
     }
