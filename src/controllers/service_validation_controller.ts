@@ -113,7 +113,7 @@ export class ServiceValidationController {
     }
   }
 
-  // Obtener solicitudes pendientes (solo para admins)
+  // Obtener solicitudes pendientes (solo para admins) - Ahora desde unified_configurations
   public async getPendingValidations(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -126,8 +126,69 @@ export class ServiceValidationController {
         return;
       }
 
-      // Solo obtener solicitudes asignadas a este administrador
-      const validations = await this.validationService.getPendingValidationsForAdmin(req.user.id);
+      // Obtener servicios pendientes directamente desde unified_configurations
+      const { sequelize } = await import('../config/database');
+      const { User } = await import('../models');
+      
+      const [pendingServices] = await sequelize.query(`
+        SELECT 
+          uc.id,
+          uc.service_id as serviceId,
+          uc.service_name as serviceName,
+          uc.user_id as userId,
+          uc.assistant_id as assistantId,
+          uc.assistant_name as assistantName,
+          uc.is_active as isActive,
+          uc.approval_status as approvalStatus,
+          uc.configuration,
+          uc.created_at as createdAt,
+          uc.updated_at as updatedAt,
+          u.username,
+          u.email
+        FROM unified_configurations uc
+        INNER JOIN users u ON uc.user_id = u.id
+        WHERE uc.approval_status = 'pending'
+        ORDER BY uc.created_at ASC
+      `);
+
+      const validations = await Promise.all(
+        (pendingServices as any[]).map(async (service: any) => {
+          // Parsear configuration
+          let config = service.configuration;
+          if (typeof config === 'string') {
+            try {
+              config = JSON.parse(config);
+            } catch (e) {
+              config = {};
+            }
+          }
+
+          // Buscar información de validación si existe (opcional, para mantener compatibilidad)
+          const validationRequest = await this.validationService.getUserValidations(service.userId);
+          const matchingValidation = validationRequest.find(
+            (v: any) => v.serviceName === service.serviceName
+          );
+
+          return {
+            id: service.id,
+            serviceId: service.serviceId,
+            serviceName: service.serviceName,
+            serviceDescription: matchingValidation?.serviceDescription || '',
+            websiteUrl: matchingValidation?.websiteUrl || '',
+            requestedDomain: matchingValidation?.requestedDomain || config?.requestedDomain || '',
+            status: 'pending' as const,
+            approvalStatus: service.approvalStatus,
+            createdAt: service.createdAt,
+            updatedAt: service.updatedAt,
+            user: {
+              id: service.userId,
+              username: service.username,
+              email: service.email
+            },
+            configuration: config
+          };
+        })
+      );
 
       res.json({
         success: true,
@@ -145,7 +206,7 @@ export class ServiceValidationController {
     }
   }
 
-  // Aprobar solicitud de validación (solo para admins)
+  // Aprobar solicitud de validación (solo para admins) - Ahora desde unified_configurations
   public async approveValidation(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -162,20 +223,90 @@ export class ServiceValidationController {
       const { adminNotes } = req.body;
 
       if (!id || isNaN(Number(id))) {
-        res.status(400).json({ success: false, error: 'ID de validación inválido' });
+        res.status(400).json({ success: false, error: 'ID de servicio inválido' });
         return;
       }
 
-      const validation = await this.validationService.approveValidation(
-        Number(id), 
-        req.user.id, 
-        adminNotes
-      );
+      // Obtener el servicio desde unified_configurations
+      const { sequelize } = await import('../config/database');
+      const [services] = await sequelize.query(`
+        SELECT * FROM unified_configurations WHERE id = ?
+      `, {
+        replacements: [Number(id)]
+      });
+
+      if (!services || (services as any[]).length === 0) {
+        res.status(404).json({ success: false, error: 'Servicio no encontrado' });
+        return;
+      }
+
+      const service = (services as any[])[0];
+      
+      if (service.approval_status !== 'pending') {
+        res.status(400).json({ 
+          success: false, 
+          error: `El servicio ya ha sido ${service.approval_status === 'approved' ? 'aprobado' : 'rechazado'}` 
+        });
+        return;
+      }
+
+      // Parsear configuration
+      let config = service.configuration;
+      if (typeof config === 'string') {
+        try {
+          config = JSON.parse(config);
+        } catch (e) {
+          config = {};
+        }
+      }
+
+      // Actualizar el servicio a aprobado en unified_configurations
+      await sequelize.query(`
+        UPDATE unified_configurations 
+        SET 
+          approval_status = 'approved',
+          is_active = true,
+          configuration = ?,
+          last_updated = NOW()
+        WHERE id = ?
+      `, {
+        replacements: [
+          JSON.stringify({
+            ...config,
+            adminApproved: true,
+            adminApprovedAt: new Date().toISOString(),
+            adminNotes: adminNotes || 'Aprobado por administrador'
+          }),
+          Number(id)
+        ]
+      });
+
+      // Aplicar configuración de CORS si hay dominio
+      const requestedDomain = config?.requestedDomain;
+      if (requestedDomain) {
+        try {
+          // Llamar al método privado a través del servicio
+          const serviceValidationService = this.validationService as any;
+          if (serviceValidationService.applyCorsConfiguration) {
+            await serviceValidationService.applyCorsConfiguration(requestedDomain);
+          }
+        } catch (corsError) {
+          console.warn('⚠️ Error applying CORS configuration (non-critical):', corsError);
+        }
+      }
+
+      console.log(`✅ Service approved: ${service.service_name} for user ${service.user_id}`);
 
       res.json({
         success: true,
-        message: `Solicitud de validación aprobada exitosamente. CORS configurado automáticamente para el dominio: ${validation.requestedDomain}`,
-        data: validation
+        message: `Servicio aprobado exitosamente${requestedDomain ? `. CORS configurado automáticamente para el dominio: ${requestedDomain}` : ''}`,
+        data: {
+          id: service.id,
+          serviceId: service.service_id,
+          serviceName: service.service_name,
+          approvalStatus: 'approved',
+          adminNotes: adminNotes || 'Aprobado por administrador'
+        }
       });
     } catch (error) {
       console.error('❌ Error approving validation:', error);
@@ -186,7 +317,7 @@ export class ServiceValidationController {
     }
   }
 
-  // Rechazar solicitud de validación (solo para admins)
+  // Rechazar solicitud de validación (solo para admins) - Ahora desde unified_configurations
   public async rejectValidation(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
@@ -203,7 +334,7 @@ export class ServiceValidationController {
       const { adminNotes } = req.body;
 
       if (!id || isNaN(Number(id))) {
-        res.status(400).json({ success: false, error: 'ID de validación inválido' });
+        res.status(400).json({ success: false, error: 'ID de servicio inválido' });
         return;
       }
 
@@ -215,16 +346,72 @@ export class ServiceValidationController {
         return;
       }
 
-      const validation = await this.validationService.rejectValidation(
-        Number(id), 
-        req.user.id, 
-        adminNotes
-      );
+      // Obtener el servicio desde unified_configurations
+      const { sequelize } = await import('../config/database');
+      const [services] = await sequelize.query(`
+        SELECT * FROM unified_configurations WHERE id = ?
+      `, {
+        replacements: [Number(id)]
+      });
+
+      if (!services || (services as any[]).length === 0) {
+        res.status(404).json({ success: false, error: 'Servicio no encontrado' });
+        return;
+      }
+
+      const service = (services as any[])[0];
+      
+      if (service.approval_status !== 'pending') {
+        res.status(400).json({ 
+          success: false, 
+          error: `El servicio ya ha sido ${service.approval_status === 'approved' ? 'aprobado' : 'rechazado'}` 
+        });
+        return;
+      }
+
+      // Parsear configuration
+      let config = service.configuration;
+      if (typeof config === 'string') {
+        try {
+          config = JSON.parse(config);
+        } catch (e) {
+          config = {};
+        }
+      }
+
+      // Actualizar el servicio a rechazado en unified_configurations
+      await sequelize.query(`
+        UPDATE unified_configurations 
+        SET 
+          approval_status = 'rejected',
+          is_active = false,
+          configuration = ?,
+          last_updated = NOW()
+        WHERE id = ?
+      `, {
+        replacements: [
+          JSON.stringify({
+            ...config,
+            adminApproved: false,
+            adminRejectedAt: new Date().toISOString(),
+            adminNotes: adminNotes
+          }),
+          Number(id)
+        ]
+      });
+
+      console.log(`❌ Service rejected: ${service.service_name} for user ${service.user_id}`);
 
       res.json({
         success: true,
         message: 'Solicitud de validación rechazada.',
-        data: validation
+        data: {
+          id: service.id,
+          serviceId: service.service_id,
+          serviceName: service.service_name,
+          approvalStatus: 'rejected',
+          adminNotes: adminNotes
+        }
       });
     } catch (error) {
       console.error('❌ Error rejecting validation:', error);
@@ -279,7 +466,7 @@ export class ServiceValidationController {
       const { sequelize } = await import('../config/database');
       const [configurations] = await sequelize.query(`
         SELECT * FROM unified_configurations 
-        WHERE user_id = ? AND service_id = ? AND is_active = TRUE
+        WHERE user_id = ? AND CAST(service_id AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci
         LIMIT 1
       `, {
         replacements: [req.user.id, serviceId]
@@ -303,6 +490,7 @@ export class ServiceValidationController {
         assistantId: config.assistant_id,
         assistantName: config.assistant_name,
         isActive: Boolean(config.is_active),
+        approvalStatus: config.approval_status,
         configuration: typeof config.configuration === 'string' 
           ? JSON.parse(config.configuration) 
           : config.configuration
@@ -312,7 +500,7 @@ export class ServiceValidationController {
         serviceId: userService.serviceId,
         serviceName: userService.serviceName,
         isActive: userService.isActive,
-        adminApproved: userService.configuration?.adminApproved
+        approvalStatus: userService.approvalStatus
       });
 
       // Verificar que el servicio esté activo
@@ -325,13 +513,14 @@ export class ServiceValidationController {
         return;
       }
 
-      // Verificar que el servicio esté aprobado por el administrador
-      const isAdminApproved = userService.configuration?.adminApproved;
-      if (!isAdminApproved) {
-        console.log('❌ Service is not admin approved');
+      // Verificar que el servicio esté aprobado por el administrador usando approval_status
+      if (userService.approvalStatus !== 'approved') {
+        console.log('❌ Service is not admin approved, status:', userService.approvalStatus);
         res.status(403).json({ 
           success: false, 
-          error: 'El servicio no ha sido aprobado por el administrador. Contacta al administrador para aprobar tu servicio.' 
+          error: userService.approvalStatus === 'pending' 
+            ? 'El servicio está pendiente de aprobación por el administrador. Contacta al administrador para aprobar tu servicio.' 
+            : 'El servicio no ha sido aprobado por el administrador. Contacta al administrador para aprobar tu servicio.' 
         });
         return;
       }

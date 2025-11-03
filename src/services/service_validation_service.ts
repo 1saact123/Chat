@@ -285,10 +285,13 @@ export class ServiceValidationService {
         adminNotes: adminNotes
       });
 
-      // Eliminar el servicio de unified_configurations ya que fue rechazado
+      // Actualizar el estado de aprobación a rechazado en unified_configurations
       const { sequelize } = await import('../config/database');
       await sequelize.query(`
-        DELETE FROM unified_configurations 
+        UPDATE unified_configurations 
+        SET approval_status = 'rejected',
+            is_active = false,
+            last_updated = NOW()
         WHERE user_id = ? AND service_name = ?
       `, {
         replacements: [validation.userId, validation.serviceName]
@@ -331,7 +334,7 @@ export class ServiceValidationService {
       if (services.length > 0) {
         const service = services[0] as any;
         
-        // Actualizar el servicio en unified_configurations
+        // Actualizar el servicio en unified_configurations usando approval_status
         const currentConfig = typeof service.configuration === 'string' 
           ? JSON.parse(service.configuration) 
           : service.configuration || {};
@@ -339,6 +342,7 @@ export class ServiceValidationService {
         await sequelize.query(`
           UPDATE unified_configurations 
           SET is_active = true, 
+              approval_status = 'approved',
               configuration = ?,
               last_updated = NOW()
           WHERE id = ?
@@ -353,7 +357,7 @@ export class ServiceValidationService {
           ]
         });
 
-        console.log(`✅ User service activated: ${serviceName} for user ${userId}`);
+        console.log(`✅ User service activated and approved: ${serviceName} for user ${userId}`);
       } else {
         console.log(`⚠️ User service not found: ${serviceName} for user ${userId}`);
       }

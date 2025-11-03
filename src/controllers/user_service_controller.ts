@@ -109,6 +109,10 @@ export class UserServiceController {
         return;
       }
 
+      // Determinar el estado de aprobación inicial
+      // Si el usuario es admin, se aprueba automáticamente; si no, queda pendiente
+      const approvalStatus = user.role === 'admin' ? 'approved' : 'pending';
+
       // Crear servicio en tabla unificada
       const success = await this.createUserServiceConfiguration(user.id, {
         serviceId,
@@ -116,7 +120,8 @@ export class UserServiceController {
         assistantId,
         assistantName,
         isActive: true,
-        configuration: {}
+        configuration: {},
+        approvalStatus
       });
 
       if (success) {
@@ -579,6 +584,7 @@ export class UserServiceController {
         assistant_name as assistantName,
         is_active as isActive,
         last_updated as lastUpdated,
+        approval_status as approvalStatus,
         configuration
       FROM unified_configurations 
       WHERE user_id = ?
@@ -613,6 +619,7 @@ export class UserServiceController {
         assistant_name as assistantName,
         is_active as isActive,
         last_updated as lastUpdated,
+        approval_status as approvalStatus,
         configuration
       FROM unified_configurations 
       WHERE user_id = ? AND CAST(service_id AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci
@@ -644,8 +651,8 @@ export class UserServiceController {
       const { sequelize } = await import('../config/database');
       await sequelize.query(`
         INSERT INTO unified_configurations 
-        (service_id, service_name, user_id, assistant_id, assistant_name, is_active, configuration, last_updated)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (service_id, service_name, user_id, assistant_id, assistant_name, is_active, configuration, approval_status, last_updated)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, {
         replacements: [
           config.serviceId,
@@ -655,6 +662,7 @@ export class UserServiceController {
           config.assistantName,
           config.isActive,
           JSON.stringify(config.configuration || {}),
+          config.approvalStatus || 'pending',
           new Date()
         ]
       });
