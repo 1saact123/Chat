@@ -67,7 +67,7 @@ export class UserServiceController {
         return;
       }
 
-      const { serviceId, serviceName, assistantId, assistantName, projectKey } = req.body;
+      const { serviceId, serviceName, assistantId, assistantName, projectKey, websiteUrl, requestedDomain } = req.body;
 
       if (!serviceId || !serviceName || !assistantId || !assistantName) {
         res.status(400).json({
@@ -113,10 +113,16 @@ export class UserServiceController {
       // Si el usuario es admin, se aprueba automáticamente; si no, queda pendiente
       const approvalStatus = user.role === 'admin' ? 'approved' : 'pending';
 
-      // Preparar configuración inicial con projectKey si se proporciona
+      // Preparar configuración inicial con projectKey, websiteUrl y requestedDomain si se proporcionan
       const initialConfiguration: any = {};
       if (projectKey) {
         initialConfiguration.projectKey = projectKey;
+      }
+      if (websiteUrl) {
+        initialConfiguration.websiteUrl = websiteUrl;
+      }
+      if (requestedDomain) {
+        initialConfiguration.requestedDomain = requestedDomain;
       }
 
       // Crear servicio en tabla unificada

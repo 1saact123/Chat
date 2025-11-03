@@ -169,13 +169,14 @@ export class ServiceValidationController {
             (v: any) => v.serviceName === service.serviceName
           );
 
+          // Priorizar configuración del servicio, luego validación si existe
           return {
             id: service.id,
             serviceId: service.serviceId,
             serviceName: service.serviceName,
-            serviceDescription: matchingValidation?.serviceDescription || '',
-            websiteUrl: matchingValidation?.websiteUrl || '',
-            requestedDomain: matchingValidation?.requestedDomain || config?.requestedDomain || '',
+            serviceDescription: matchingValidation?.serviceDescription || config?.serviceDescription || '',
+            websiteUrl: config?.websiteUrl || matchingValidation?.websiteUrl || '',
+            requestedDomain: config?.requestedDomain || matchingValidation?.requestedDomain || '',
             status: 'pending' as const,
             approvalStatus: service.approvalStatus,
             createdAt: service.createdAt,
