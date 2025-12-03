@@ -78,8 +78,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       maxAge: 24 * 60 * 60 * 1000 // 24 horas
     });
 
-    // Para admins, siempre considerar que la configuración inicial está completa
-    const isSetupComplete = user.role === 'admin' ? true : user.isInitialSetupComplete;
+    // Verificar si el setup está completo
+    // Para usuarios regulares: debe tener isInitialSetupComplete = true
+    // Para admins: debe tener isInitialSetupComplete = true Y tokens configurados
+    const hasTokens = !!(user.jiraToken && user.openaiToken);
+    const isSetupComplete = user.role === 'admin' 
+      ? (user.isInitialSetupComplete && hasTokens)
+      : user.isInitialSetupComplete;
 
     // Respuesta exitosa
     res.json({
@@ -160,10 +165,27 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    // Para admins, siempre considerar que la configuración inicial está completa
+    // Obtener el usuario completo de la base de datos para verificar tokens
+    const fullUser = await User.findByPk(req.user.id);
+    if (!fullUser) {
+      res.status(404).json({
+        success: false,
+        error: 'Usuario no encontrado'
+      });
+      return;
+    }
+
+    // Verificar si el setup está completo
+    // Para usuarios regulares: debe tener isInitialSetupComplete = true
+    // Para admins: debe tener isInitialSetupComplete = true Y tokens configurados
+    const hasTokens = !!(fullUser.jiraToken && fullUser.openaiToken);
+    const isSetupComplete = fullUser.role === 'admin' 
+      ? (fullUser.isInitialSetupComplete && hasTokens)
+      : fullUser.isInitialSetupComplete;
+
     const userData = {
       ...req.user,
-      isInitialSetupComplete: req.user.role === 'admin' ? true : req.user.isInitialSetupComplete
+      isInitialSetupComplete: isSetupComplete
     };
 
     res.json({
@@ -309,8 +331,12 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    // Filtrar solo los usuarios creados por este administrador
     const users = await User.findAll({
-      attributes: ['id', 'username', 'email', 'role', 'isActive', 'lastLogin', 'createdAt'],
+      where: {
+        adminId: req.user.id
+      },
+      attributes: ['id', 'username', 'email', 'role', 'isActive', 'lastLogin', 'createdAt', 'adminId'],
       order: [['createdAt', 'DESC']]
     });
 
@@ -387,13 +413,14 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     // Hash de la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crear usuario
+    // Crear usuario con el adminId del administrador que lo crea
     const newUser = await User.create({
       username,
       email,
       password: hashedPassword,
       role,
-      isActive: true
+      isActive: true,
+      adminId: req.user.id
     });
 
     res.status(201).json({
@@ -440,6 +467,15 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
       res.status(404).json({
         success: false,
         error: 'Usuario no encontrado'
+      });
+      return;
+    }
+
+    // Verificar que el usuario pertenece a este administrador
+    if (user.adminId !== req.user.id) {
+      res.status(403).json({
+        success: false,
+        error: 'No tienes permisos para modificar este usuario'
       });
       return;
     }
@@ -552,6 +588,15 @@ export const changeUserPassword = async (req: Request, res: Response): Promise<v
       return;
     }
 
+    // Verificar que el usuario pertenece a este administrador
+    if (user.adminId !== req.user.id) {
+      res.status(403).json({
+        success: false,
+        error: 'No tienes permisos para modificar este usuario'
+      });
+      return;
+    }
+
     // Hash de la nueva contraseña
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
@@ -600,6 +645,15 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
       res.status(404).json({
         success: false,
         error: 'Usuario no encontrado'
+      });
+      return;
+    }
+
+    // Verificar que el usuario pertenece a este administrador
+    if (user.adminId !== req.user.id) {
+      res.status(403).json({
+        success: false,
+        error: 'No tienes permisos para eliminar este usuario'
       });
       return;
     }

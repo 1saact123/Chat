@@ -1228,6 +1228,15 @@ export class AdminController {
         return;
       }
 
+      // Verificar que el usuario pertenece a este administrador
+      if (user.adminId !== req.user?.id) {
+        res.status(403).json({
+          success: false,
+          error: 'No tienes permisos para ver este usuario'
+        });
+        return;
+      }
+
       res.json({
         success: true,
         data: {
@@ -1277,6 +1286,15 @@ export class AdminController {
         return;
       }
 
+      // Verificar que el usuario pertenece a este administrador
+      if (user.adminId !== req.user?.id) {
+        res.status(403).json({
+          success: false,
+          error: 'No tienes permisos para modificar este usuario'
+        });
+        return;
+      }
+
       // Validar que solo se actualicen permisos de usuarios con rol 'user'
       if (user.role === 'admin') {
         res.status(400).json({
@@ -1322,9 +1340,13 @@ export class AdminController {
   // Listar todos los usuarios con sus permisos (solo usuarios, no admins)
   async getUsersWithPermissions(req: Request, res: Response): Promise<void> {
     try {
+      // Filtrar solo los usuarios creados por este administrador
       const users = await User.findAll({
-        where: { role: 'user' },
-        attributes: ['id', 'username', 'email', 'isActive', 'permissions', 'lastLogin'],
+        where: { 
+          role: 'user',
+          adminId: req.user?.id
+        },
+        attributes: ['id', 'username', 'email', 'isActive', 'permissions', 'lastLogin', 'adminId'],
         order: [['username', 'ASC']]
       });
 

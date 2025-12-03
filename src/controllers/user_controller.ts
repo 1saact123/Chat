@@ -58,9 +58,9 @@ export class UserController {
             email: user.email,
             role: user.role,
             permissions: user.permissions,
-            isInitialSetupComplete: user.isInitialSetupComplete
+            isInitialSetupComplete: user.isInitialSetupComplete ?? false
           },
-          requiresInitialSetup: !user.isInitialSetupComplete
+          requiresInitialSetup: !(user.isInitialSetupComplete ?? false)
         }
       });
     } catch (error) {
