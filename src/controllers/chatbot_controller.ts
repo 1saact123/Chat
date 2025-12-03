@@ -210,6 +210,37 @@ export class ChatbotController {
       const payload: JiraWebhookPayload = req.body;
       this.webhookStats.totalReceived++;
       
+      // Validar que el payload tenga la estructura esperada
+      if (!payload || typeof payload !== 'object' || Object.keys(payload).length === 0) {
+        console.log(`⚠️ WEBHOOK SIN BODY - Probablemente un webhook de prueba/ping de Jira`);
+        console.log(`   Respondiendo con éxito sin procesar`);
+        res.status(200).json({ 
+          success: true, 
+          message: 'Webhook recibido (sin body - posible ping de prueba)' 
+        });
+        return;
+      }
+
+      // Validar que tenga el evento y el issue
+      if (!payload.webhookEvent) {
+        console.log(`⚠️ WEBHOOK SIN webhookEvent - Ignorando`);
+        res.status(200).json({ 
+          success: true, 
+          message: 'Webhook recibido (sin evento)' 
+        });
+        return;
+      }
+
+      if (!payload.issue || !payload.issue.key) {
+        console.log(`⚠️ WEBHOOK SIN issue.key - Ignorando`);
+        console.log(`   Payload recibido:`, JSON.stringify(payload, null, 2));
+        res.status(200).json({ 
+          success: true, 
+          message: 'Webhook recibido (sin issue key)' 
+        });
+        return;
+      }
+      
       console.log(`\n📥 WEBHOOK RECIBIDO #${this.webhookStats.totalReceived}`);
       console.log(`   Evento: ${payload.webhookEvent}`);
       console.log(`   Issue: ${payload.issue.key}`);
@@ -1515,6 +1546,12 @@ Formato el reporte de manera clara y profesional.`;
   // 🔄 MÉTODO PARA MANEJAR CAMBIOS DE ESTADO
   private async handleStatusChange(payload: JiraWebhookPayload): Promise<void> {
     try {
+      // Validar que el payload tenga la estructura esperada
+      if (!payload || !payload.issue || !payload.issue.key) {
+        console.log(`⚠️ handleStatusChange: Payload inválido o sin issue.key`);
+        return;
+      }
+
       const issueKey = payload.issue.key;
       
       // Verificar que el ticket pertenece a algún servicio de usuario
