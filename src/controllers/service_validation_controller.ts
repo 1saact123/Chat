@@ -127,6 +127,7 @@ export class ServiceValidationController {
       }
 
       // Obtener servicios pendientes directamente desde unified_configurations
+      // Solo mostrar servicios de usuarios creados por este administrador
       const { sequelize } = await import('../config/database');
       const { User } = await import('../models');
       
@@ -144,12 +145,16 @@ export class ServiceValidationController {
           uc.created_at as createdAt,
           uc.updated_at as updatedAt,
           u.username,
-          u.email
+          u.email,
+          u.admin_id as adminId
         FROM unified_configurations uc
         INNER JOIN users u ON uc.user_id = u.id
         WHERE uc.approval_status = 'pending'
+          AND u.admin_id = ?
         ORDER BY uc.created_at ASC
-      `);
+      `, {
+        replacements: [req.user.id]
+      });
 
       const validations = await Promise.all(
         (pendingServices as any[]).map(async (service: any) => {
@@ -228,10 +233,14 @@ export class ServiceValidationController {
         return;
       }
 
-      // Obtener el servicio desde unified_configurations
+      // Obtener el servicio desde unified_configurations con información del usuario
       const { sequelize } = await import('../config/database');
+      const { User } = await import('../models');
       const [services] = await sequelize.query(`
-        SELECT * FROM unified_configurations WHERE id = ?
+        SELECT uc.*, u.admin_id as userAdminId
+        FROM unified_configurations uc
+        INNER JOIN users u ON uc.user_id = u.id
+        WHERE uc.id = ?
       `, {
         replacements: [Number(id)]
       });
@@ -242,6 +251,15 @@ export class ServiceValidationController {
       }
 
       const service = (services as any[])[0];
+      
+      // Verificar que el usuario que creó el servicio pertenece a este administrador
+      if (service.userAdminId !== req.user.id) {
+        res.status(403).json({ 
+          success: false, 
+          error: 'No tienes permisos para aprobar este servicio. Solo puedes aprobar servicios de usuarios que creaste.' 
+        });
+        return;
+      }
       
       if (service.approval_status !== 'pending') {
         res.status(400).json({ 
@@ -347,10 +365,14 @@ export class ServiceValidationController {
         return;
       }
 
-      // Obtener el servicio desde unified_configurations
+      // Obtener el servicio desde unified_configurations con información del usuario
       const { sequelize } = await import('../config/database');
+      const { User } = await import('../models');
       const [services] = await sequelize.query(`
-        SELECT * FROM unified_configurations WHERE id = ?
+        SELECT uc.*, u.admin_id as userAdminId
+        FROM unified_configurations uc
+        INNER JOIN users u ON uc.user_id = u.id
+        WHERE uc.id = ?
       `, {
         replacements: [Number(id)]
       });
@@ -361,6 +383,15 @@ export class ServiceValidationController {
       }
 
       const service = (services as any[])[0];
+      
+      // Verificar que el usuario que creó el servicio pertenece a este administrador
+      if (service.userAdminId !== req.user.id) {
+        res.status(403).json({ 
+          success: false, 
+          error: 'No tienes permisos para rechazar este servicio. Solo puedes rechazar servicios de usuarios que creaste.' 
+        });
+        return;
+      }
       
       if (service.approval_status !== 'pending') {
         res.status(400).json({ 
