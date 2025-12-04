@@ -247,14 +247,27 @@ export class ChatbotController {
       // Validar que tenga el issue.key solo si es necesario para el evento
       // Algunos eventos pueden no tener issue, así que solo validamos si el evento lo requiere
       const eventsRequiringIssue = ['comment_created', 'jira:issue_created', 'jira:issue_updated'];
-      if (eventsRequiringIssue.includes(payload.webhookEvent) && (!payload.issue || !payload.issue.key)) {
-        console.log(`⚠️ WEBHOOK SIN issue.key para evento ${payload.webhookEvent} - Ignorando`);
-        console.log(`   Payload recibido:`, JSON.stringify(payload, null, 2));
-        res.status(200).json({ 
-          success: true, 
-          message: 'Webhook recibido (sin issue key requerido)' 
-        });
-        return;
+      if (eventsRequiringIssue.includes(payload.webhookEvent)) {
+        // Verificar que payload.issue existe antes de acceder a sus propiedades
+        if (!payload.issue) {
+          console.log(`⚠️ WEBHOOK SIN issue para evento ${payload.webhookEvent} - Ignorando`);
+          console.log(`   Payload recibido:`, JSON.stringify(payload, null, 2));
+          res.status(200).json({ 
+            success: true, 
+            message: 'Webhook recibido (sin issue requerido)' 
+          });
+          return;
+        }
+        // Verificar que payload.issue.key existe
+        if (!payload.issue.key) {
+          console.log(`⚠️ WEBHOOK SIN issue.key para evento ${payload.webhookEvent} - Ignorando`);
+          console.log(`   Payload recibido:`, JSON.stringify(payload, null, 2));
+          res.status(200).json({ 
+            success: true, 
+            message: 'Webhook recibido (sin issue key requerido)' 
+          });
+          return;
+        }
       }
       
       console.log(`\n📥 WEBHOOK RECIBIDO #${this.webhookStats.totalReceived}`);
@@ -862,12 +875,29 @@ export class ChatbotController {
         res.json(response);
       } else if (payload.webhookEvent === 'jira:issue_updated' && payload.changelog) {
         // Procesar cambios de estado
+        if (!payload.issue || !payload.issue.key) {
+          console.log(`⚠️ WEBHOOK jira:issue_updated SIN issue.key - No se puede procesar`);
+          res.status(200).json({ 
+            success: true, 
+            message: 'Webhook recibido pero no se puede procesar sin issue key' 
+          });
+          return;
+        }
         await this.handleStatusChange(payload);
         res.json({ 
           success: true, 
           message: 'Status change processed'
         });
       } else if (payload.webhookEvent === 'jira:issue_created') {
+        // Validar que tenemos el issue antes de procesar
+        if (!payload.issue || !payload.issue.key) {
+          console.log(`⚠️ WEBHOOK jira:issue_created SIN issue.key - No se puede procesar`);
+          res.status(200).json({ 
+            success: true, 
+            message: 'Webhook recibido pero no se puede procesar sin issue key' 
+          });
+          return;
+        }
         // Procesar evento de creación de ticket
         const issueKey = payload.issue.key;
         
