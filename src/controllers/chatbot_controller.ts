@@ -210,20 +210,33 @@ export class ChatbotController {
       const payload: JiraWebhookPayload = req.body;
       this.webhookStats.totalReceived++;
       
-      // Validar que el payload tenga la estructura esperada
-      if (!payload || typeof payload !== 'object' || Object.keys(payload).length === 0) {
-        console.log(`⚠️ WEBHOOK SIN BODY - Probablemente un webhook de prueba/ping de Jira`);
+      // Validar que el payload exista y sea un objeto
+      if (!payload || typeof payload !== 'object') {
+        console.log(`⚠️ WEBHOOK SIN BODY VÁLIDO - Probablemente un webhook de prueba/ping de Jira`);
         console.log(`   Respondiendo con éxito sin procesar`);
         res.status(200).json({ 
           success: true, 
-          message: 'Webhook recibido (sin body - posible ping de prueba)' 
+          message: 'Webhook recibido (sin body válido - posible ping de prueba)' 
         });
         return;
       }
 
-      // Validar que tenga el evento y el issue
+      // Si el body está completamente vacío (solo {}), es probablemente un ping de prueba
+      const hasContent = Object.keys(payload).length > 0;
+      if (!hasContent) {
+        console.log(`⚠️ WEBHOOK CON BODY VACÍO - Probablemente un webhook de prueba/ping de Jira`);
+        console.log(`   Respondiendo con éxito sin procesar`);
+        res.status(200).json({ 
+          success: true, 
+          message: 'Webhook recibido (body vacío - posible ping de prueba)' 
+        });
+        return;
+      }
+
+      // Validar que tenga el evento (requerido para procesar)
       if (!payload.webhookEvent) {
         console.log(`⚠️ WEBHOOK SIN webhookEvent - Ignorando`);
+        console.log(`   Payload recibido:`, JSON.stringify(payload, null, 2));
         res.status(200).json({ 
           success: true, 
           message: 'Webhook recibido (sin evento)' 
@@ -231,26 +244,41 @@ export class ChatbotController {
         return;
       }
 
-      if (!payload.issue || !payload.issue.key) {
-        console.log(`⚠️ WEBHOOK SIN issue.key - Ignorando`);
+      // Validar que tenga el issue.key solo si es necesario para el evento
+      // Algunos eventos pueden no tener issue, así que solo validamos si el evento lo requiere
+      const eventsRequiringIssue = ['comment_created', 'jira:issue_created', 'jira:issue_updated'];
+      if (eventsRequiringIssue.includes(payload.webhookEvent) && (!payload.issue || !payload.issue.key)) {
+        console.log(`⚠️ WEBHOOK SIN issue.key para evento ${payload.webhookEvent} - Ignorando`);
         console.log(`   Payload recibido:`, JSON.stringify(payload, null, 2));
         res.status(200).json({ 
           success: true, 
-          message: 'Webhook recibido (sin issue key)' 
+          message: 'Webhook recibido (sin issue key requerido)' 
         });
         return;
       }
       
       console.log(`\n📥 WEBHOOK RECIBIDO #${this.webhookStats.totalReceived}`);
       console.log(`   Evento: ${payload.webhookEvent}`);
-      console.log(`   Issue: ${payload.issue.key}`);
+      console.log(`   Issue: ${payload.issue?.key || 'N/A'}`);
       console.log(`   Usuario: ${payload.comment?.author?.displayName || 'N/A'}`);
       console.log(`   Timestamp: ${new Date().toISOString()}`);
       
       // Procesar eventos de comentarios, creación de tickets y cambios de estado
       if (payload.webhookEvent === 'comment_created' && payload.comment) {
+        // Validar que tenemos el issue antes de procesar
+        if (!payload.issue || !payload.issue.key) {
+          console.log(`⚠️ WEBHOOK comment_created SIN issue.key - No se puede procesar`);
+          res.status(200).json({ 
+            success: true, 
+            message: 'Webhook recibido pero no se puede procesar sin issue key' 
+          });
+          return;
+        }
+
         // Obtener el issueKey al inicio
         const issueKey = payload.issue.key;
+        
+        console.log(`✅ PROCESANDO COMENTARIO - Issue: ${issueKey}, Usuario: ${payload.comment.author?.displayName || 'N/A'}`);
         
         // Extraer el prefijo del proyecto del issueKey (ej: TI-123 -> TI)
         const issueProjectKey = issueKey.split('-')[0];
@@ -264,13 +292,14 @@ export class ChatbotController {
         try {
           const { sequelize } = await import('../config/database');
           
-          // Buscar servicios de usuario activos en la tabla unificada
+          // Buscar servicios de usuario activos y aprobados en la tabla unificada
           const [userServices] = await sequelize.query(`
             SELECT * FROM unified_configurations 
-            WHERE is_active = TRUE
+            WHERE is_active = TRUE 
+            AND (approval_status = 'approved' OR approval_status IS NULL)
           `);
           
-          console.log(`🔍 Verificando servicios de usuario activos: ${userServices.length} encontrados`);
+          console.log(`🔍 Verificando servicios de usuario activos y aprobados: ${userServices.length} encontrados`);
           
           for (const service of userServices as any[]) {
             // Verificar si el servicio tiene configuración de proyecto
@@ -285,7 +314,10 @@ export class ChatbotController {
               config = {};
             }
             
-            if ((config as any).projectKey === issueProjectKey) {
+            const serviceProjectKey = (config as any).projectKey;
+            console.log(`🔍 Comparando proyecto - Ticket: ${issueProjectKey}, Servicio ${service.service_name}: ${serviceProjectKey || 'NO CONFIGURADO'}`);
+            
+            if (serviceProjectKey === issueProjectKey) {
               userServiceInfo = {
                 userId: service.user_id,
                 serviceId: service.service_id,
@@ -293,8 +325,29 @@ export class ChatbotController {
                 assistantId: service.assistant_id,
                 assistantName: service.assistant_name
               };
-              console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece a servicio de usuario: ${service.service_name} (Usuario: ${service.user_id})`);
+              console.log(`✅ TICKET ACEPTADO: ${issueKey} pertenece a servicio de usuario: ${service.service_name} (Usuario: ${service.user_id}, Proyecto: ${serviceProjectKey})`);
               break;
+            }
+          }
+          
+          if (!userServiceInfo) {
+            console.log(`⚠️ No se encontró servicio aprobado para proyecto ${issueProjectKey}`);
+            console.log(`   Servicios revisados: ${userServices.length}`);
+            if (userServices.length > 0) {
+              console.log(`   Proyectos configurados en servicios encontrados:`);
+              for (const service of userServices as any[]) {
+                let config = {};
+                try {
+                  config = typeof service.configuration === 'string' 
+                    ? JSON.parse(service.configuration) 
+                    : service.configuration || {};
+                } catch (e) {
+                  config = {};
+                }
+                const serviceProjectKey = (config as any).projectKey || 'NO CONFIGURADO';
+                const approvalStatus = service.approval_status || 'NULL';
+                console.log(`     - ${service.service_name}: proyecto=${serviceProjectKey}, approval_status=${approvalStatus}, is_active=${service.is_active}`);
+              }
             }
           }
         } catch (error) {
