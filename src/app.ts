@@ -96,83 +96,44 @@ class MovonteAPI {
     this.app.use(cookieParser());
     
     // Middleware para capturar body crudo del webhook de Jira ANTES del parseo JSON
-    // Usar express.raw() con type específico para application/json y también */* para capturar todo
+    // Usar express.json() directamente ya que Jira envía JSON, pero capturar el body crudo también
     this.app.use('/api/chatbot/webhook/jira', 
-      express.raw({ type: ['application/json', 'application/*', '*/*'], limit: '10mb' }), 
+      express.json({ limit: '10mb', verify: (req: any, res, buf, encoding) => {
+        // Guardar el buffer original antes de que se parsee
+        if (buf && buf.length > 0) {
+          req.rawBodyBuffer = buf;
+          console.log('📦 Buffer capturado en verify:', buf.length, 'bytes');
+        }
+      }}), 
       (req: any, res: Response, next: NextFunction) => {
       console.log('\n🔍 === MIDDLEWARE WEBHOOK EJECUTADO ===');
       console.log('📋 Content-Type recibido:', req.get('content-type'));
       console.log('📋 Content-Length header:', req.get('content-length'));
       console.log('📋 Tipo de req.body:', typeof req.body);
-      console.log('📋 Es Buffer?:', Buffer.isBuffer(req.body));
-      console.log('📋 req.body value:', req.body);
+      console.log('📋 req.body keys:', req.body ? Object.keys(req.body) : 'null/undefined');
       
-      // Si el body es un Buffer (raw), parsearlo manualmente
-      // NO confiar en content-length header ya que puede ser incorrecto con proxies
-      if (Buffer.isBuffer(req.body)) {
-        const rawBody = req.body.toString('utf8');
-        console.log('📦 RAW BODY capturado (webhook Jira):', rawBody);
-        console.log('📏 Longitud del Buffer:', req.body.length);
-        console.log('📏 Longitud del string:', rawBody.length);
-        
-        // Intentar parsear siempre, incluso si el string parece vacío
-        // porque puede haber contenido que no se ve en el toString
-        if (req.body.length > 0) {
-          try {
-            // Intentar parsear el JSON
-            if (rawBody.trim().length > 0) {
-              req.body = JSON.parse(rawBody);
-              console.log('✅ Body parseado correctamente:', JSON.stringify(req.body, null, 2));
-            } else {
-              // Si el Buffer tiene contenido pero el string está vacío, intentar parsear directamente
-              console.log('⚠️ Buffer tiene contenido pero string vacío, intentando parsear Buffer directamente');
-              try {
-                req.body = JSON.parse(req.body.toString('utf8'));
-                console.log('✅ Body parseado desde Buffer:', JSON.stringify(req.body, null, 2));
-              } catch (e2) {
-                console.error('❌ Error parseando Buffer directamente:', e2);
-                req.body = {};
-              }
-            }
-          } catch (e) {
-            console.error('❌ Error parseando JSON del webhook:', e);
-            console.log('📦 Body crudo (primeros 1000 chars):', rawBody.substring(0, 1000));
-            console.log('📦 Body crudo (hex):', req.body.toString('hex').substring(0, 200));
-            // Intentar parsear como string si falla como JSON
-            try {
-              req.body = { raw: rawBody };
-            } catch {
-              req.body = {};
-            }
-          }
-        } else {
-          console.log('⚠️ Buffer vacío en webhook de Jira');
-          req.body = {};
-        }
-      } else if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
-        console.log('ℹ️ Body ya es un objeto:', JSON.stringify(req.body, null, 2));
-        // Si ya es un objeto, verificar que no esté vacío
-        if (Object.keys(req.body).length === 0) {
-          console.log('⚠️ Body es un objeto vacío');
-        }
-      } else if (req.body === undefined || req.body === null) {
-        console.log('⚠️ Body es undefined o null');
-        req.body = {};
-      } else {
-        console.log('⚠️ Body tiene un tipo inesperado:', typeof req.body, req.body);
-        // Intentar convertir a string y parsear
+      // Si el body está vacío pero tenemos un buffer, intentar parsearlo
+      if ((!req.body || Object.keys(req.body).length === 0) && req.rawBodyBuffer && Buffer.isBuffer(req.rawBodyBuffer) && req.rawBodyBuffer.length > 0) {
+        console.log('📦 Body vacío pero buffer encontrado, parseando...');
         try {
-          const bodyStr = String(req.body);
-          if (bodyStr.trim().length > 0) {
-            req.body = JSON.parse(bodyStr);
-            console.log('✅ Body parseado desde string:', JSON.stringify(req.body, null, 2));
+          const rawBody = req.rawBodyBuffer.toString('utf8');
+          console.log('📦 RAW BODY desde buffer:', rawBody);
+          console.log('📏 Longitud:', rawBody.length);
+          
+          if (rawBody.trim().length > 0) {
+            req.body = JSON.parse(rawBody);
+            console.log('✅ Body parseado desde buffer:', JSON.stringify(req.body, null, 2));
           } else {
-            req.body = {};
+            console.log('⚠️ String vacío después de trim');
           }
-        } catch {
-          req.body = {};
+        } catch (e) {
+          console.error('❌ Error parseando buffer:', e);
         }
       }
+      
+      // Log final del body
+      console.log('📦 Body final:', JSON.stringify(req.body, null, 2));
+      
       next();
     });
     
