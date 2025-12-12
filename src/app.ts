@@ -89,53 +89,69 @@ class MovonteAPI {
       next();
     });
     
-    // Logging
-    this.app.use(morgan('combined'));
-    
+    // Logging (después del middleware de Jira para no interferir)
     // Cookie parser
     this.app.use(cookieParser());
     
     // Middleware para capturar body crudo del webhook de Jira ANTES del parseo JSON
-    // Usar express.json() directamente ya que Jira envía JSON, pero capturar el body crudo también
+    // IMPORTANTE: Este middleware debe ir ANTES de morgan y otros middlewares que puedan consumir el body
+    // Capturar el body crudo primero para asegurar que siempre tengamos acceso a él
     this.app.use('/api/chatbot/webhook/jira', 
-      express.json({ limit: '10mb', verify: (req: any, res, buf, encoding) => {
-        // Guardar el buffer original antes de que se parsee
-        if (buf && buf.length > 0) {
-          req.rawBodyBuffer = buf;
-          console.log('📦 Buffer capturado en verify:', buf.length, 'bytes');
-        }
-      }}), 
+      express.raw({ type: '*/*', limit: '10mb' }), // Capturar body crudo sin importar Content-Type
       (req: any, res: Response, next: NextFunction) => {
-      console.log('\n🔍 === MIDDLEWARE WEBHOOK EJECUTADO ===');
+      console.log('\n🔍 === MIDDLEWARE WEBHOOK EJECUTADO (RAW) ===');
       console.log('📋 Content-Type recibido:', req.get('content-type'));
       console.log('📋 Content-Length header:', req.get('content-length'));
       console.log('📋 Tipo de req.body:', typeof req.body);
-      console.log('📋 req.body keys:', req.body ? Object.keys(req.body) : 'null/undefined');
+      console.log('📋 req.body es Buffer:', Buffer.isBuffer(req.body));
+      console.log('📋 req.body length:', Buffer.isBuffer(req.body) ? req.body.length : 'N/A');
       
-      // Si el body está vacío pero tenemos un buffer, intentar parsearlo
-      if ((!req.body || Object.keys(req.body).length === 0) && req.rawBodyBuffer && Buffer.isBuffer(req.rawBodyBuffer) && req.rawBodyBuffer.length > 0) {
-        console.log('📦 Body vacío pero buffer encontrado, parseando...');
+      // Guardar el body crudo
+      if (Buffer.isBuffer(req.body)) {
+        req.rawBodyBuffer = req.body;
+        console.log('📦 Buffer capturado:', req.body.length, 'bytes');
+        
+        // Intentar parsear como JSON
         try {
-          const rawBody = req.rawBodyBuffer.toString('utf8');
-          console.log('📦 RAW BODY desde buffer:', rawBody);
-          console.log('📏 Longitud:', rawBody.length);
+          const rawBodyString = req.body.toString('utf8');
+          console.log('📦 RAW BODY string (primeros 500 chars):', rawBodyString.substring(0, 500));
+          console.log('📏 Longitud total:', rawBodyString.length);
           
-          if (rawBody.trim().length > 0) {
-            req.body = JSON.parse(rawBody);
-            console.log('✅ Body parseado desde buffer:', JSON.stringify(req.body, null, 2));
+          if (rawBodyString.trim().length > 0) {
+            req.body = JSON.parse(rawBodyString);
+            console.log('✅ Body parseado exitosamente como JSON');
+            console.log('📋 req.body keys después del parseo:', Object.keys(req.body));
           } else {
-            console.log('⚠️ String vacío después de trim');
+            console.log('⚠️ String vacío después de trim - body puede estar realmente vacío');
+            req.body = {};
           }
-        } catch (e) {
-          console.error('❌ Error parseando buffer:', e);
+        } catch (parseError: any) {
+          console.error('❌ Error parseando body como JSON:', parseError.message);
+          console.error('📋 Stack:', parseError.stack);
+          // Si falla el parseo, mantener el buffer pero intentar continuar
+          req.body = {};
+          req.parseError = parseError;
         }
+      } else if (req.body && typeof req.body === 'object') {
+        // Si ya está parseado (por algún middleware anterior), mantenerlo
+        console.log('✅ Body ya está parseado:', Object.keys(req.body));
+      } else {
+        console.log('⚠️ Body no es Buffer ni objeto - puede estar vacío');
+        req.body = req.body || {};
       }
       
       // Log final del body
-      console.log('📦 Body final:', JSON.stringify(req.body, null, 2));
+      console.log('📦 Body final (tipo):', typeof req.body);
+      console.log('📦 Body final (keys):', req.body ? Object.keys(req.body) : 'null/undefined');
+      if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
+        console.log('📦 Body final (primeros 1000 chars):', JSON.stringify(req.body, null, 2).substring(0, 1000));
+      }
       
       next();
     });
+    
+    // Logging (después del middleware de Jira para no interferir con el body)
+    this.app.use(morgan('combined'));
     
     // Parsing del body para todas las demás rutas
     this.app.use(express.json({ limit: '10mb' }));

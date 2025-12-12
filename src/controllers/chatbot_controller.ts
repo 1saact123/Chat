@@ -233,14 +233,37 @@ export class ChatbotController {
 
   async handleJiraWebhook(req: Request, res: Response): Promise<void> {
     try {
-      console.log('\n🔍 === WEBHOOK DEBUG INFO ===');
+      const reqAny = req as any;
+      
+      console.log('\n🔍 === WEBHOOK DEBUG INFO (CONTROLLER) ===');
       console.log('📋 Headers recibidos:', JSON.stringify(req.headers, null, 2));
-      console.log('📦 Body recibido:', JSON.stringify(req.body, null, 2));
+      console.log('📦 Body recibido (tipo):', typeof req.body);
+      console.log('📦 Body recibido (es objeto):', typeof req.body === 'object');
+      console.log('📦 Body recibido (keys):', req.body ? Object.keys(req.body) : 'null/undefined');
+      console.log('📦 Body recibido (contenido):', JSON.stringify(req.body, null, 2));
+      console.log('📦 rawBodyBuffer disponible:', !!reqAny.rawBodyBuffer);
+      console.log('📦 rawBodyBuffer es Buffer:', Buffer.isBuffer(reqAny.rawBodyBuffer));
+      console.log('📦 rawBodyBuffer length:', Buffer.isBuffer(reqAny.rawBodyBuffer) ? reqAny.rawBodyBuffer.length : 'N/A');
+      console.log('📦 parseError:', reqAny.parseError ? reqAny.parseError.message : 'N/A');
       console.log('🌐 URL:', req.url);
       console.log('📝 Method:', req.method);
       console.log('🔗 Origin:', req.get('origin') || 'No origin');
       console.log('👤 User-Agent:', req.get('user-agent') || 'No user-agent');
       console.log('📏 Content-Length header:', req.get('content-length') || 'N/A');
+      
+      // Si hay un error de parseo, intentar parsear de nuevo desde el buffer
+      if (reqAny.parseError && reqAny.rawBodyBuffer && Buffer.isBuffer(reqAny.rawBodyBuffer)) {
+        console.log('🔄 Intentando reparar body desde rawBodyBuffer...');
+        try {
+          const rawBodyString = reqAny.rawBodyBuffer.toString('utf8');
+          if (rawBodyString.trim().length > 0) {
+            req.body = JSON.parse(rawBodyString);
+            console.log('✅ Body reparado exitosamente desde rawBodyBuffer');
+          }
+        } catch (e) {
+          console.error('❌ Error al intentar reparar body:', e);
+        }
+      }
       
       // Verificar content-length primero
       const contentLength = req.get('content-length');
@@ -260,6 +283,8 @@ export class ChatbotController {
       // Validar que el payload exista y sea un objeto
       if (!payload || typeof payload !== 'object') {
         console.log(`⚠️ WEBHOOK SIN BODY VÁLIDO - Probablemente un webhook de prueba/ping de Jira`);
+        console.log(`   Tipo de payload: ${typeof payload}`);
+        console.log(`   Payload value: ${payload}`);
         console.log(`   Respondiendo con éxito sin procesar`);
         res.status(200).json({ 
           success: true, 
@@ -273,6 +298,11 @@ export class ChatbotController {
       if (!hasContent) {
         console.log(`⚠️ WEBHOOK CON BODY VACÍO - Probablemente un webhook de prueba/ping de Jira`);
         console.log(`   Content-Length: ${req.get('content-length') || 'N/A'}`);
+        console.log(`   rawBodyBuffer disponible: ${!!reqAny.rawBodyBuffer}`);
+        if (reqAny.rawBodyBuffer && Buffer.isBuffer(reqAny.rawBodyBuffer)) {
+          console.log(`   rawBodyBuffer length: ${reqAny.rawBodyBuffer.length}`);
+          console.log(`   rawBodyBuffer preview: ${reqAny.rawBodyBuffer.toString('utf8').substring(0, 200)}`);
+        }
         console.log(`   Respondiendo con éxito sin procesar`);
         res.status(200).json({ 
           success: true, 
