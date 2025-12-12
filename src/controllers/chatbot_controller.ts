@@ -95,27 +95,61 @@ export class ChatbotController {
     console.log('🔄 Webhook stats reset');
   }
 
-  // Método para extraer texto del formato ADF de Jira
+  // Método para extraer texto del formato ADF de Jira (mejorado para manejar todos los tipos de nodos)
   private extractTextFromADF(adfBody: any): string {
     if (typeof adfBody === 'string') {
       return adfBody;
     }
     
-    if (adfBody && adfBody.content) {
-      let text = '';
-      for (const node of adfBody.content) {
-        if (node.type === 'paragraph' && node.content) {
-          for (const contentNode of node.content) {
-            if (contentNode.type === 'text' && contentNode.text) {
-              text += contentNode.text + ' ';
-            }
-          }
-        }
-      }
-      return text.trim();
+    if (!adfBody) {
+      return '';
+    }
+    
+    // Si tiene content, extraer recursivamente
+    if (adfBody.content && Array.isArray(adfBody.content)) {
+      return this.extractTextFromADFContent(adfBody.content);
     }
     
     return '';
+  }
+
+  // Método recursivo para extraer texto de contenido ADF
+  private extractTextFromADFContent(content: any[]): string {
+    if (!Array.isArray(content)) {
+      return '';
+    }
+    
+    let text = '';
+    
+    for (const item of content) {
+      if (!item) continue;
+      
+      // Si es un nodo de texto, agregar el texto
+      if (item.type === 'text' && item.text) {
+        text += item.text;
+      }
+      // Si tiene contenido anidado, extraer recursivamente
+      else if (item.content && Array.isArray(item.content)) {
+        const nestedText = this.extractTextFromADFContent(item.content);
+        if (nestedText) {
+          text += nestedText;
+          // Agregar separadores según el tipo de nodo
+          if (item.type === 'paragraph' || item.type === 'heading') {
+            text += ' ';
+          } else if (item.type === 'listItem' || item.type === 'bulletList' || item.type === 'orderedList') {
+            text += ' ';
+          } else if (item.type === 'hardBreak') {
+            text += '\n';
+          }
+        }
+      }
+      // Manejar hard breaks (saltos de línea)
+      else if (item.type === 'hardBreak') {
+        text += '\n';
+      }
+    }
+    
+    return text.trim();
   }
 
   // Método simplificado para detectar comentarios de IA
@@ -206,8 +240,21 @@ export class ChatbotController {
       console.log('📝 Method:', req.method);
       console.log('🔗 Origin:', req.get('origin') || 'No origin');
       console.log('👤 User-Agent:', req.get('user-agent') || 'No user-agent');
+      console.log('📏 Content-Length header:', req.get('content-length') || 'N/A');
       
-      const payload: JiraWebhookPayload = req.body;
+      // Verificar content-length primero
+      const contentLength = req.get('content-length');
+      if (contentLength === '0' || contentLength === '') {
+        console.log(`⚠️ WEBHOOK CON CONTENT-LENGTH 0 - Probablemente un webhook de prueba/ping de Jira`);
+        console.log(`   Respondiendo con éxito sin procesar`);
+        res.status(200).json({ 
+          success: true, 
+          message: 'Webhook recibido (content-length 0 - posible ping de prueba)' 
+        });
+        return;
+      }
+      
+      const payload: JiraWebhookPayload = req.body || {};
       this.webhookStats.totalReceived++;
       
       // Validar que el payload exista y sea un objeto
@@ -292,7 +339,11 @@ export class ChatbotController {
         // Obtener el issueKey al inicio
         const issueKey = payload.issue.key;
         
+        // Extraer el mensaje del comentario al inicio para usarlo en todo el procesamiento
+        const commentMessage = this.extractTextFromADF(payload.comment.body);
+        
         console.log(`✅ PROCESANDO COMENTARIO - Issue: ${issueKey}, Usuario: ${payload.comment.author?.displayName || 'N/A'}`);
+        console.log(`📝 Mensaje extraído (${commentMessage.length} caracteres): "${commentMessage.substring(0, 100)}${commentMessage.length > 100 ? '...' : ''}"`);
         
         // Extraer el prefijo del proyecto del issueKey (ej: TI-123 -> TI)
         const issueProjectKey = issueKey.split('-')[0];
@@ -412,7 +463,7 @@ export class ChatbotController {
           console.log(`   Autor: ${payload.comment.author.displayName}`);
           console.log(`   Email: ${payload.comment.author.emailAddress || 'N/A'}`);
           console.log(`   Account ID: ${payload.comment.author.accountId}`);
-          console.log(`   Contenido: ${this.extractTextFromADF(payload.comment.body).substring(0, 150)}...`);
+          console.log(`   Contenido: ${commentMessage.substring(0, 150)}...`);
           console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios de IA saltados`);
           
           // 🔌 ENVIAR COMENTARIO DE IA VIA WEBSOCKET
@@ -420,7 +471,7 @@ export class ChatbotController {
           if (webSocketServer) {
             console.log(`📡 Enviando comentario de IA via WebSocket al ticket ${issueKey}...`);
             webSocketServer.to(`ticket_${issueKey}`).emit('jira-comment', {
-              message: this.extractTextFromADF(payload.comment.body),
+              message: commentMessage,
               author: payload.comment.author.displayName,
               timestamp: payload.comment.created,
               source: 'jira-ai',
@@ -442,7 +493,7 @@ export class ChatbotController {
           console.log(`   Autor: ${payload.comment.author.displayName}`);
           console.log(`   Email: ${payload.comment.author.emailAddress || 'N/A'}`);
           console.log(`   Account ID: ${payload.comment.author.accountId}`);
-          console.log(`   Contenido: ${this.extractTextFromADF(payload.comment.body).substring(0, 150)}...`);
+          console.log(`   Contenido: ${commentMessage.substring(0, 150)}...`);
           console.log(`   Estadísticas: ${this.webhookStats.aiCommentsSkipped} comentarios del widget saltados`);
           res.json({ success: true, message: 'Skipped widget comment', widgetComment: true });
           return;
@@ -474,7 +525,20 @@ export class ChatbotController {
         console.log(`🔍 DEBUG - Autor: ${payload.comment.author.displayName}`);
         console.log(`🔍 DEBUG - Email: ${payload.comment.author.emailAddress}`);
         console.log(`🔍 DEBUG - Account ID: ${payload.comment.author.accountId}`);
-        console.log(`🔍 DEBUG - Contenido: ${this.extractTextFromADF(payload.comment.body).substring(0, 100)}...`);
+        console.log(`🔍 DEBUG - Body raw type: ${typeof payload.comment.body}`);
+        console.log(`🔍 DEBUG - Body raw:`, JSON.stringify(payload.comment.body, null, 2).substring(0, 500));
+        console.log(`🔍 DEBUG - Mensaje extraído (${commentMessage.length} caracteres): "${commentMessage}"`);
+        console.log(`🔍 DEBUG - Mensaje completo:`, commentMessage);
+        
+        // Validar que el mensaje no esté vacío
+        if (!commentMessage || commentMessage.trim().length === 0) {
+          console.log(`⚠️ COMENTARIO VACÍO - No se puede procesar`);
+          res.status(200).json({ 
+            success: true, 
+            message: 'Comentario vacío - no procesado' 
+          });
+          return;
+        }
         
         // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET (SOLO SI NO ES DE IA)
         if (!this.isAIComment(payload.comment)) {
@@ -482,7 +546,7 @@ export class ChatbotController {
           if (webSocketServer) {
             console.log(`📡 Enviando comentario de agente via WebSocket al ticket ${issueKey}...`);
             webSocketServer.to(`ticket_${issueKey}`).emit('jira-comment', {
-              message: this.extractTextFromADF(payload.comment.body),
+              message: commentMessage,
               author: payload.comment.author.displayName,
               timestamp: payload.comment.created,
               source: 'jira-agent',
@@ -521,7 +585,7 @@ export class ChatbotController {
         }
         
         // Agregar el comentario del usuario al historial
-        this.addToConversationHistory(issueKey, 'user', this.extractTextFromADF(payload.comment.body));
+        this.addToConversationHistory(issueKey, 'user', commentMessage);
         console.log(`📝 Comentario agregado al historial para ${issueKey}`);
         
         // Obtener historial de conversación para contexto
@@ -546,7 +610,7 @@ export class ChatbotController {
         console.log(`🔧 Contexto enriquecido creado para ${issueKey}`);
         
         // Usar el asistente específico del usuario (ya no hay asistente global)
-        console.log(`📤 Procesando mensaje con asistente de usuario: "${this.extractTextFromADF(payload.comment.body)}"`);
+        console.log(`📤 Procesando mensaje con asistente de usuario: "${commentMessage}"`);
         console.log(`   Usuario: ${userServiceInfo.userId}`);
         console.log(`   Servicio: ${userServiceInfo.serviceName}`);
         console.log(`   Asistente: ${userServiceInfo.assistantName}`);
@@ -567,7 +631,7 @@ export class ChatbotController {
         
         const userOpenAIService = new UserOpenAIService(userServiceInfo.userId, user.openaiToken);
         const response = await userOpenAIService.processChatForService(
-          this.extractTextFromADF(payload.comment.body),
+          commentMessage,
           userServiceInfo.serviceId,
           `jira_${issueKey}`,
           enrichedContext
@@ -768,7 +832,7 @@ export class ChatbotController {
               // Agregar el mensaje al thread
               const message = await openai.beta.threads.messages.create(thread.id, {
                 role: 'user',
-                content: this.extractTextFromADF(payload.comment.body)
+                content: commentMessage
               });
 
               console.log(`✅ Mensaje agregado al thread: ${message.id}`);
@@ -841,7 +905,7 @@ export class ChatbotController {
                   const assistantResponseValue = webhookResponse.response;
                   
                   console.log(`🔄 Enviando respuesta al webhook ${webhook.id}:`, assistantResponseValue);
-                  await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), assistantResponseValue, webhookThreadId, webhookContext);
+                  await this.executeWebhookWithFilter(webhook, issueKey, commentMessage, assistantResponseValue, webhookThreadId, webhookContext);
                 }
               } else {
                 console.log(`⚠️ NO HAY RESPUESTA DEL ASISTENTE DE ESCALACIÓN`);
@@ -856,7 +920,7 @@ export class ChatbotController {
                 // Obtener la respuesta del asistente principal
                 const assistantResponseValue = response.response;
                 
-                await this.executeWebhookWithFilter(webhook, issueKey, this.extractTextFromADF(payload.comment.body), assistantResponseValue, webhookThreadId, webhookContext);
+                await this.executeWebhookWithFilter(webhook, issueKey, commentMessage, assistantResponseValue, webhookThreadId, webhookContext);
               }
             }
 
