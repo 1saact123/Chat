@@ -225,6 +225,7 @@ export class ChatbotController {
       const hasContent = Object.keys(payload).length > 0;
       if (!hasContent) {
         console.log(`⚠️ WEBHOOK CON BODY VACÍO - Probablemente un webhook de prueba/ping de Jira`);
+        console.log(`   Content-Length: ${req.get('content-length') || 'N/A'}`);
         console.log(`   Respondiendo con éxito sin procesar`);
         res.status(200).json({ 
           success: true, 
@@ -243,9 +244,8 @@ export class ChatbotController {
         });
         return;
       }
-
-      // Validar que tenga el issue.key solo si es necesario para el evento
-      // Algunos eventos pueden no tener issue, así que solo validamos si el evento lo requiere
+      
+      // Validación adicional: si el evento requiere issue, validar que existe ANTES de cualquier acceso
       const eventsRequiringIssue = ['comment_created', 'jira:issue_created', 'jira:issue_updated'];
       if (eventsRequiringIssue.includes(payload.webhookEvent)) {
         // Verificar que payload.issue existe antes de acceder a sus propiedades
@@ -259,7 +259,7 @@ export class ChatbotController {
           return;
         }
         // Verificar que payload.issue.key existe
-        if (!payload.issue.key) {
+        if (!payload.issue || !payload.issue.key) {
           console.log(`⚠️ WEBHOOK SIN issue.key para evento ${payload.webhookEvent} - Ignorando`);
           console.log(`   Payload recibido:`, JSON.stringify(payload, null, 2));
           res.status(200).json({ 
@@ -269,9 +269,10 @@ export class ChatbotController {
           return;
         }
       }
-      
+
       console.log(`\n📥 WEBHOOK RECIBIDO #${this.webhookStats.totalReceived}`);
       console.log(`   Evento: ${payload.webhookEvent}`);
+      // Usar optional chaining para evitar errores si issue no existe
       console.log(`   Issue: ${payload.issue?.key || 'N/A'}`);
       console.log(`   Usuario: ${payload.comment?.author?.displayName || 'N/A'}`);
       console.log(`   Timestamp: ${new Date().toISOString()}`);

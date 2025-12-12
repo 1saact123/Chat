@@ -299,7 +299,7 @@ router.put('/api/service/:serviceId/jira-accounts', authenticateToken, serviceJi
 router.delete('/api/service/:serviceId/jira-accounts', authenticateToken, serviceJiraAccountsController.deleteServiceJiraAccounts.bind(serviceJiraAccountsController));
 
 // === CHATBOT ROUTES ===
-// Jira webhook
+// Jira webhook (el body ya fue parseado en app.ts con middleware específico)
 router.post('/api/chatbot/webhook/jira', chatbotController.handleJiraWebhook.bind(chatbotController));
 
 // Endpoint de prueba para webhook - REDIRIGIENDO AL CHATBOT
