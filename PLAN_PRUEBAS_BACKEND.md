@@ -1,929 +1,866 @@
-# Plan de Pruebas - Backend
 
-## 1. Información General
+# Backend Test Plan
 
-**Sistema:** Movonte API (Backend)  
-**Tecnología:** Node.js, Express, TypeScript, Sequelize, MySQL  
-**Fecha de Creación:** 2024  
-**Versión:** 1.0.0
 
----
+## 1. General Information
 
-## 2. Objetivos de las Pruebas
 
-- Verificar la funcionalidad de todos los endpoints de la API
-- Validar la seguridad y autenticación del sistema
-- Asegurar la integridad de los datos en la base de datos
-- Comprobar la integración con servicios externos (Jira, OpenAI)
-- Validar el manejo de errores y casos límite
-- Verificar el rendimiento y escalabilidad
+**System:** Movonte API (Backend)  
+**Technology:** Node.js, Express, TypeScript, Sequelize, MySQL  
+**Creation Date:** 2024  
+**Version:** 1.0.0
 
 ---
 
-## 3. Tipos de Pruebas
 
-### 3.1 Pruebas Unitarias
-### 3.2 Pruebas de Integración
-### 3.3 Pruebas de API (End-to-End)
-### 3.4 Pruebas de Seguridad
-### 3.5 Pruebas de Rendimiento
-### 3.6 Pruebas de Carga
+## 2. Test Objectives
+
+- Verify the functionality of all API endpoints
+- Validate the security and authentication of the system
+- Ensure data integrity in the database
+- Check integration with external services (Jira, OpenAI)
+- Validate error handling and edge cases
+- Verify performance and scalability
 
 ---
 
-## 4. Pruebas por Módulo
 
-### 4.1 Autenticación y Autorización
+## 3. Types of Tests
 
-#### 4.1.1 Endpoints de Autenticación
+### 3.1 Unit Tests
+### 3.2 Integration Tests
+### 3.3 API (End-to-End) Tests
+### 3.4 Security Tests
+### 3.5 Performance Tests
+### 3.6 Load Tests
+
+---
+
+
+## 4. Tests by Module
+
+
+### 4.1 Authentication and Authorization
+
+
+#### 4.1.1 Authentication Endpoints
 - [ ] **POST /api/auth/login**
-  - [ ] Login exitoso con credenciales válidas
-  - [ ] Login fallido con credenciales inválidas
-  - [ ] Login con usuario inexistente
-  - [ ] Login con contraseña incorrecta
-  - [ ] Validar que se genera un JWT token
-  - [ ] Validar que el token tiene los campos correctos
-  - [ ] Validar expiración del token
+  - [ ] Successful login with valid credentials
+  - [ ] Failed login with invalid credentials
+  - [ ] Login with non-existent user
+  - [ ] Login with incorrect password
+  - [ ] Validate that a JWT token is generated
+  - [ ] Validate that the token has the correct fields
+  - [ ] Validate token expiration
 
 - [ ] **POST /api/auth/logout**
-  - [ ] Logout exitoso con token válido
-  - [ ] Logout sin token (debe fallar)
-  - [ ] Verificar invalidación del token
+  - [ ] Successful logout with valid token
+  - [ ] Logout without token (should fail)
+  - [ ] Verify token invalidation
 
 - [ ] **GET /api/auth/verify**
-  - [ ] Verificación exitosa con token válido
-  - [ ] Verificación fallida con token inválido
-  - [ ] Verificación fallida con token expirado
-  - [ ] Verificación sin token
+  - [ ] Successful verification with valid token
+  - [ ] Failed verification with invalid token
+  - [ ] Failed verification with expired token
+  - [ ] Verification without token
 
 - [ ] **GET /api/auth/profile**
-  - [ ] Obtener perfil con token válido
-  - [ ] Obtener perfil sin token
-  - [ ] Validar estructura de respuesta
+  - [ ] Get profile with valid token
+  - [ ] Get profile without token
+  - [ ] Validate response structure
 
 - [ ] **PUT /api/auth/profile**
-  - [ ] Actualizar perfil exitosamente
-  - [ ] Actualizar perfil con datos inválidos
-  - [ ] Actualizar perfil sin permisos
+  - [ ] Successfully update profile
+  - [ ] Update profile with invalid data
+  - [ ] Update profile without permissions
 
 - [ ] **PUT /api/auth/change-password**
-  - [ ] Cambio de contraseña exitoso
-  - [ ] Cambio con contraseña actual incorrecta
-  - [ ] Cambio con nueva contraseña inválida
-  - [ ] Validar hash de nueva contraseña
+  - [ ] Successful password change
+  - [ ] Change with incorrect current password
+  - [ ] Change with invalid new password
+  - [ ] Validate hash of new password
 
-#### 4.1.2 Middleware de Autenticación
+#### 4.1.2 Authentication Middleware
 - [ ] **authenticateToken**
-  - [ ] Permite acceso con token válido
-  - [ ] Rechaza acceso sin token
-  - [ ] Rechaza acceso con token inválido
-  - [ ] Rechaza acceso con token expirado
+  - [ ] Allows access with valid token
+  - [ ] Denies access without token
+  - [ ] Denies access with invalid token
+  - [ ] Denies access with expired token
 
 - [ ] **requireAdmin**
-  - [ ] Permite acceso a usuarios admin
-  - [ ] Rechaza acceso a usuarios no admin
-  - [ ] Rechaza acceso sin autenticación
+  - [ ] Allows access to admin users
+  - [ ] Denies access to non-admin users
+  - [ ] Denies access without authentication
 
 - [ ] **requirePermission**
-  - [ ] Permite acceso con permiso correcto
-  - [ ] Rechaza acceso sin permiso
-  - [ ] Valida múltiples permisos
+  - [ ] Allows access with correct permission
+  - [ ] Denies access without permission
+  - [ ] Validates multiple permissions
 
 ---
 
-### 4.2 Gestión de Usuarios
+### 4.2 User Management
 
-#### 4.2.1 Endpoints de Usuarios (Admin)
+#### 4.2.1 User Endpoints (Admin)
 - [ ] **GET /api/admin/users**
-  - [ ] Listar usuarios (solo admin)
-  - [ ] Rechazar acceso a no admin
-  - [ ] Validar paginación si existe
-  - [ ] Validar filtros si existen
+  - [ ] List users (admin only)
+  - [ ] Deny access to non-admin
+  - [ ] Validate pagination if exists
+  - [ ] Validate filters if exist
 
 - [ ] **POST /api/admin/users**
-  - [ ] Crear usuario exitosamente
-  - [ ] Crear usuario con datos inválidos
-  - [ ] Crear usuario duplicado (email)
-  - [ ] Validar hash de contraseña
-  - [ ] Validar campos requeridos
+  - [ ] Successfully create user
+  - [ ] Create user with invalid data
+  - [ ] Create duplicate user (email)
+  - [ ] Validate password hash
+  - [ ] Validate required fields
 
 - [ ] **PUT /api/admin/users/:id**
-  - [ ] Actualizar usuario exitosamente
-  - [ ] Actualizar usuario inexistente
-  - [ ] Actualizar con datos inválidos
-  - [ ] Validar permisos
+  - [ ] Successfully update user
+  - [ ] Update non-existent user
+  - [ ] Update with invalid data
+  - [ ] Validate permissions
 
 - [ ] **PUT /api/admin/users/:id/password**
-  - [ ] Cambiar contraseña de usuario
-  - [ ] Validar hash de nueva contraseña
-  - [ ] Cambiar contraseña de usuario inexistente
+  - [ ] Change user password
+  - [ ] Validate new password hash
+  - [ ] Change password for non-existent user
 
 - [ ] **DELETE /api/admin/users/:id**
-  - [ ] Eliminar usuario exitosamente
-  - [ ] Eliminar usuario inexistente
-  - [ ] Validar que no se puede eliminar a sí mismo
+  - [ ] Successfully delete user
+  - [ ] Delete non-existent user
+  - [ ] Validate cannot delete self
 
-#### 4.2.2 Endpoints de Usuario
+#### 4.2.2 User Endpoints
 - [ ] **POST /api/user/login**
-  - [ ] Login de usuario exitoso
-  - [ ] Login con credenciales inválidas
-  - [ ] Validar generación de token
+  - [ ] Successful user login
+  - [ ] Login with invalid credentials
+  - [ ] Validate token generation
 
 - [ ] **GET /api/user/profile**
-  - [ ] Obtener perfil del usuario autenticado
-  - [ ] Validar datos del perfil
+  - [ ] Get authenticated user profile
+  - [ ] Validate profile data
 
 - [ ] **GET /api/user/instances**
-  - [ ] Listar instancias del usuario
-  - [ ] Validar estructura de respuesta
+  - [ ] List user instances
+  - [ ] Validate response structure
 
 - [ ] **POST /api/user/instances**
-  - [ ] Crear instancia exitosamente
-  - [ ] Crear instancia con datos inválidos
-  - [ ] Validar límites de instancias
+  - [ ] Successfully create instance
+  - [ ] Create instance with invalid data
+  - [ ] Validate instance limits
 
 - [ ] **PUT /api/user/instances/:id**
-  - [ ] Actualizar instancia exitosamente
-  - [ ] Actualizar instancia de otro usuario (debe fallar)
-  - [ ] Actualizar instancia inexistente
+  - [ ] Successfully update instance
+  - [ ] Update instance of another user (should fail)
+  - [ ] Update non-existent instance
 
 - [ ] **DELETE /api/user/instances/:id**
-  - [ ] Eliminar instancia exitosamente
-  - [ ] Eliminar instancia de otro usuario (debe fallar)
+  - [ ] Successfully delete instance
+  - [ ] Delete instance of another user (should fail)
 
 - [ ] **POST /api/user/register**
-  - [ ] Registrar usuario (solo admin)
-  - [ ] Registrar con datos inválidos
-  - [ ] Registrar usuario duplicado
+  - [ ] Register user (admin only)
+  - [ ] Register with invalid data
+  - [ ] Register duplicate user
 
 - [ ] **GET /api/user/setup/status**
-  - [ ] Obtener estado de configuración inicial
-  - [ ] Validar respuesta para usuario nuevo
-  - [ ] Validar respuesta para usuario configurado
+  - [ ] Get initial setup status
+  - [ ] Validate response for new user
+  - [ ] Validate response for configured user
 
 - [ ] **POST /api/user/setup/complete**
-  - [ ] Completar configuración inicial
-  - [ ] Validar tokens proporcionados
-  - [ ] Validar que no se puede completar dos veces
+  - [ ] Complete initial setup
+  - [ ] Validate provided tokens
+  - [ ] Validate cannot complete twice
 
 - [ ] **POST /api/user/setup/validate-tokens**
-  - [ ] Validar tokens de Jira y OpenAI
-  - [ ] Validar token de Jira inválido
-  - [ ] Validar token de OpenAI inválido
+  - [ ] Validate Jira and OpenAI tokens
+  - [ ] Validate invalid Jira token
+  - [ ] Validate invalid OpenAI token
 
 ---
 
-### 4.3 Gestión de Servicios
+### 4.3 Service Management
 
-#### 4.3.1 Endpoints de Servicios del Usuario
+#### 4.3.1 User Service Endpoints
 - [ ] **GET /api/user/dashboard**
-  - [ ] Obtener dashboard del usuario
-  - [ ] Validar estructura de datos
-  - [ ] Validar servicios asociados
+  - [ ] Get user dashboard
+  - [ ] Validate data structure
+  - [ ] Validate associated services
 
 - [ ] **POST /api/user/services/create**
-  - [ ] Crear servicio exitosamente
-  - [ ] Crear servicio con datos inválidos
-  - [ ] Validar límites de servicios
+  - [ ] Successfully create service
+  - [ ] Create service with invalid data
+  - [ ] Validate service limits
 
 - [ ] **GET /api/user/services/list**
-  - [ ] Listar servicios del usuario
-  - [ ] Validar paginación
-  - [ ] Validar filtros
+  - [ ] List user services
+  - [ ] Validate pagination
+  - [ ] Validate filters
 
 - [ ] **PUT /api/user/services/:serviceId**
-  - [ ] Actualizar servicio exitosamente
-  - [ ] Actualizar servicio de otro usuario (debe fallar)
-  - [ ] Actualizar servicio inexistente
+  - [ ] Successfully update service
+  - [ ] Update service of another user (should fail)
+  - [ ] Update non-existent service
 
 - [ ] **DELETE /api/user/services/:serviceId**
-  - [ ] Eliminar servicio exitosamente
-  - [ ] Eliminar servicio de otro usuario (debe fallar)
+  - [ ] Successfully delete service
+  - [ ] Delete service of another user (should fail)
 
 - [ ] **GET /api/user/statuses/available**
-  - [ ] Obtener estados disponibles
-  - [ ] Validar conexión con Jira
+  - [ ] Get available statuses
+  - [ ] Validate Jira connection
 
 - [ ] **POST /api/user/services/:serviceId/chat**
-  - [ ] Chat con servicio exitoso
-  - [ ] Chat con servicio inexistente
-  - [ ] Validar respuesta de OpenAI
+  - [ ] Successful chat with service
+  - [ ] Chat with non-existent service
+  - [ ] Validate OpenAI response
 
 - [ ] **GET /api/user/assistants**
-  - [ ] Listar asistentes del usuario
-  - [ ] Validar estructura de respuesta
+  - [ ] List user assistants
+  - [ ] Validate response structure
 
 - [ ] **GET /api/user/projects**
-  - [ ] Listar proyectos Jira del usuario
-  - [ ] Validar conexión con Jira
+  - [ ] List user's Jira projects
+  - [ ] Validate Jira connection
 
 - [ ] **GET /api/user/services/:serviceId/assistant**
-  - [ ] Obtener asistente activo (público)
-  - [ ] Validar servicio inexistente
+  - [ ] Get active assistant (public)
+  - [ ] Validate non-existent service
 
-#### 4.3.2 Endpoints de Servicios (Admin)
+#### 4.3.2 Service Endpoints (Admin)
 - [ ] **GET /api/admin/services/:serviceId**
-  - [ ] Obtener configuración de servicio
-  - [ ] Validar permisos
+  - [ ] Get service configuration
+  - [ ] Validate permissions
 
 - [ ] **PUT /api/admin/services/:serviceId**
-  - [ ] Actualizar configuración de servicio
-  - [ ] Validar datos de configuración
+  - [ ] Update service configuration
+  - [ ] Validate configuration data
 
 - [ ] **PATCH /api/admin/services/:serviceId/toggle**
-  - [ ] Activar/desactivar servicio
-  - [ ] Validar cambio de estado
+  - [ ] Enable/disable service
+  - [ ] Validate state change
 
 - [ ] **POST /api/admin/services**
-  - [ ] Crear nuevo servicio
-  - [ ] Validar datos requeridos
+  - [ ] Create new service
+  - [ ] Validate required data
 
 - [ ] **DELETE /api/admin/services/:serviceId**
-  - [ ] Eliminar servicio
-  - [ ] Validar dependencias
+  - [ ] Delete service
+  - [ ] Validate dependencies
 
 ---
 
-### 4.4 Gestión de Tickets
+### 4.4 Ticket Management
 
-#### 4.4.1 Endpoints de Tickets del Usuario
+#### 4.4.1 User Ticket Endpoints
 - [ ] **GET /api/user/tickets/disabled**
-  - [ ] Listar tickets deshabilitados del usuario
-  - [ ] Validar estructura de respuesta
+  - [ ] List user's disabled tickets
+  - [ ] Validate response structure
 
 - [ ] **POST /api/user/tickets/:issueKey/disable**
-  - [ ] Deshabilitar asistente en ticket
-  - [ ] Validar ticket inexistente
-  - [ ] Validar permisos sobre el ticket
+  - [ ] Disable assistant in ticket
+  - [ ] Validate non-existent ticket
+  - [ ] Validate ticket permissions
 
 - [ ] **POST /api/user/tickets/:issueKey/enable**
-  - [ ] Habilitar asistente en ticket
-  - [ ] Validar ticket inexistente
+  - [ ] Enable assistant in ticket
+  - [ ] Validate non-existent ticket
 
 - [ ] **GET /api/user/tickets/:issueKey/status**
-  - [ ] Verificar estado del asistente
-  - [ ] Validar ticket inexistente
+  - [ ] Check assistant status
+  - [ ] Validate non-existent ticket
 
-#### 4.4.2 Endpoints de Tickets (Admin)
+#### 4.4.2 Ticket Endpoints (Admin)
 - [ ] **POST /api/admin/tickets/:issueKey/disable**
-  - [ ] Deshabilitar asistente (admin)
-  - [ ] Validar permisos
+  - [ ] Disable assistant (admin)
+  - [ ] Validate permissions
 
 - [ ] **POST /api/admin/tickets/:issueKey/enable**
-  - [ ] Habilitar asistente (admin)
-  - [ ] Validar permisos
+  - [ ] Enable assistant (admin)
+  - [ ] Validate permissions
 
 - [ ] **GET /api/admin/tickets/disabled**
-  - [ ] Listar todos los tickets deshabilitados
-  - [ ] Validar permisos
+  - [ ] List all disabled tickets
+  - [ ] Validate permissions
 
 - [ ] **GET /api/admin/tickets/:issueKey/status**
-  - [ ] Verificar estado (admin)
-  - [ ] Validar permisos
+  - [ ] Check status (admin)
+  - [ ] Validate permissions
 
-#### 4.4.3 Endpoints de Creación de Tickets
+#### 4.4.3 Ticket Creation Endpoints
 - [ ] **POST /api/service/create-ticket**
-  - [ ] Crear ticket exitosamente
-  - [ ] Crear ticket con datos inválidos
-  - [ ] Validar integración con Jira
+  - [ ] Successfully create ticket
+  - [ ] Create ticket with invalid data
+  - [ ] Validate Jira integration
 
 - [ ] **GET /api/service/:serviceId/info**
-  - [ ] Obtener información del servicio
-  - [ ] Validar servicio inexistente
+  - [ ] Get service information
+  - [ ] Validate non-existent service
 
 ---
 
 ### 4.5 Webhooks
 
-#### 4.5.1 Webhooks de Jira
+#### 4.5.1 Jira Webhooks
 - [ ] **POST /api/chatbot/webhook/jira**
-  - [ ] Recibir webhook de Jira exitosamente
-  - [ ] Procesar comentario nuevo
-  - [ ] Ignorar comentarios duplicados
-  - [ ] Ignorar comentarios del bot
-  - [ ] Validar throttling por issue
-  - [ ] Validar historial de conversación
-  - [ ] Validar respuesta de OpenAI
-  - [ ] Validar creación de comentario en Jira
-  - [ ] Manejar errores de Jira
-  - [ ] Manejar errores de OpenAI
+  - [ ] Successfully receive Jira webhook
+  - [ ] Process new comment
+  - [ ] Ignore duplicate comments
+  - [ ] Ignore bot comments
+  - [ ] Validate throttling per issue
+  - [ ] Validate conversation history
+  - [ ] Validate OpenAI response
+  - [ ] Validate comment creation in Jira
+  - [ ] Handle Jira errors
+  - [ ] Handle OpenAI errors
 
 - [ ] **GET /api/webhook/jira**
-  - [ ] Verificar endpoint accesible
-  - [ ] Validar información del servidor
+  - [ ] Verify endpoint is accessible
+  - [ ] Validate server information
 
 - [ ] **GET /api/chatbot/webhook/stats**
-  - [ ] Obtener estadísticas de webhooks
-  - [ ] Validar estructura de datos
-  - [ ] Validar contadores
+  - [ ] Get webhook statistics
+  - [ ] Validate data structure
+  - [ ] Validate counters
 
 - [ ] **POST /api/chatbot/webhook/reset**
-  - [ ] Resetear estadísticas
-  - [ ] Validar permisos
+  - [ ] Reset statistics
+  - [ ] Validate permissions
 
-#### 4.5.2 Webhooks del Usuario
+#### 4.5.2 User Webhooks
 - [ ] **GET /api/user/webhook/status**
-  - [ ] Obtener estado del webhook
-  - [ ] Validar configuración
+  - [ ] Get webhook status
+  - [ ] Validate configuration
 
 - [ ] **POST /api/user/webhook/configure**
-  - [ ] Configurar webhook exitosamente
-  - [ ] Configurar con datos inválidos
-  - [ ] Validar URL del webhook
+  - [ ] Successfully configure webhook
+  - [ ] Configure with invalid data
+  - [ ] Validate webhook URL
 
 - [ ] **POST /api/user/webhook/test**
-  - [ ] Probar webhook exitosamente
-  - [ ] Validar respuesta del webhook
+  - [ ] Successfully test webhook
+  - [ ] Validate webhook response
 
 - [ ] **POST /api/user/webhook/disable**
-  - [ ] Deshabilitar webhook
-  - [ ] Validar cambio de estado
+  - [ ] Disable webhook
+  - [ ] Validate state change
 
 - [ ] **POST /api/user/webhook/filter**
-  - [ ] Configurar filtro de webhook
-  - [ ] Validar reglas de filtrado
+  - [ ] Configure webhook filter
+  - [ ] Validate filtering rules
 
 - [ ] **GET /api/user/webhooks/saved**
-  - [ ] Listar webhooks guardados
-  - [ ] Validar estructura
+  - [ ] List saved webhooks
+  - [ ] Validate structure
 
 - [ ] **POST /api/user/webhooks/save**
-  - [ ] Guardar webhook
-  - [ ] Validar datos
+  - [ ] Save webhook
+  - [ ] Validate data
 
 - [ ] **PUT /api/user/webhooks/:id**
-  - [ ] Actualizar webhook
-  - [ ] Validar permisos
+  - [ ] Update webhook
+  - [ ] Validate permissions
 
 - [ ] **DELETE /api/user/webhooks/:id**
-  - [ ] Eliminar webhook
-  - [ ] Validar permisos
+  - [ ] Delete webhook
+  - [ ] Validate permissions
 
-#### 4.5.3 Webhooks Admin
+#### 4.5.3 Admin Webhooks
 - [ ] **GET /api/admin/webhooks/all**
-  - [ ] Listar todos los webhooks (admin)
-  - [ ] Validar permisos
+  - [ ] List all webhooks (admin)
+  - [ ] Validate permissions
 
 - [ ] **POST /api/admin/webhooks/create**
-  - [ ] Crear webhook (admin)
-  - [ ] Validar permisos
+  - [ ] Create webhook (admin)
+  - [ ] Validate permissions
 
 - [ ] **PUT /api/admin/webhooks/:id**
-  - [ ] Actualizar webhook (admin)
-  - [ ] Validar permisos
+  - [ ] Update webhook (admin)
+  - [ ] Validate permissions
 
 - [ ] **DELETE /api/admin/webhooks/:id**
-  - [ ] Eliminar webhook (admin)
-  - [ ] Validar permisos
+  - [ ] Delete webhook (admin)
+  - [ ] Validate permissions
 
 ---
 
-### 4.6 Chatbot y OpenAI
+### 4.6 Chatbot and OpenAI
 
-#### 4.6.1 Endpoints de Chat
+#### 4.6.1 Chat Endpoints
 - [ ] **POST /api/chatbot/chat**
-  - [ ] Chat directo exitoso
-  - [ ] Chat con mensaje vacío
-  - [ ] Chat con mensaje muy largo
-  - [ ] Validar respuesta de OpenAI
-  - [ ] Validar manejo de errores de OpenAI
+  - [ ] Successful direct chat
+  - [ ] Chat with empty message
+  - [ ] Chat with very long message
+  - [ ] Validate OpenAI response
+  - [ ] Validate OpenAI error handling
 
 - [ ] **POST /api/services/:serviceId/chat**
-  - [ ] Chat con servicio específico
-  - [ ] Validar servicio inexistente
-  - [ ] Validar configuración del servicio
+  - [ ] Chat with specific service
+  - [ ] Validate non-existent service
+  - [ ] Validate service configuration
 
 - [ ] **POST /api/chatbot/chat-with-instructions**
-  - [ ] Chat con instrucciones personalizadas
-  - [ ] Validar instrucciones
+  - [ ] Chat with custom instructions
+  - [ ] Validate instructions
 
 - [ ] **POST /api/chatbot/jira-chat**
-  - [ ] Chat integrado con Jira
-  - [ ] Validar ticket de Jira
-  - [ ] Validar contexto del ticket
+  - [ ] Jira-integrated chat
+  - [ ] Validate Jira ticket
+  - [ ] Validate ticket context
 
-#### 4.6.2 Gestión de Asistentes
+#### 4.6.2 Assistant Management
 - [ ] **GET /api/chatbot/assistants**
-  - [ ] Listar asistentes disponibles
-  - [ ] Validar conexión con OpenAI
-  - [ ] Validar estructura de respuesta
+  - [ ] List available assistants
+  - [ ] Validate OpenAI connection
+  - [ ] Validate response structure
 
 - [ ] **POST /api/chatbot/assistants/set-active**
-  - [ ] Establecer asistente activo
-  - [ ] Validar asistente inexistente
-  - [ ] Validar permisos
+  - [ ] Set active assistant
+  - [ ] Validate non-existent assistant
+  - [ ] Validate permissions
 
 - [ ] **GET /api/chatbot/assistants/active**
-  - [ ] Obtener asistente activo
-  - [ ] Validar respuesta
+  - [ ] Get active assistant
+  - [ ] Validate response
 
 - [ ] **GET /api/services/:serviceId/assistant**
-  - [ ] Obtener asistente de servicio (público)
-  - [ ] Validar servicio inexistente
+  - [ ] Get service assistant (public)
+  - [ ] Validate non-existent service
 
-#### 4.6.3 Historial y Threads
+#### 4.6.3 History and Threads
 - [ ] **GET /api/chatbot/thread/:threadId**
-  - [ ] Obtener historial de thread
-  - [ ] Validar thread inexistente
-  - [ ] Validar permisos
+  - [ ] Get thread history
+  - [ ] Validate non-existent thread
+  - [ ] Validate permissions
 
 - [ ] **GET /api/chatbot/threads**
-  - [ ] Listar threads activos
-  - [ ] Validar paginación
+  - [ ] List active threads
+  - [ ] Validate pagination
 
 - [ ] **GET /api/chatbot/conversation/:issueKey/report**
-  - [ ] Obtener reporte de conversación
-  - [ ] Validar issue inexistente
-  - [ ] Validar estructura del reporte
+  - [ ] Get conversation report
+  - [ ] Validate non-existent issue
+  - [ ] Validate report structure
 
 ---
 
 ### 4.7 ChatKit
 
-#### 4.7.1 Endpoints de ChatKit
+#### 4.7.1 ChatKit Endpoints
 - [ ] **POST /api/chatkit/session**
-  - [ ] Crear sesión exitosamente
-  - [ ] Validar autenticación
-  - [ ] Validar datos de sesión
+  - [ ] Successfully create session
+  - [ ] Validate authentication
+  - [ ] Validate session data
 
 - [ ] **POST /api/chatkit/refresh**
-  - [ ] Refrescar sesión
-  - [ ] Validar token de sesión
+  - [ ] Refresh session
+  - [ ] Validate session token
 
 - [ ] **GET /api/chatkit/session/:sessionId**
-  - [ ] Obtener información de sesión
-  - [ ] Validar sesión inexistente
-  - [ ] Validar permisos
+  - [ ] Get session information
+  - [ ] Validate non-existent session
+  - [ ] Validate permissions
 
 - [ ] **DELETE /api/chatkit/session/:sessionId**
-  - [ ] Eliminar sesión
-  - [ ] Validar permisos
+  - [ ] Delete session
+  - [ ] Validate permissions
 
 - [ ] **GET /api/chatkit/stats**
-  - [ ] Obtener estadísticas de uso
-  - [ ] Validar estructura
+  - [ ] Get usage statistics
+  - [ ] Validate structure
 
 ---
 
-### 4.8 Gestión de Proyectos
+### 4.8 Project Management
 
-#### 4.8.1 Endpoints de Proyectos (Admin)
+#### 4.8.1 Project Endpoints (Admin)
 - [ ] **GET /api/admin/projects**
-  - [ ] Listar proyectos disponibles
-  - [ ] Validar conexión con Jira
-  - [ ] Validar permisos
+  - [ ] List available projects
+  - [ ] Validate Jira connection
+  - [ ] Validate permissions
 
 - [ ] **POST /api/admin/projects/set-active**
-  - [ ] Establecer proyecto activo
-  - [ ] Validar proyecto inexistente
-  - [ ] Validar permisos
+  - [ ] Set active project
+  - [ ] Validate non-existent project
+  - [ ] Validate permissions
 
 - [ ] **GET /api/admin/projects/active**
-  - [ ] Obtener proyecto activo
-  - [ ] Validar respuesta
+  - [ ] Get active project
+  - [ ] Validate response
 
 - [ ] **GET /api/admin/projects/:projectKey**
-  - [ ] Obtener detalles del proyecto
-  - [ ] Validar proyecto inexistente
+  - [ ] Get project details
+  - [ ] Validate non-existent project
 
 - [ ] **GET /api/admin/jira/test-connection**
-  - [ ] Probar conexión con Jira
-  - [ ] Validar credenciales
-  - [ ] Validar respuesta
+  - [ ] Test Jira connection
+  - [ ] Validate credentials
+  - [ ] Validate response
 
 ---
 
-### 4.9 Validación de Servicios
+### 4.9 Service Validation
 
-#### 4.9.1 Endpoints de Validación
+#### 4.9.1 Validation Endpoints
 - [ ] **POST /api/user/service-validation/request**
-  - [ ] Crear solicitud de validación
-  - [ ] Validar datos requeridos
-  - [ ] Validar servicio
+  - [ ] Create validation request
+  - [ ] Validate required data
+  - [ ] Validate service
 
 - [ ] **GET /api/user/service-validation/requests**
-  - [ ] Listar solicitudes del usuario
-  - [ ] Validar estructura
+  - [ ] List user requests
+  - [ ] Validate structure
 
 - [ ] **GET /api/admin/service-validation/pending**
-  - [ ] Listar solicitudes pendientes (admin)
-  - [ ] Validar permisos
+  - [ ] List pending requests (admin)
+  - [ ] Validate permissions
 
 - [ ] **POST /api/admin/service-validation/:id/approve**
-  - [ ] Aprobar solicitud (admin)
-  - [ ] Validar permisos
-  - [ ] Validar estado de solicitud
+  - [ ] Approve request (admin)
+  - [ ] Validate permissions
+  - [ ] Validate request status
 
 - [ ] **POST /api/admin/service-validation/:id/reject**
-  - [ ] Rechazar solicitud (admin)
-  - [ ] Validar permisos
-  - [ ] Validar estado de solicitud
+  - [ ] Reject request (admin)
+  - [ ] Validate permissions
+  - [ ] Validate request status
 
 - [ ] **POST /api/user/service-validation/protected-token**
-  - [ ] Generar token protegido
-  - [ ] Validar servicio
+  - [ ] Generate protected token
+  - [ ] Validate service
 
 - [ ] **POST /api/service-validation/validate-token**
-  - [ ] Validar token protegido
-  - [ ] Validar token inválido
-  - [ ] Validar token expirado
+  - [ ] Validate protected token
+  - [ ] Validate invalid token
+  - [ ] Validate expired token
 
 ---
+
 
 ### 4.10 Widget Integration
 
-#### 4.10.1 Endpoints de Widget
-- [ ] **POST /api/widget/connect**
-  - [ ] Conectar widget a ticket
-  - [ ] Validar ticket
-  - [ ] Validar permisos
+#### 4.10.1 Widget Endpoints
 
-- [ ] **POST /api/widget/send-message**
-  - [ ] Enviar mensaje desde widget
-  - [ ] Validar ticket
-  - [ ] Validar mensaje
-
-- [ ] **GET /api/widget/conversation/:issueKey**
-  - [ ] Obtener historial de conversación
-  - [ ] Validar ticket
-
-- [ ] **GET /api/widget/search-tickets**
-  - [ ] Buscar tickets por email
-  - [ ] Validar parámetros
-  - [ ] Validar resultados
-
-- [ ] **PUT /api/widget/ticket/:issueKey/status**
-  - [ ] Actualizar estado de ticket
-  - [ ] Validar estado
-  - [ ] Validar permisos
-
-- [ ] **GET /api/widget/ticket/:issueKey**
-  - [ ] Obtener detalles del ticket
-  - [ ] Validar ticket
-
-- [ ] **GET /api/widget/health**
-  - [ ] Health check del widget
-  - [ ] Validar respuesta
-
-- [ ] **GET /api/widget/check-messages**
-  - [ ] Verificar nuevos mensajes
-  - [ ] Validar polling
-
-- [ ] **GET /api/widget/assistant-status**
-  - [ ] Verificar estado del asistente
-  - [ ] Validar ticket
+Currently, widget endpoints are not implemented in the backend. Remove or postpone related tests until endpoints under `/api/widget/*` exist.
 
 ---
 
-### 4.11 Cuentas Jira de Servicios
+### 4.11 Jira Service Accounts
 
-#### 4.11.1 Endpoints de Cuentas Jira
+#### 4.11.1 Jira Account Endpoints
 - [ ] **GET /api/service/:serviceId/jira-accounts**
-  - [ ] Listar cuentas Jira del servicio
-  - [ ] Validar servicio
+  - [ ] List Jira accounts for the service
+  - [ ] Validate service
 
 - [ ] **POST /api/service/:serviceId/jira-accounts**
-  - [ ] Crear/actualizar cuentas Jira
-  - [ ] Validar datos
-  - [ ] Validar permisos
+  - [ ] Create/update Jira accounts
+  - [ ] Validate data
+  - [ ] Validate permissions
 
 - [ ] **PUT /api/service/:serviceId/jira-accounts**
-  - [ ] Actualizar cuentas Jira
-  - [ ] Validar datos
+  - [ ] Update Jira accounts
+  - [ ] Validate data
 
 - [ ] **DELETE /api/service/:serviceId/jira-accounts**
-  - [ ] Eliminar cuentas Jira
-  - [ ] Validar permisos
+  - [ ] Delete Jira accounts
+  - [ ] Validate permissions
 
 ---
 
-### 4.12 Configuración y Administración
 
-#### 4.12.1 Endpoints de Admin Dashboard
+### 4.12 Configuration and Administration
+
+#### 4.12.1 Admin Dashboard Endpoints
 - [ ] **GET /api/admin/dashboard**
-  - [ ] Obtener dashboard (admin)
-  - [ ] Validar permisos
-  - [ ] Validar estructura de datos
+  - [ ] Get dashboard (admin)
+  - [ ] Validate permissions
+  - [ ] Validate data structure
 
-#### 4.12.2 Endpoints de Organizaciones
-- [ ] **GET /api/admin/organizations**
-  - [ ] Listar organizaciones (solo admin user 1)
-  - [ ] Validar permisos especiales
+#### 4.12.2 Organization Endpoints
+Currently, `/api/admin/organizations` and user permission or CORS endpoints do not exist in the backend. Remove or postpone related tests until they exist.
 
-#### 4.12.3 Endpoints de Permisos
-- [ ] **GET /api/admin/users/permissions**
-  - [ ] Listar usuarios con permisos
-  - [ ] Validar permisos admin
+#### 4.12.3 Permission Endpoints
+Currently, `/api/admin/users/permissions` and user permission endpoints do not exist in the backend. Remove or postpone related tests until they exist.
 
-- [ ] **GET /api/admin/users/:userId/permissions**
-  - [ ] Obtener permisos de usuario
-  - [ ] Validar usuario inexistente
+#### 4.12.4 CORS Endpoints
+Currently, `/api/admin/cors/*` does not exist in the backend. Remove or postpone related tests until they exist.
 
-- [ ] **PUT /api/admin/users/:userId/permissions**
-  - [ ] Actualizar permisos de usuario
-  - [ ] Validar permisos válidos
-
-#### 4.12.4 Endpoints de CORS
-- [ ] **GET /api/admin/cors/stats**
-  - [ ] Obtener estadísticas de CORS
-  - [ ] Validar permisos admin
-
-- [ ] **POST /api/admin/cors/reload**
-  - [ ] Forzar recarga de CORS
-  - [ ] Validar permisos
-
-- [ ] **POST /api/admin/cors/add**
-  - [ ] Agregar dominio a CORS
-  - [ ] Validar formato de dominio
-
-- [ ] **DELETE /api/admin/cors/:domain**
-  - [ ] Eliminar dominio de CORS
-  - [ ] Validar permisos
-
-#### 4.12.5 Endpoints de Deshabilitación por Estado
-- [ ] **POST /api/admin/status-disable/configure**
-  - [ ] Configurar deshabilitación por estado
-  - [ ] Validar estados
-
-- [ ] **GET /api/admin/status-disable/config**
-  - [ ] Obtener configuración
-  - [ ] Validar respuesta
-
-- [ ] **GET /api/admin/statuses/available**
-  - [ ] Obtener estados disponibles
-  - [ ] Validar conexión con Jira
+#### 4.12.5 Status Disable Endpoints
+Currently, `/api/admin/status-disable/*` and `/api/admin/statuses/available` do not exist in the backend. Remove or postpone related tests until they exist.
 
 ---
 
-### 4.13 Formularios y Landing Pages
+### 4.13 Forms and Landing Pages
 
-#### 4.13.1 Endpoints de Contacto
+#### 4.13.1 Contact Endpoints
 - [ ] **POST /api/contact**
-  - [ ] Enviar formulario de contacto
-  - [ ] Validar datos requeridos
-  - [ ] Validar creación de ticket en Jira
+  - [ ] Submit contact form
+  - [ ] Validate required data
+  - [ ] Validate ticket creation in Jira
 
 - [ ] **GET /api/contact/test-jira**
-  - [ ] Probar conexión con Jira
-  - [ ] Validar respuesta
+  - [ ] Test Jira connection
+  - [ ] Validate response
 
-#### 4.13.2 Endpoints de Landing
+#### 4.13.2 Landing Endpoints
 - [ ] **POST /api/landing/create-ticket**
-  - [ ] Crear ticket desde landing
-  - [ ] Validar datos
-  - [ ] Validar integración con Jira
+  - [ ] Create ticket from landing
+  - [ ] Validate data
+  - [ ] Validate Jira integration
 
 - [ ] **POST /api/landing/validate-form**
-  - [ ] Validar formulario de landing
-  - [ ] Validar campos
+  - [ ] Validate landing form
+  - [ ] Validate fields
 
 - [ ] **GET /api/landing/form-fields**
-  - [ ] Obtener campos del formulario
-  - [ ] Validar estructura
+  - [ ] Get form fields
+  - [ ] Validate structure
 
 ---
 
 ### 4.14 Health Checks
 
-#### 4.14.1 Endpoints de Salud
+#### 4.14.1 Health Endpoints
 - [ ] **GET /health**
-  - [ ] Health check básico
-  - [ ] Validar respuesta
-  - [ ] Validar tiempo de respuesta
+  - [ ] Basic health check
+  - [ ] Validate response
+  - [ ] Validate response time
 
 - [ ] **GET /health/detailed**
-  - [ ] Health check detallado
-  - [ ] Validar estado de base de datos
-  - [ ] Validar estado de servicios externos
-  - [ ] Validar memoria y CPU
+  - [ ] Detailed health check
+  - [ ] Validate database status
+  - [ ] Validate external services status
+  - [ ] Validate memory and CPU
 
 ---
 
-## 5. Pruebas de Servicios
+## 5. Service Tests
 
 ### 5.1 DatabaseService
-- [ ] Conexión a base de datos
-- [ ] Operaciones CRUD
-- [ ] Transacciones
-- [ ] Manejo de errores de conexión
-- [ ] Pool de conexiones
-- [ ] Migraciones
+- [ ] Database connection
+- [ ] CRUD operations
+- [ ] Transactions
+- [ ] Connection error handling
+- [ ] Connection pool
+- [ ] Migrations
 
 ### 5.2 OpenAIService
-- [ ] Conexión con OpenAI API
-- [ ] Generación de respuestas
-- [ ] Manejo de errores de API
+- [ ] OpenAI API connection
+- [ ] Response generation
+- [ ] API error handling
 - [ ] Rate limiting
-- [ ] Manejo de tokens
-- [ ] Gestión de asistentes
+- [ ] Token management
+- [ ] Assistant management
 
 ### 5.3 JiraService
-- [ ] Conexión con Jira API
-- [ ] Creación de tickets
-- [ ] Actualización de tickets
-- [ ] Obtención de proyectos
-- [ ] Obtención de estados
-- [ ] Manejo de errores de API
-- [ ] Autenticación
+- [ ] Jira API connection
+- [ ] Ticket creation
+- [ ] Ticket update
+- [ ] Get projects
+- [ ] Get statuses
+- [ ] API error handling
+- [ ] Authentication
 
 ### 5.4 WebhookService
-- [ ] Procesamiento de webhooks
-- [ ] Validación de payloads
-- [ ] Manejo de duplicados
+- [ ] Webhook processing
+- [ ] Payload validation
+- [ ] Duplicate handling
 - [ ] Throttling
-- [ ] Estadísticas
+- [ ] Statistics
 
 ### 5.5 EmailService
-- [ ] Envío de emails
-- [ ] Validación de destinatarios
-- [ ] Manejo de errores
+- [ ] Email sending
+- [ ] Recipient validation
+- [ ] Error handling
 - [ ] Templates
 
 ### 5.6 ConfigurationService
-- [ ] Carga de configuraciones
-- [ ] Actualización de configuraciones
-- [ ] Validación de configuraciones
-- [ ] Cache de configuraciones
+- [ ] Configuration loading
+- [ ] Configuration update
+- [ ] Configuration validation
+- [ ] Configuration cache
 
 ### 5.7 CorsService
-- [ ] Validación de orígenes
-- [ ] Carga dinámica de dominios
-- [ ] Cache de dominios permitidos
+- [ ] Origin validation
+- [ ] Dynamic domain loading
+- [ ] Allowed domains cache
 
 ---
 
-## 6. Pruebas de Seguridad
+## 6. Security Tests
 
-### 6.1 Autenticación
-- [ ] Validar JWT tokens
-- [ ] Validar expiración de tokens
-- [ ] Validar refresh tokens
-- [ ] Validar hash de contraseñas
-- [ ] Validar protección de rutas
+### 6.1 Authentication
+- [ ] Validate JWT tokens
+- [ ] Validate token expiration
+- [ ] Validate refresh tokens
+- [ ] Validate password hash
+- [ ] Validate route protection
 
-### 6.2 Autorización
-- [ ] Validar permisos de admin
-- [ ] Validar permisos específicos
-- [ ] Validar acceso a recursos propios
-- [ ] Validar acceso a recursos de otros usuarios
+### 6.2 Authorization
+- [ ] Validate admin permissions
+- [ ] Validate specific permissions
+- [ ] Validate access to own resources
+- [ ] Validate access to other users' resources
 
-### 6.3 Validación de Entrada
-- [ ] Validar datos de entrada
-- [ ] Validar sanitización
-- [ ] Validar SQL injection
-- [ ] Validar XSS
-- [ ] Validar CSRF
+### 6.3 Input Validation
+- [ ] Validate input data
+- [ ] Validate sanitization
+- [ ] Validate SQL injection
+- [ ] Validate XSS
+- [ ] Validate CSRF
 
-### 6.4 Seguridad de Headers
-- [ ] Validar CORS
-- [ ] Validar Helmet
-- [ ] Validar headers de seguridad
+### 6.4 Header Security
+- [ ] Validate CORS
+- [ ] Validate Helmet
+- [ ] Validate security headers
 
 ### 6.5 Rate Limiting
-- [ ] Validar límites de requests
-- [ ] Validar throttling
-- [ ] Validar bloqueo de IPs
+- [ ] Validate request limits
+- [ ] Validate throttling
+- [ ] Validate IP blocking
 
 ---
 
-## 7. Pruebas de Integración
+## 7. Integration Tests
 
-### 7.1 Integración con Jira
-- [ ] Creación de tickets
-- [ ] Actualización de tickets
-- [ ] Recepción de webhooks
-- [ ] Autenticación
-- [ ] Manejo de errores
+### 7.1 Jira Integration
+- [ ] Ticket creation
+- [ ] Ticket update
+- [ ] Webhook reception
+- [ ] Authentication
+- [ ] Error handling
 
-### 7.2 Integración con OpenAI
-- [ ] Generación de respuestas
-- [ ] Gestión de asistentes
-- [ ] Manejo de errores
+### 7.2 OpenAI Integration
+- [ ] Response generation
+- [ ] Assistant management
+- [ ] Error handling
 - [ ] Rate limiting
 
-### 7.3 Integración con Base de Datos
-- [ ] Operaciones CRUD
-- [ ] Transacciones
-- [ ] Migraciones
-- [ ] Backup y restore
+### 7.3 Database Integration
+- [ ] CRUD operations
+- [ ] Transactions
+- [ ] Migrations
+- [ ] Backup and restore
 
-### 7.4 Integración con WebSockets
-- [ ] Conexión de clientes
-- [ ] Envío de mensajes
-- [ ] Manejo de desconexiones
+### 7.4 WebSocket Integration
+- [ ] Client connection
+- [ ] Message sending
+- [ ] Disconnection handling
 - [ ] Broadcasting
 
 ---
 
-## 8. Pruebas de Rendimiento
+## 8. Performance Tests
 
-### 8.1 Tiempo de Respuesta
-- [ ] Endpoints críticos < 200ms
-- [ ] Endpoints normales < 500ms
-- [ ] Endpoints pesados < 2s
+### 8.1 Response Time
+- [ ] Critical endpoints < 200ms
+- [ ] Normal endpoints < 500ms
+- [ ] Heavy endpoints < 2s
 
 ### 8.2 Throughput
-- [ ] Requests por segundo
+- [ ] Requests per second
 - [ ] Concurrent requests
 - [ ] Peak load handling
 
-### 8.3 Uso de Recursos
-- [ ] Uso de memoria
-- [ ] Uso de CPU
-- [ ] Uso de conexiones de BD
-- [ ] Uso de conexiones de red
+### 8.3 Resource Usage
+- [ ] Memory usage
+- [ ] CPU usage
+- [ ] DB connection usage
+- [ ] Network connection usage
 
-### 8.4 Escalabilidad
+### 8.4 Scalability
 - [ ] Horizontal scaling
 - [ ] Vertical scaling
 - [ ] Load balancing
 
 ---
 
-## 9. Pruebas de Carga
+## 9. Load Tests
 
-### 9.1 Carga Normal
-- [ ] 100 usuarios concurrentes
-- [ ] 1000 requests/minuto
-- [ ] Validar estabilidad
+### 9.1 Normal Load
+- [ ] 100 concurrent users
+- [ ] 1000 requests/minute
+- [ ] Validate stability
 
-### 9.2 Carga Alta
-- [ ] 500 usuarios concurrentes
-- [ ] 5000 requests/minuto
-- [ ] Validar degradación controlada
+### 9.2 High Load
+- [ ] 500 concurrent users
+- [ ] 5000 requests/minute
+- [ ] Validate controlled degradation
 
 ### 9.3 Stress Testing
-- [ ] 1000+ usuarios concurrentes
-- [ ] 10000+ requests/minuto
-- [ ] Validar límites del sistema
+- [ ] 1000+ concurrent users
+- [ ] 10000+ requests/minute
+- [ ] Validate system limits
 
 ---
 
-## 10. Pruebas de Regresión
+## 10. Regression Tests
 
-### 10.1 Funcionalidades Existentes
-- [ ] Validar que no se rompieron funcionalidades
-- [ ] Validar compatibilidad hacia atrás
-- [ ] Validar migraciones de datos
-
----
-
-## 11. Herramientas de Pruebas Recomendadas
-
-- **Jest**: Framework de pruebas unitarias
-- **Supertest**: Pruebas de API
-- **Artillery**: Pruebas de carga
-- **Postman/Newman**: Pruebas de API y colecciones
-- **k6**: Pruebas de rendimiento
-- **OWASP ZAP**: Pruebas de seguridad
+### 10.1 Existing Features
+- [ ] Validate no features are broken
+- [ ] Validate backward compatibility
+- [ ] Validate data migrations
 
 ---
 
-## 12. Criterios de Aceptación
+## 11. Recommended Testing Tools
 
-### 12.1 Cobertura de Código
-- [ ] Mínimo 80% de cobertura de código
-- [ ] 100% de cobertura en módulos críticos
-
-### 12.2 Tasa de Éxito
-- [ ] 95%+ de pruebas pasando
-- [ ] 0 errores críticos
-
-### 12.3 Rendimiento
-- [ ] Todos los endpoints cumplen SLA
-- [ ] Sistema estable bajo carga normal
-
-### 12.4 Seguridad
-- [ ] 0 vulnerabilidades críticas
-- [ ] Todas las rutas protegidas
+- **Jest**: Unit testing framework
+- **Supertest**: API testing
+- **Artillery**: Load testing
+- **Postman/Newman**: API and collection testing
+- **k6**: Performance testing
+- **OWASP ZAP**: Security testing
 
 ---
 
-## 13. Checklist de Despliegue
+## 12. Acceptance Criteria
 
-- [ ] Todas las pruebas unitarias pasando
-- [ ] Todas las pruebas de integración pasando
-- [ ] Todas las pruebas de API pasando
-- [ ] Pruebas de seguridad completadas
-- [ ] Pruebas de rendimiento completadas
-- [ ] Documentación actualizada
-- [ ] Variables de entorno configuradas
-- [ ] Base de datos migrada
-- [ ] Backup realizado
+### 12.1 Code Coverage
+- [ ] Minimum 80% code coverage
+- [ ] 100% coverage in critical modules
 
----
+### 12.2 Success Rate
+- [ ] 95%+ tests passing
+- [ ] 0 critical errors
 
-## 14. Notas y Observaciones
+### 12.3 Performance
+- [ ] All endpoints meet SLA
+- [ ] System stable under normal load
 
-- Las pruebas deben ejecutarse en un entorno de staging antes de producción
-- Mantener datos de prueba separados de datos de producción
-- Documentar todos los casos de prueba fallidos
-- Revisar y actualizar este plan regularmente
-- Considerar pruebas automatizadas en CI/CD
+### 12.4 Security
+- [ ] 0 critical vulnerabilities
+- [ ] All routes protected
 
 ---
 
-**Última actualización:** 2024  
-**Próxima revisión:** Según necesidad
+## 13. Deployment Checklist
+
+- [ ] All unit tests passing
+- [ ] All integration tests passing
+- [ ] All API tests passing
+- [ ] Security tests completed
+- [ ] Performance tests completed
+- [ ] Documentation updated
+- [ ] Environment variables configured
+- [ ] Database migrated
+- [ ] Backup completed
+
+---
+
+## 14. Notes and Observations
+
+- Tests should be run in a staging environment before production
+- Keep test data separate from production data
+- Document all failed test cases
+- Review and update this plan regularly
+- Consider automated tests in CI/CD
+
+---
+
+**Last update:** 2024  
+**Next review:** As needed
 
 
