@@ -1,6 +1,7 @@
 import { ServiceValidation, User, UserConfiguration } from '../models';
 import { DatabaseService } from './database_service';
 import { UserConfigurationService } from './user_configuration_service';
+import { CorsService } from './cors_service';
 
 export interface ServiceValidationRequest {
   serviceName: string;
@@ -32,9 +33,11 @@ export interface ServiceValidationResponse {
 export class ServiceValidationService {
   private static instance: ServiceValidationService;
   private dbService: DatabaseService;
+  private corsService: CorsService;
 
   private constructor() {
     this.dbService = DatabaseService.getInstance();
+    this.corsService = CorsService.getInstance();
   }
 
   public static getInstance(): ServiceValidationService {
@@ -377,13 +380,19 @@ export class ServiceValidationService {
         throw new Error(`Dominio inválido: ${domain}`);
       }
 
-      // Agregar el dominio a la lista de dominios aprobados en la base de datos
+      // 1. Agregar el dominio a la lista de dominios aprobados en la base de datos
       await this.addApprovedDomain(domain);
       
-      // Actualizar la configuración de CORS en tiempo real
+      // 2. Actualizar inmediatamente el CorsService para que esté disponible sin esperar el refresh del caché
+      await this.corsService.addApprovedDomain(domain);
+      
+      // 3. Actualizar la configuración de CORS en tiempo real (para mantener consistencia con process.env)
       await this.updateCorsConfiguration(domain);
       
       console.log(`✅ CORS configuration applied successfully for domain: ${domain}`);
+      console.log(`   - Guardado en BD: ✅`);
+      console.log(`   - Actualizado en CorsService: ✅`);
+      console.log(`   - Disponible inmediatamente sin reiniciar: ✅`);
       
     } catch (error) {
       console.error('❌ Error applying CORS configuration:', error);
