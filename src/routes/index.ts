@@ -32,7 +32,7 @@ import {
   changeUserPassword,
   deleteUser
 } from '../controllers/auth_controller';
-import { authenticateToken, requireAdmin, requirePermission, redirectToLoginIfNotAuth } from '../middleware/auth';
+import { authenticateToken, authenticateProtectedToken, requireAdmin, requirePermission, redirectToLoginIfNotAuth } from '../middleware/auth';
 
 // Initialize services
 // const emailService = new EmailService();
@@ -410,10 +410,10 @@ router.get('/api/chatbot/conversation/:issueKey/report', chatbotController.getCo
 
 // === WIDGET INTEGRATION ROUTES ===
 // Connect widget to existing Jira ticket
-router.post('/api/widget/connect', widgetIntegrationController.connectToTicket.bind(widgetIntegrationController));
+router.post('/api/widget/connect', authenticateProtectedToken, widgetIntegrationController.connectToTicket.bind(widgetIntegrationController));
 
 // Send message from widget to Jira
-router.post('/api/widget/send-message', widgetIntegrationController.sendMessageToJira.bind(widgetIntegrationController));
+router.post('/api/widget/send-message', authenticateProtectedToken, widgetIntegrationController.sendMessageToJira.bind(widgetIntegrationController));
 
 // Get conversation history for a ticket
 router.get('/api/widget/conversation/:issueKey', widgetIntegrationController.getConversationHistory.bind(widgetIntegrationController));

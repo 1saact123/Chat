@@ -130,6 +130,74 @@ export const redirectToLoginIfNotAuth = async (req: Request, res: Response, next
   }
 };
 
+// Middleware para autenticar tokens protegidos de widgets
+export const authenticateProtectedToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+      res.status(401).json({ 
+        success: false, 
+        error: 'Token de acceso requerido' 
+      });
+      return;
+    }
+
+    // Importar el servicio de validación
+    const { ServiceValidationService } = await import('../services/service_validation_service');
+    const validationService = ServiceValidationService.getInstance();
+    
+    // Validar el token protegido
+    const validation = validationService.validateProtectedToken(token);
+    
+    if (!validation.isValid) {
+      res.status(401).json({ 
+        success: false, 
+        error: 'Token protegido inválido o expirado' 
+      });
+      return;
+    }
+
+    // Buscar el usuario en la base de datos
+    const user = await User.findByPk(validation.userId);
+    
+    if (!user || !user.isActive) {
+      res.status(401).json({ 
+        success: false, 
+        error: 'Usuario no válido o inactivo' 
+      });
+      return;
+    }
+
+    // Agregar información del usuario y servicio a la request
+    req.user = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      permissions: user.permissions,
+      jiraToken: user.jiraToken,
+      jiraUrl: user.jiraUrl,
+      openaiToken: user.openaiToken,
+      isInitialSetupComplete: user.isInitialSetupComplete,
+      organizationLogo: (user as any).organizationLogo
+    };
+
+    // Agregar serviceId al request para uso en controladores
+    (req as any).serviceId = validation.serviceId;
+
+    console.log(`✅ Token protegido válido para usuario ${user.id}, servicio: ${validation.serviceId}`);
+    next();
+  } catch (error) {
+    console.error('Error en autenticación de token protegido:', error);
+    res.status(401).json({ 
+      success: false, 
+      error: 'Token protegido inválido' 
+    });
+  }
+};
+
 // Middleware para verificar rol de administrador
 export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
   if (!req.user) {
