@@ -80,11 +80,23 @@ export class WidgetIntegrationController {
         return;
       }
 
-      // Create chat session using system service (this might need to be updated too)
-      await this.jiraService.createChatSession(issueKey, customerInfo);
+      // Create chat session using user's credentials (same as ticket creator)
+      try {
+        const sessionComment = `🎯 **CHAT SESSION STARTED**\n\nCustomer: ${customerInfo.name} (${customerInfo.email})\nStarted: ${new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' })}\n\n---\nChat widget connected successfully.`;
+        await userJiraService.addCommentToIssue(issueKey, sessionComment);
+        console.log(`✅ Chat session created for ${issueKey} using user credentials (${jiraEmail})`);
+      } catch (sessionError: any) {
+        console.error(`❌ Error creating chat session comment:`, sessionError);
+        console.error(`   Issue: ${issueKey}, URL: ${jiraUrl}, Email: ${jiraEmail}`);
+        if (sessionError.response?.data) {
+          console.error(`   Jira Error:`, JSON.stringify(sessionError.response.data, null, 2));
+        }
+        // No fallar la conexión si no se puede agregar el comentario, pero loguear el error
+      }
 
-      // Get conversation history using system service
-      const history = await this.jiraService.getConversationHistory(issueKey);
+      // Get conversation history - por ahora retornamos un array vacío
+      // TODO: Implementar getConversationHistory en UserJiraService si es necesario
+      const history: any[] = [];
 
       res.json({
         success: true,
