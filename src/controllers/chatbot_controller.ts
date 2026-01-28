@@ -499,28 +499,6 @@ export class ChatbotController {
           return;
         }
         
-        // Sistema de throttling para evitar respuestas muy rápidas
-        const nowTimestamp = Date.now();
-        const lastResponse = this.lastResponseTime.get(issueKey) || 0;
-        const timeSinceLastResponse = nowTimestamp - lastResponse;
-        const THROTTLE_DELAY = 15000; // 15 segundos entre respuestas por issue
-        
-        if (timeSinceLastResponse < THROTTLE_DELAY) {
-          this.webhookStats.throttledRequests++;
-          const remainingTime = Math.ceil((THROTTLE_DELAY - timeSinceLastResponse) / 1000);
-          console.log(`🚫 THROTTLING: Demasiado pronto para responder a ${issueKey}`);
-          console.log(`   Tiempo desde última respuesta: ${Math.ceil(timeSinceLastResponse / 1000)}s`);
-          console.log(`   Tiempo restante: ${remainingTime}s`);
-          console.log(`   Estadísticas: ${this.webhookStats.throttledRequests} requests throttled`);
-          res.json({ 
-            success: true, 
-            message: `Throttled - wait ${remainingTime}s`, 
-            throttled: true,
-            remainingTime 
-          });
-          return;
-        }
-        
         console.log(`✅ PROCESANDO COMENTARIO: ${commentId}`);
         console.log(`🔍 DEBUG - Autor: ${payload.comment.author.displayName}`);
         console.log(`🔍 DEBUG - Email: ${payload.comment.author.emailAddress}`);
@@ -540,7 +518,8 @@ export class ChatbotController {
           return;
         }
         
-        // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET (SOLO SI NO ES DE IA)
+        // 🔌 ENVIAR COMENTARIO DE AGENTE VIA WEBSOCKET (ANTES DEL THROTTLING)
+        // Esto asegura que el usuario vea su mensaje incluso si la IA está throttled
         if (!this.isAIComment(payload.comment)) {
           const webSocketServer = this.getWebSocketServer();
           if (webSocketServer) {
@@ -554,9 +533,35 @@ export class ChatbotController {
               isAI: false
             });
             console.log(`✅ Comentario de agente enviado via WebSocket al ticket ${issueKey}`);
+          } else {
+            console.warn(`⚠️ WebSocket server no disponible para enviar comentario`);
           }
         } else {
           console.log(`🤖 Comentario de IA detectado, no enviando via WebSocket (se enviará cuando se confirme en Jira)`);
+        }
+        
+        // Sistema de throttling para evitar respuestas muy rápidas de la IA
+        // NOTA: El mensaje del usuario ya fue enviado al WebSocket arriba
+        const nowTimestamp = Date.now();
+        const lastResponse = this.lastResponseTime.get(issueKey) || 0;
+        const timeSinceLastResponse = nowTimestamp - lastResponse;
+        const THROTTLE_DELAY = 15000; // 15 segundos entre respuestas por issue
+        
+        if (timeSinceLastResponse < THROTTLE_DELAY) {
+          this.webhookStats.throttledRequests++;
+          const remainingTime = Math.ceil((THROTTLE_DELAY - timeSinceLastResponse) / 1000);
+          console.log(`🚫 THROTTLING: Demasiado pronto para que la IA responda a ${issueKey}`);
+          console.log(`   Tiempo desde última respuesta: ${Math.ceil(timeSinceLastResponse / 1000)}s`);
+          console.log(`   Tiempo restante: ${remainingTime}s`);
+          console.log(`   Estadísticas: ${this.webhookStats.throttledRequests} requests throttled`);
+          console.log(`   ⚠️ NOTA: El mensaje del usuario ya fue enviado al WebSocket`);
+          res.json({ 
+            success: true, 
+            message: `Throttled - wait ${remainingTime}s`, 
+            throttled: true,
+            remainingTime 
+          });
+          return;
         }
         
         // Verificar si el asistente está desactivado para este ticket por el usuario
