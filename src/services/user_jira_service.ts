@@ -212,8 +212,19 @@ export class UserJiraService {
       );
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error creating issue for user ${this.userId}:`, error);
+      
+      // Log detallado del error de Jira
+      if (error.response?.data) {
+        console.error('Jira API Error Details:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          errors: error.response.data.errors,
+          errorMessages: error.response.data.errorMessages
+        });
+      }
+      
       throw error;
     }
   }

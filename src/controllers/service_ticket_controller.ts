@@ -265,6 +265,18 @@ export class ServiceTicketController {
    */
   private async createContactIssueForProjectWithUser(formData: any, projectKey: string, userJiraService: UserJiraService): Promise<any> {
     try {
+      // Preparar labels sin duplicados
+      const labels = [
+        'service-contact', 
+        'widget-chat', 
+        `service-${formData.serviceId}`
+      ];
+      
+      // Agregar source solo si es diferente y no está vacío
+      if (formData.source && formData.source !== 'unknown' && !labels.includes(formData.source)) {
+        labels.push(formData.source);
+      }
+      
       // Usar el método del UserJiraService para crear el ticket
       const response = await userJiraService.createIssue({
         projectKey: projectKey,
@@ -272,12 +284,7 @@ export class ServiceTicketController {
         description: this.formatServiceContactDescriptionADF(formData),
         issueType: 'Task',
         priority: 'Medium',
-        labels: [
-          'service-contact', 
-          'widget-chat', 
-          `service-${formData.serviceId}`,
-          formData.source || 'unknown'
-        ]
+        labels: labels
       });
 
       return response;
@@ -315,12 +322,12 @@ export class ServiceTicketController {
     return {
       version: 1 as const,
       type: 'doc' as const,
-      content: lines.map((text) => ({
-        type: 'paragraph' as const,
-        content: text
-          ? [{ type: 'text' as const, text }]
-          : undefined
-      }))
+      content: lines
+        .filter((text) => text !== null && text !== undefined && text !== '')
+        .map((text) => ({
+          type: 'paragraph' as const,
+          content: [{ type: 'text' as const, text: String(text) }]
+        }))
     };
   }
 
