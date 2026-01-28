@@ -186,11 +186,15 @@ export class UserJiraService {
         description: issueData.description,
         issuetype: {
           name: issueData.issueType
-        },
-        priority: {
-          name: issueData.priority
         }
       };
+
+      // Agregar prioridad solo si se proporciona (puede ser opcional en algunos proyectos)
+      if (issueData.priority) {
+        fields.priority = {
+          name: issueData.priority
+        };
+      }
 
       // Agregar labels si se proporcionan
       if (issueData.labels && issueData.labels.length > 0) {
@@ -213,16 +217,23 @@ export class UserJiraService {
 
       return response.data;
     } catch (error: any) {
-      console.error(`Error creating issue for user ${this.userId}:`, error);
+      console.error(`❌ Error creating issue for user ${this.userId}:`, error);
       
       // Log detallado del error de Jira
       if (error.response?.data) {
-        console.error('Jira API Error Details:', {
+        const errorData = error.response.data;
+        console.error('🔍 Jira API Error Details:', JSON.stringify({
           status: error.response.status,
           statusText: error.response.statusText,
-          errors: error.response.data.errors,
-          errorMessages: error.response.data.errorMessages
-        });
+          errors: errorData.errors,
+          errorMessages: errorData.errorMessages,
+          fullResponse: errorData
+        }, null, 2));
+        
+        // Log del payload que se envió
+        if (error.config?.data) {
+          console.error('📤 Payload enviado a Jira:', JSON.stringify(JSON.parse(error.config.data), null, 2));
+        }
       }
       
       throw error;

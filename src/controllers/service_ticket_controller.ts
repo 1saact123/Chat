@@ -178,12 +178,31 @@ export class ServiceTicketController {
 
       res.status(201).json(response);
 
-    } catch (error) {
-      console.error('Error creating ticket for service:', error);
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Internal server error'
-      });
+    } catch (error: any) {
+      console.error('❌ Error creating ticket for service:', error);
+      
+      // Si es un error de Jira, incluir más detalles en la respuesta
+      if (error.response?.data) {
+        const jiraError = error.response.data;
+        const errorDetails = {
+          jiraStatus: error.response.status,
+          jiraErrors: jiraError.errors,
+          jiraErrorMessages: jiraError.errorMessages
+        };
+        
+        console.error('🔍 Jira Error Details:', JSON.stringify(errorDetails, null, 2));
+        
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error',
+          jiraError: errorDetails
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error'
+        });
+      }
     }
   }
 
@@ -299,35 +318,79 @@ export class ServiceTicketController {
    * Formatear descripción de contacto de servicio en ADF
    */
   private formatServiceContactDescriptionADF(formData: any): any {
-    const lines = [
-      `Contact from service: ${formData.serviceName || formData.serviceId}`,
-      '',
-      `Customer Information:`,
-      `• Name: ${formData.name}`,
-      `• Email: ${formData.email}`,
-      formData.phone ? `• Phone: ${formData.phone}` : null,
-      formData.company ? `• Company: ${formData.company}` : null,
-      '',
-      `Service Details:`,
-      `• Service ID: ${formData.serviceId}`,
-      `• Service Name: ${formData.serviceName || 'N/A'}`,
-      `• Project Key: ${formData.projectKey}`,
-      `• Source: ${formData.source || 'unknown'}`,
-      '',
-      formData.message ? `Message: ${formData.message}` : 'No additional message provided',
-      '',
-      `Created via widget integration for service ${formData.serviceId}`
-    ].filter(Boolean);
+    const content: any[] = [];
+    
+    // Título
+    content.push({
+      type: 'paragraph',
+      content: [{ type: 'text', text: `Contact from service: ${formData.serviceName || formData.serviceId}` }]
+    });
+    
+    // Información del cliente
+    content.push({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Customer Information:', marks: [{ type: 'strong' }] }]
+    });
+    content.push({
+      type: 'paragraph',
+      content: [{ type: 'text', text: `• Name: ${formData.name}` }]
+    });
+    content.push({
+      type: 'paragraph',
+      content: [{ type: 'text', text: `• Email: ${formData.email}` }]
+    });
+    if (formData.phone) {
+      content.push({
+        type: 'paragraph',
+        content: [{ type: 'text', text: `• Phone: ${formData.phone}` }]
+      });
+    }
+    if (formData.company) {
+      content.push({
+        type: 'paragraph',
+        content: [{ type: 'text', text: `• Company: ${formData.company}` }]
+      });
+    }
+    
+    // Detalles del servicio
+    content.push({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Service Details:', marks: [{ type: 'strong' }] }]
+    });
+    content.push({
+      type: 'paragraph',
+      content: [{ type: 'text', text: `• Service ID: ${formData.serviceId}` }]
+    });
+    if (formData.serviceName) {
+      content.push({
+        type: 'paragraph',
+        content: [{ type: 'text', text: `• Service Name: ${formData.serviceName}` }]
+      });
+    }
+    if (formData.projectKey) {
+      content.push({
+        type: 'paragraph',
+        content: [{ type: 'text', text: `• Project Key: ${formData.projectKey}` }]
+      });
+    }
+    
+    // Mensaje
+    const message = formData.message || 'Contact from widget integration';
+    content.push({
+      type: 'paragraph',
+      content: [{ type: 'text', text: `Message: ${message}` }]
+    });
+    
+    // Footer
+    content.push({
+      type: 'paragraph',
+      content: [{ type: 'text', text: `Created via widget integration for service ${formData.serviceId}`, marks: [{ type: 'em' }] }]
+    });
 
     return {
-      version: 1 as const,
-      type: 'doc' as const,
-      content: lines
-        .filter((text) => text !== null && text !== undefined && text !== '')
-        .map((text) => ({
-          type: 'paragraph' as const,
-          content: [{ type: 'text' as const, text: String(text) }]
-        }))
+      version: 1,
+      type: 'doc',
+      content: content
     };
   }
 
