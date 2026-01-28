@@ -66,15 +66,23 @@ export class ServiceTicketController {
       let jiraEmail = req.user?.email;
       let jiraToken = req.user?.jiraToken;
       let jiraUrl = req.user?.jiraUrl;
+      
+      console.log(`🔍 Usuario autenticado: ${req.user?.email} (ID: ${userId})`);
+      console.log(`🔍 Credenciales iniciales - Email: ${jiraEmail}, Token: ${jiraToken ? '***' : 'NO'}, URL: ${jiraUrl}`);
 
       // Look for service-specific assistant credentials
       const assistantAccount = await ServiceJiraAccountsController.getAssistantJiraAccount(userId, serviceId);
       if (assistantAccount) {
         console.log(`✅ Using assistant-specific Jira account for service ${serviceId}`);
+        console.log(`   Email: ${assistantAccount.email}, URL: ${assistantAccount.url}`);
         jiraEmail = assistantAccount.email;
         jiraToken = assistantAccount.token;
         jiraUrl = assistantAccount.url;
+      } else {
+        console.log(`ℹ️ No se encontraron credenciales específicas del asistente, usando credenciales del usuario`);
       }
+      
+      console.log(`🔑 Credenciales finales para crear ticket - Email: ${jiraEmail}, URL: ${jiraUrl}`);
 
       // Validar que tengamos credenciales de Jira (propias o configuradas)
       if (!jiraToken || !jiraEmail) {
@@ -284,16 +292,24 @@ export class ServiceTicketController {
    */
   private async createContactIssueForProjectWithUser(formData: any, projectKey: string, userJiraService: UserJiraService): Promise<any> {
     try {
-      // Preparar labels sin duplicados
+      // Preparar labels sin duplicados y sin espacios (Jira no permite espacios en labels)
+      // Función para normalizar labels: reemplazar espacios con guiones y convertir a minúsculas
+      const normalizeLabel = (label: string): string => {
+        return label.replace(/\s+/g, '-').toLowerCase();
+      };
+      
       const labels = [
         'service-contact', 
         'widget-chat', 
-        `service-${formData.serviceId}`
+        normalizeLabel(`service-${formData.serviceId}`)
       ];
       
       // Agregar source solo si es diferente y no está vacío
-      if (formData.source && formData.source !== 'unknown' && !labels.includes(formData.source)) {
-        labels.push(formData.source);
+      if (formData.source && formData.source !== 'unknown') {
+        const normalizedSource = normalizeLabel(formData.source);
+        if (!labels.includes(normalizedSource)) {
+          labels.push(normalizedSource);
+        }
       }
       
       // Usar el método del UserJiraService para crear el ticket
