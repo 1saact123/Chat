@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp ↔ Jira Integration Diagram</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 24px; background: #f5f5f5; }
+    h1 { margin-top: 0; color: #172b4d; }
+    .diagram { background: #fff; border-radius: 8px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    .diagram h2 { margin-top: 0; font-size: 1.1rem; color: #5e6c84; }
+    .mermaid { display: flex; justify-content: center; overflow: auto; }
+    .mermaid svg { max-width: 100%; }
+    .note { background: #e3fcef; border-left: 4px solid #36b37e; padding: 12px 16px; margin-top: 16px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>WhatsApp ↔ Jira Integration Architecture</h1>
+  <p>Messages from WhatsApp are registered in Jira tickets using the same backend flow as the chat widget.</p>
+
+  <div class="diagram">
+    <h2>1. High-level flow</h2>
+    <div class="mermaid">
+flowchart TB
+    subgraph WhatsApp["WhatsApp"]
+        WA_USER[("👤 User")]
+        WA_API[WhatsApp Business API / Cloud API]
+    end
+
+    subgraph Backend["Chatbot Backend (this program)"]
+        WA_WEBHOOK["POST /api/whatsapp/webhook<br/>Receive incoming message"]
+        ROUTER{Route by<br/>phone / ticket}
+        CREATE_TICKET["POST /api/service-ticket/create<br/>Create new Jira ticket"]
+        ADD_COMMENT["UserJiraService.addCommentToIssue()<br/>Add message to existing ticket"]
+        JIRA_WEBHOOK["Jira fires comment_created webhook"]
+        CHATBOT_WEBHOOK["POST /api/chatbot/webhook/jira<br/>ChatbotController.handleJiraWebhook"]
+        OPENAI["UserOpenAIService<br/>Process with AI"]
+        JIRA_AI["Add AI response as Jira comment"]
+        SEND_WA["Send reply to WhatsApp<br/>via WhatsApp API"]
+    end
+
+    subgraph Jira["Jira"]
+        JIRA_TICKET[("Ticket TEST-xx")]
+    end
+
+    WA_USER -->|"1. Message"| WA_API
+    WA_API -->|"2. Webhook POST"| WA_WEBHOOK
+    WA_WEBHOOK --> ROUTER
+    ROUTER -->|"New conversation"| CREATE_TICKET
+    ROUTER -->|"Existing ticket"| ADD_COMMENT
+    CREATE_TICKET -->|"Create issue"| JIRA_TICKET
+    ADD_COMMENT -->|"POST .../comment"| JIRA_TICKET
+    JIRA_TICKET -->|"3. comment_created"| JIRA_WEBHOOK
+    JIRA_WEBHOOK --> CHATBOT_WEBHOOK
+    CHATBOT_WEBHOOK --> OPENAI
+    OPENAI --> JIRA_AI
+    JIRA_AI -->|"Add comment"| JIRA_TICKET
+    CHATBOT_WEBHOOK -->|"4. Optional: push to WhatsApp"| SEND_WA
+    SEND_WA -->|"Reply message"| WA_API
+    WA_API --> WA_USER
+    </div>
+  </div>
+
+  <div class="diagram">
+    <h2>2. Sequence: WhatsApp message → Jira ticket</h2>
+    <div class="mermaid">
+sequenceDiagram
+    participant User
+    participant WhatsApp as WhatsApp API
+    participant Backend as Chatbot Backend
+    participant Jira
+    participant OpenAI
+
+    User->>WhatsApp: Send message
+    WhatsApp->>Backend: POST /api/whatsapp/webhook (incoming message)
+    Backend->>Backend: Resolve ticket by phone or create new
+    alt New conversation
+        Backend->>Jira: POST /rest/api/3/issue (create ticket)
+        Jira-->>Backend: issueKey (e.g. TEST-12)
+    end
+    Backend->>Jira: POST .../issue/{key}/comment (user message)
+    Jira-->>Backend: 201 Created
+    Backend->>WhatsApp: 200 OK (optional quick reply)
+
+    Note over Jira: Jira fires webhook comment_created
+    Jira->>Backend: POST /api/chatbot/webhook/jira
+    Backend->>Backend: Validate service, throttling
+    Backend->>OpenAI: processChatForService(message, serviceId)
+    OpenAI-->>Backend: AI response
+    Backend->>Jira: POST .../issue/{key}/comment (AI response)
+    Backend->>WhatsApp: Send message (AI reply to user)
+    WhatsApp->>User: AI reply
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Reuse:</strong> Create ticket with <code>ServiceTicketController.createTicketForService</code>; add comments with <code>UserJiraService.addCommentToIssue</code>; Jira webhook and AI flow stay the same. New: WhatsApp webhook + phone→ticket mapping + send reply via WhatsApp API.
+  </div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+  </script>
+</body>
+</html>

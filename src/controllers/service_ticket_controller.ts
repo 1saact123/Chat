@@ -66,23 +66,15 @@ export class ServiceTicketController {
       let jiraEmail = req.user?.email;
       let jiraToken = req.user?.jiraToken;
       let jiraUrl = req.user?.jiraUrl;
-      
-      console.log(`🔍 Usuario autenticado: ${req.user?.email} (ID: ${userId})`);
-      console.log(`🔍 Credenciales iniciales - Email: ${jiraEmail}, Token: ${jiraToken ? '***' : 'NO'}, URL: ${jiraUrl}`);
 
       // Look for service-specific assistant credentials
       const assistantAccount = await ServiceJiraAccountsController.getAssistantJiraAccount(userId, serviceId);
       if (assistantAccount) {
         console.log(`✅ Using assistant-specific Jira account for service ${serviceId}`);
-        console.log(`   Email: ${assistantAccount.email}, URL: ${assistantAccount.url}`);
         jiraEmail = assistantAccount.email;
         jiraToken = assistantAccount.token;
         jiraUrl = assistantAccount.url;
-      } else {
-        console.log(`ℹ️ No se encontraron credenciales específicas del asistente, usando credenciales del usuario`);
       }
-      
-      console.log(`🔑 Credenciales finales para crear ticket - Email: ${jiraEmail}, URL: ${jiraUrl}`);
 
       // Validar que tengamos credenciales de Jira (propias o configuradas)
       if (!jiraToken || !jiraEmail) {
@@ -186,31 +178,12 @@ export class ServiceTicketController {
 
       res.status(201).json(response);
 
-    } catch (error: any) {
-      console.error('❌ Error creating ticket for service:', error);
-      
-      // Si es un error de Jira, incluir más detalles en la respuesta
-      if (error.response?.data) {
-        const jiraError = error.response.data;
-        const errorDetails = {
-          jiraStatus: error.response.status,
-          jiraErrors: jiraError.errors,
-          jiraErrorMessages: jiraError.errorMessages
-        };
-        
-        console.error('🔍 Jira Error Details:', JSON.stringify(errorDetails, null, 2));
-        
-        res.status(500).json({
-          success: false,
-          error: error instanceof Error ? error.message : 'Internal server error',
-          jiraError: errorDetails
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: error instanceof Error ? error.message : 'Internal server error'
-        });
-      }
+    } catch (error) {
+      console.error('Error creating ticket for service:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error'
+      });
     }
   }
 
@@ -292,34 +265,18 @@ export class ServiceTicketController {
    */
   private async createContactIssueForProjectWithUser(formData: any, projectKey: string, userJiraService: UserJiraService): Promise<any> {
     try {
-      // Preparar labels sin duplicados y sin espacios (Jira no permite espacios en labels)
-      // Función para normalizar labels: reemplazar espacios con guiones y convertir a minúsculas
-      const normalizeLabel = (label: string): string => {
-        return label.replace(/\s+/g, '-').toLowerCase();
-      };
-      
-      const labels = [
-        'service-contact', 
-        'widget-chat', 
-        normalizeLabel(`service-${formData.serviceId}`)
-      ];
-      
-      // Agregar source solo si es diferente y no está vacío
-      if (formData.source && formData.source !== 'unknown') {
-        const normalizedSource = normalizeLabel(formData.source);
-        if (!labels.includes(normalizedSource)) {
-          labels.push(normalizedSource);
-        }
-      }
-      
-      // Usar el método del UserJiraService para crear el ticket
+      const normalizeLabel = (s: string) => s.replace(/\s+/g, '-').toLowerCase();
+      const baseLabels = ['service-contact', 'widget-chat', normalizeLabel(`service-${formData.serviceId}`)];
+      const source = formData.source && formData.source !== 'unknown' ? normalizeLabel(formData.source) : 'unknown';
+      const labels = [...new Set([...baseLabels, source])];
+
       const response = await userJiraService.createIssue({
         projectKey: projectKey,
         summary: `Service Contact: ${formData.name} - ${formData.company || 'No company'} (${formData.serviceName || formData.serviceId})`,
         description: this.formatServiceContactDescriptionADF(formData),
         issueType: 'Task',
         priority: 'Medium',
-        labels: labels
+        labels
       });
 
       return response;
@@ -334,80 +291,88 @@ export class ServiceTicketController {
    * Formatear descripción de contacto de servicio en ADF
    */
   private formatServiceContactDescriptionADF(formData: any): any {
-    const content: any[] = [];
-    
-    // Título
-    content.push({
-      type: 'paragraph',
-      content: [{ type: 'text', text: `Contact from service: ${formData.serviceName || formData.serviceId}` }]
-    });
-    
-    // Información del cliente
-    content.push({
-      type: 'paragraph',
-      content: [{ type: 'text', text: 'Customer Information:', marks: [{ type: 'strong' }] }]
-    });
-    content.push({
-      type: 'paragraph',
-      content: [{ type: 'text', text: `• Name: ${formData.name}` }]
-    });
-    content.push({
-      type: 'paragraph',
-      content: [{ type: 'text', text: `• Email: ${formData.email}` }]
-    });
-    if (formData.phone) {
-      content.push({
-        type: 'paragraph',
-        content: [{ type: 'text', text: `• Phone: ${formData.phone}` }]
-      });
-    }
-    if (formData.company) {
-      content.push({
-        type: 'paragraph',
-        content: [{ type: 'text', text: `• Company: ${formData.company}` }]
-      });
-    }
-    
-    // Detalles del servicio
-    content.push({
-      type: 'paragraph',
-      content: [{ type: 'text', text: 'Service Details:', marks: [{ type: 'strong' }] }]
-    });
-    content.push({
-      type: 'paragraph',
-      content: [{ type: 'text', text: `• Service ID: ${formData.serviceId}` }]
-    });
-    if (formData.serviceName) {
-      content.push({
-        type: 'paragraph',
-        content: [{ type: 'text', text: `• Service Name: ${formData.serviceName}` }]
-      });
-    }
-    if (formData.projectKey) {
-      content.push({
-        type: 'paragraph',
-        content: [{ type: 'text', text: `• Project Key: ${formData.projectKey}` }]
-      });
-    }
-    
-    // Mensaje
-    const message = formData.message || 'Contact from widget integration';
-    content.push({
-      type: 'paragraph',
-      content: [{ type: 'text', text: `Message: ${message}` }]
-    });
-    
-    // Footer
-    content.push({
-      type: 'paragraph',
-      content: [{ type: 'text', text: `Created via widget integration for service ${formData.serviceId}`, marks: [{ type: 'em' }] }]
-    });
+    const lines = [
+      `Contact from service: ${formData.serviceName || formData.serviceId}`,
+      '',
+      `Customer Information:`,
+      `• Name: ${formData.name}`,
+      `• Email: ${formData.email}`,
+      formData.phone ? `• Phone: ${formData.phone}` : null,
+      formData.company ? `• Company: ${formData.company}` : null,
+      '',
+      `Service Details:`,
+      `• Service ID: ${formData.serviceId}`,
+      `• Service Name: ${formData.serviceName || 'N/A'}`,
+      `• Project Key: ${formData.projectKey}`,
+      `• Source: ${formData.source || 'unknown'}`,
+      '',
+      formData.message ? `Message: ${formData.message}` : 'No additional message provided',
+      '',
+      `Created via widget integration for service ${formData.serviceId}`
+    ].filter(Boolean);
 
     return {
-      version: 1,
-      type: 'doc',
-      content: content
+      version: 1 as const,
+      type: 'doc' as const,
+      content: lines.map((text) => ({
+        type: 'paragraph' as const,
+        content: text
+          ? [{ type: 'text' as const, text }]
+          : undefined
+      }))
     };
+  }
+
+  /**
+   * Crear ticket para integración WhatsApp (uso interno, sin req/res).
+   * Usado cuando un mensaje de WhatsApp llega y no hay ticket asociado al teléfono.
+   */
+  async createTicketForWhatsApp(
+    userId: number,
+    serviceId: string,
+    customerInfo: CustomerInfo
+  ): Promise<{ issueKey: string }> {
+    const { User } = await import('../models');
+    const user = await User.findByPk(userId);
+    if (!user || !user.jiraToken || !(user as any).jiraUrl) {
+      throw new Error(`User ${userId} does not have Jira credentials configured.`);
+    }
+    let jiraEmail = user.email;
+    let jiraToken = user.jiraToken;
+    let jiraUrl = (user as any).jiraUrl as string;
+    const assistantAccount = await ServiceJiraAccountsController.getAssistantJiraAccount(userId, serviceId);
+    if (assistantAccount) {
+      jiraEmail = assistantAccount.email;
+      jiraToken = assistantAccount.token;
+      jiraUrl = assistantAccount.url;
+    }
+    const serviceConfig = await this.getServiceConfiguration(serviceId, userId);
+    if (!serviceConfig) {
+      throw new Error(`Service '${serviceId}' not found or not configured for user ${userId}.`);
+    }
+    const projectKey = this.getProjectKeyFromConfig(serviceConfig);
+    if (!projectKey) {
+      throw new Error(`Service '${serviceId}' does not have projectKey configured.`);
+    }
+    const formData = {
+      name: customerInfo.name.trim(),
+      email: customerInfo.email.trim().toLowerCase(),
+      phone: customerInfo.phone?.trim(),
+      company: customerInfo.company?.trim(),
+      message: customerInfo.message?.trim() || `Contact from WhatsApp - service ${serviceId}`,
+      source: 'whatsapp',
+      serviceId,
+      serviceName: serviceConfig.serviceName,
+      projectKey
+    };
+    const userJiraService = new UserJiraService(
+      userId,
+      jiraToken,
+      jiraUrl || process.env.JIRA_BASE_URL || 'https://movonte.atlassian.net',
+      jiraEmail
+    );
+    const jiraResponse = await this.createContactIssueForProjectWithUser(formData, projectKey, userJiraService);
+    return { issueKey: jiraResponse.key };
   }
 
   /**

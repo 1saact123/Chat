@@ -15,6 +15,7 @@ import { ChatKitController } from '../controllers/chatkit_controller';
 import { CorsController } from '../controllers/cors_controller';
 import { ServiceTicketController } from '../controllers/service_ticket_controller';
 import { ServiceJiraAccountsController } from '../controllers/service_jira_accounts_controller';
+import { WhatsAppController } from '../controllers/whatsapp_controller';
 import { JiraService } from '../services/jira_service';
 // import { EmailService } from '../services/email_service';
 import { OpenAIService } from '../services/openAI_service';
@@ -54,6 +55,7 @@ const serviceValidationController = new ServiceValidationController();
 const chatKitController = new ChatKitController();
 const serviceTicketController = new ServiceTicketController();
 const serviceJiraAccountsController = new ServiceJiraAccountsController();
+const whatsAppController = new WhatsAppController();
 const corsController = new CorsController();
 
 // Function to set WebSocket server reference
@@ -297,6 +299,10 @@ router.get('/api/service/:serviceId/jira-accounts', authenticateToken, serviceJi
 router.post('/api/service/:serviceId/jira-accounts', authenticateToken, serviceJiraAccountsController.upsertServiceJiraAccounts.bind(serviceJiraAccountsController));
 router.put('/api/service/:serviceId/jira-accounts', authenticateToken, serviceJiraAccountsController.upsertServiceJiraAccounts.bind(serviceJiraAccountsController));
 router.delete('/api/service/:serviceId/jira-accounts', authenticateToken, serviceJiraAccountsController.deleteServiceJiraAccounts.bind(serviceJiraAccountsController));
+
+// === WHATSAPP WEBHOOK (no auth - Meta calls this) ===
+router.get('/api/whatsapp/webhook', whatsAppController.verifyWebhook.bind(whatsAppController));
+router.post('/api/whatsapp/webhook', whatsAppController.handleWebhook.bind(whatsAppController));
 
 // === CHATBOT ROUTES ===
 // Jira webhook (el body ya fue parseado en app.ts con middleware específico)

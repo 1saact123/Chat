@@ -56,60 +56,24 @@ export class UserJiraService {
   // Agregar comentario
   async addCommentToIssue(issueKey: string, commentText: string): Promise<any> {
     try {
-      // Formatear el texto con saltos de línea correctamente para ADF
-      const lines = commentText.split('\n').filter(line => line.trim() !== '');
-      
       const commentData = {
         body: {
           version: 1,
           type: 'doc',
-          content: lines.map((line, index) => {
-            // Detectar texto en negrita (**texto**)
-            const boldRegex = /\*\*(.*?)\*\*/g;
-            const parts: any[] = [];
-            let lastIndex = 0;
-            let match;
-            
-            while ((match = boldRegex.exec(line)) !== null) {
-              // Agregar texto antes del match
-              if (match.index > lastIndex) {
-                parts.push({
-                  type: 'text',
-                  text: line.substring(lastIndex, match.index)
-                });
-              }
-              // Agregar texto en negrita
-              parts.push({
-                type: 'text',
-                text: match[1],
-                marks: [{ type: 'strong' }]
-              });
-              lastIndex = match.index + match[0].length;
-            }
-            
-            // Agregar texto restante
-            if (lastIndex < line.length) {
-              parts.push({
-                type: 'text',
-                text: line.substring(lastIndex)
-              });
-            }
-            
-            // Si no hay partes (línea vacía), usar texto simple
-            if (parts.length === 0) {
-              parts.push({ type: 'text', text: line });
-            }
-            
-            return {
+          content: [
+            {
               type: 'paragraph',
-              content: parts
-            };
-          })
+              content: [
+                {
+                  type: 'text',
+                  text: commentText
+                }
+              ]
+            }
+          ]
         }
       };
 
-      console.log(`📝 Adding comment to ${issueKey} using user credentials (${this.userId})`);
-      
       const response = await axios.post(
         `${this.baseUrl}/rest/api/3/issue/${issueKey}/comment`,
         commentData,
@@ -123,20 +87,8 @@ export class UserJiraService {
       );
 
       return response.data;
-    } catch (error: any) {
-      console.error(`❌ Error adding comment to ${issueKey} for user ${this.userId}:`, error);
-      
-      // Log detallado del error
-      if (error.response?.data) {
-        console.error(`   Jira API Error:`, JSON.stringify({
-          status: error.response.status,
-          statusText: error.response.statusText,
-          errors: error.response.data.errors,
-          errorMessages: error.response.data.errorMessages,
-          url: `${this.baseUrl}/rest/api/3/issue/${issueKey}/comment`
-        }, null, 2));
-      }
-      
+    } catch (error) {
+      console.error(`Error adding comment to ${issueKey} for user ${this.userId}:`, error);
       throw error;
     }
   }
@@ -234,15 +186,11 @@ export class UserJiraService {
         description: issueData.description,
         issuetype: {
           name: issueData.issueType
+        },
+        priority: {
+          name: issueData.priority
         }
       };
-
-      // Agregar prioridad solo si se proporciona (puede ser opcional en algunos proyectos)
-      if (issueData.priority) {
-        fields.priority = {
-          name: issueData.priority
-        };
-      }
 
       // Agregar labels si se proporcionan
       if (issueData.labels && issueData.labels.length > 0) {
@@ -264,26 +212,8 @@ export class UserJiraService {
       );
 
       return response.data;
-    } catch (error: any) {
-      console.error(`❌ Error creating issue for user ${this.userId}:`, error);
-      
-      // Log detallado del error de Jira
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        console.error('🔍 Jira API Error Details:', JSON.stringify({
-          status: error.response.status,
-          statusText: error.response.statusText,
-          errors: errorData.errors,
-          errorMessages: errorData.errorMessages,
-          fullResponse: errorData
-        }, null, 2));
-        
-        // Log del payload que se envió
-        if (error.config?.data) {
-          console.error('📤 Payload enviado a Jira:', JSON.stringify(JSON.parse(error.config.data), null, 2));
-        }
-      }
-      
+    } catch (error) {
+      console.error(`Error creating issue for user ${this.userId}:`, error);
       throw error;
     }
   }
