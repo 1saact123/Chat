@@ -2,7 +2,24 @@
 
 ---
 
-## 1. Qué es Coexistence
+## 0. Contexto: qué ya existe en el sistema
+
+El backend del chatbot ya tiene todo lo necesario para que **otro canal** (WhatsApp) se comporte como el widget: crear tickets en Jira, recibir mensajes y (vía webhook de Jira) disparar la IA. Lo que se añadió es el **punto de entrada** de WhatsApp y el mapeo teléfono → ticket.
+
+| Elemento existente | Uso en la integración WhatsApp |
+|--------------------|-------------------------------|
+| **Servicios por usuario** | `unified_configurations`: cada usuario tiene servicios con `projectKey`, asistente, etc. WhatsApp usa un servicio por defecto (`WHATSAPP_DEFAULT_SERVICE_ID`) para crear tickets. |
+| **Credenciales Jira** | `users` (perfil) y `service_jira_accounts` (por servicio). El backend usa las mismas credenciales que el widget para crear issues y comentarios. |
+| **Creación de tickets** | `ServiceTicketController.createTicketForService` (vía API) y `createTicketForWhatsApp` (interno). Misma lógica: formulario → Jira con labels normalizados, ADF, etc. |
+| **Webhook de Jira** | `POST /api/chatbot/webhook/jira`: cuando se añade un comentario en un ticket (desde widget o desde WhatsApp), Jira avisa → se procesa con la IA del servicio → respuesta en Jira. **No cambia** para WhatsApp. |
+| **Token protegido (widget)** | Los widgets usan JWT con `serviceId` y `userId`. WhatsApp no usa este token (Meta llama al webhook sin él); la autorización es por webhook + `WHATSAPP_DEFAULT_*`. |
+| **CORS** | Los CORS aprobados afectan al dashboard y al widget. El webhook de WhatsApp lo llama Meta desde sus servidores, no el navegador; no depende de CORS. |
+
+**Resumen:** WhatsApp es un canal más que escribe en los mismos tickets Jira y pasa por el mismo flujo de IA. La única pieza nueva es la tabla `whatsapp_ticket_mapping` (teléfono → ticket/servicio/usuario) y el controlador del webhook de Meta.
+
+---
+
+## 1. Qué es Coexistence y cómo encaja
 
 **Coexistence** = usar el **mismo número de WhatsApp** a la vez para:
 
@@ -12,6 +29,24 @@
 | **WhatsApp Business API** | Este backend: automatización, tickets en Jira, IA |
 
 El usuario escribe al mismo número; los mensajes llegan al backend y se registran en Jira. Opcionalmente el equipo puede seguir respondiendo desde la app.
+
+**Cómo encaja con lo que tenemos:**  
+Nuestro webhook (`POST /api/whatsapp/webhook`) recibe los mensajes que Meta envía cuando alguien escribe al número. Da igual que ese número esté también en la app: Meta entrega el mensaje a la API y nosotros lo mapeamos a un ticket y lo guardamos en Jira. Coexistence es solo la configuración en Meta (vincular app + API al mismo número); nuestro código no distingue si el número usa o no la app.
+
+---
+
+## 1.1 WhatsApp Flows (opcional)
+
+**WhatsApp Flows** son pantallas interactivas dentro del chat (formularios, listas, pasos) que Meta muestra cuando el negocio envía un mensaje con un “flow”. El usuario rellena o elige opciones y el resultado se envía a un endpoint tuyo (o a la API).
+
+| Aspecto | Detalle |
+|---------|---------|
+| **Para qué sirven** | Captura de leads, preselección de opciones (ej. tipo de propiedad, rango de precio), cuestionarios cortos, sin salir de WhatsApp. |
+| **Encaje con este sistema** | Opcional. Se pueden usar para que el primer contacto sea estructurado (ej. “¿Qué tipo de inmueble busca?”); al finalizar el flow, tu backend puede crear el ticket en Jira con esos datos y seguir la conversación por chat normal (que ya se registra en el ticket). |
+| **Estado** | No está implementado en el backend actual. Si se usa, habría que: definir el Flow en Meta (Flow JSON), exponer un endpoint que reciba el resultado del flow, y desde ahí crear ticket o actualizar datos y seguir con el mismo flujo de mensajes → `whatsapp_ticket_mapping` + comentarios en Jira. |
+
+**Ejemplo de uso (p. ej. inmobiliaria):**  
+Flow inicial “Registro de interés” con campos: tipo de inmueble, ciudad, rango de precio. Al enviar, el backend crea el ticket en Jira con esa información y asocia el teléfono al ticket; los mensajes siguientes del usuario van al mismo ticket como ya está hoy. Los Flows son opcionales y se valoran según el producto (p. ej. inmobiliaria); el núcleo de la integración (mensajes → Jira) no depende de ellos.
 
 ---
 
@@ -127,6 +162,7 @@ npx ts-node src/scripts/create_whatsapp_ticket_mapping_table.ts
 | Coexistence (onboarding app) | https://developers.facebook.com/docs/whatsapp/embedded-signup/custom-flows/onboarding-business-app-users |
 | Configuración de webhooks | https://developers.facebook.com/docs/whatsapp/cloud-api/guides/set-up-webhooks |
 | Envío de mensajes (para respuestas) | https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages |
+| WhatsApp Flows (opcional, p. ej. inmobiliaria) | https://developers.facebook.com/docs/whatsapp/flows/ |
 
 ---
 

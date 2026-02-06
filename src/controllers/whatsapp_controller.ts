@@ -24,17 +24,22 @@ export class WhatsAppController {
 
   /**
    * GET /api/whatsapp/webhook - Meta verification.
+   * Meta sends: hub.mode=subscribe, hub.verify_token=..., hub.challenge=...
+   * We must respond with the challenge (plain text) and 200.
    */
   async verifyWebhook(req: Request, res: Response): Promise<void> {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-      console.log('✅ WhatsApp webhook verified');
-      res.status(200).send(challenge);
+    console.log('[WhatsApp] Verification GET', { mode, tokenMatch: token === VERIFY_TOKEN, hasChallenge: !!challenge });
+
+    if (mode === 'subscribe' && token === VERIFY_TOKEN && challenge != null) {
+      const challengeStr = String(challenge);
+      console.log('✅ WhatsApp webhook verified, sending challenge');
+      res.type('text/plain').status(200).send(challengeStr);
     } else {
-      console.warn('⚠️ WhatsApp webhook verification failed: invalid mode or token');
+      console.warn('⚠️ WhatsApp webhook verification failed', { mode, expectedToken: !!VERIFY_TOKEN });
       res.status(403).send('Forbidden');
     }
   }
