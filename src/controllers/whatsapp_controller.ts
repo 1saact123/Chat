@@ -89,7 +89,7 @@ export class WhatsAppController {
         const contacts = value.contacts || [];
         const contactMap = new Map(contacts.map((c) => [c.wa_id, c.profile?.name || 'WhatsApp User']));
 
-        for (const msg of value.messages) {
+        for (const msg of value.messages ?? []) {
           if (msg.type !== 'text' || !msg.text?.body) continue;
           const phone = msg.from;
           const text = msg.text.body.trim();
