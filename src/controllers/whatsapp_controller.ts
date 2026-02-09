@@ -6,6 +6,7 @@
 
 import { Request, Response } from 'express';
 import { WhatsAppTicketService } from '../services/whatsapp_ticket_service';
+import { routeToService } from '../services/whatsapp_intent_router';
 import { ServiceTicketController } from './service_ticket_controller';
 import { UserJiraService } from '../services/user_jira_service';
 import { User } from '../models';
@@ -108,23 +109,30 @@ export class WhatsAppController {
 
   /**
    * Resolve or create Jira ticket for this phone, then add message as comment.
+   * For new conversations: uses intent router (keywords or config) to choose service; else default.
    */
   private async processIncomingMessage(phone: string, senderName: string, text: string): Promise<void> {
     const userId = DEFAULT_USER_ID;
-    const serviceId = DEFAULT_SERVICE_ID;
+    const defaultServiceId = DEFAULT_SERVICE_ID;
 
-    if (!userId || !serviceId) {
+    if (!userId || !defaultServiceId) {
       console.warn('⚠️ WhatsApp: WHATSAPP_DEFAULT_USER_ID or WHATSAPP_DEFAULT_SERVICE_ID not set. Skipping message.');
       return;
     }
 
     let issueKey: string;
+    let serviceId = defaultServiceId;
     let mapping = await WhatsAppTicketService.getMapping(phone);
 
     if (mapping) {
       issueKey = mapping.issue_key;
-      console.log(`📱 WhatsApp: existing ticket for ${phone} -> ${issueKey}`);
+      serviceId = mapping.service_id;
+      console.log(`📱 WhatsApp: existing ticket for ${phone} -> ${issueKey} (service ${serviceId})`);
     } else {
+      const routed = await routeToService(userId, text, defaultServiceId);
+      serviceId = routed.serviceId;
+      console.log(`📱 WhatsApp: new conversation, routed to service ${serviceId} (${routed.source})`);
+
       const user = await User.findByPk(userId);
       if (!user) {
         console.error(`❌ WhatsApp: default user ${userId} not found.`);
@@ -139,7 +147,7 @@ export class WhatsAppController {
         const result = await this.serviceTicketController.createTicketForWhatsApp(userId, serviceId, customerInfo);
         issueKey = result.issueKey;
         await WhatsAppTicketService.setMapping(phone, issueKey, serviceId, userId);
-        console.log(`📱 WhatsApp: new ticket created ${issueKey} for ${phone}`);
+        console.log(`📱 WhatsApp: new ticket created ${issueKey} for ${phone} (service ${serviceId})`);
       } catch (err) {
         console.error('❌ WhatsApp: failed to create ticket:', err);
         return;

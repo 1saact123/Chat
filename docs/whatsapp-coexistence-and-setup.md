@@ -9,10 +9,13 @@
   - Table `whatsapp_ticket_mapping`: one row per phone (normalized), with `issue_key`, `service_id`, `user_id`.
   - New conversation: creates a Jira ticket via the same logic as the widget, then saves the mapping.
   - Later messages: reuse the same ticket and append comments.
+- **Intent router** (new conversations)
+  - For new conversations, the backend loads **available services from `unified_configurations`** (active for `WHATSAPP_DEFAULT_USER_ID`) and routes by matching message text to each service’s **`configuration.whatsappKeywords`**. If no match, `WHATSAPP_DEFAULT_SERVICE_ID` is used.
 - **Env**
   - `WHATSAPP_VERIFY_TOKEN` – same value as in Meta App → WhatsApp → Webhook “Verify token”.
   - `WHATSAPP_DEFAULT_USER_ID` – user id used to create tickets and to get Jira (and optional OpenAI) credentials.
-  - `WHATSAPP_DEFAULT_SERVICE_ID` – service id used for new WhatsApp conversations (must have `projectKey` and config in `unified_configurations`).
+  - `WHATSAPP_DEFAULT_SERVICE_ID` – default service for new conversations when no intent match (must have `projectKey` and config in `unified_configurations`).
+  - Routing keywords are read from **`unified_configurations.configuration.whatsappKeywords`** (no env for keywords).
 
 ## What you need to use Coexistence
 
@@ -46,6 +49,8 @@ WHATSAPP_VERIFY_TOKEN=your_verify_token_you_set_in_meta
 # Required for creating tickets and adding comments (user must have Jira + service config)
 WHATSAPP_DEFAULT_USER_ID=25
 WHATSAPP_DEFAULT_SERVICE_ID=Test 3
+
+# Routing: configure whatsappKeywords in unified_configurations.configuration per service.
 
 # Optional: for sending replies to WhatsApp (future)
 # WHATSAPP_ACCESS_TOKEN=EAAx...
