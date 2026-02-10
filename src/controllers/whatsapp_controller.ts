@@ -50,7 +50,16 @@ export class WhatsAppController {
    */
   async handleWebhook(req: Request, res: Response): Promise<void> {
     try {
-      const body = req.body as {
+      // Log every POST to confirm Meta is hitting the server
+      const bodyRaw = req.body;
+      console.log('[WhatsApp] POST webhook received', {
+        hasBody: !!bodyRaw,
+        object: bodyRaw?.object,
+        entryCount: bodyRaw?.entry?.length ?? 0,
+        firstChangeField: bodyRaw?.entry?.[0]?.changes?.[0]?.field
+      });
+
+      const body = bodyRaw as {
         object?: string;
         entry?: Array<{
           id: string;
