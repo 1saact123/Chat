@@ -69,14 +69,13 @@ export interface ServiceSelection {
 }
 
 /**
- * Detect if the user message is a selection from the assistant list:
- * - Number 1..N (1-based index into services list)
- * - Or matches a service name / keyword (normalized).
- * Returns the selected service or null if not a clear selection.
+ * Detect if the user message is a selection from the assistant list.
+ * @param strictFirstContact - When true (first contact): only accept number 1..N or exact service name. No keyword/substring match, so "hola" or "quiero info" won't create a ticket and the list is always shown first.
  */
 export function parseServiceSelection(
   services: RoutableService[],
-  messageText: string
+  messageText: string,
+  strictFirstContact = true
 ): ServiceSelection | null {
   const normalized = messageText.trim().toLowerCase();
   if (!normalized || services.length === 0) return null;
@@ -90,9 +89,11 @@ export function parseServiceSelection(
   for (const svc of services) {
     const nameNorm = svc.serviceName.trim().toLowerCase();
     if (nameNorm && normalized === nameNorm) return { serviceId: svc.serviceId, serviceName: svc.serviceName };
-    if (nameNorm && normalized.includes(nameNorm)) return { serviceId: svc.serviceId, serviceName: svc.serviceName };
-    for (const kw of svc.keywords) {
-      if (kw && (normalized === kw || normalized.includes(kw))) return { serviceId: svc.serviceId, serviceName: svc.serviceName };
+    if (!strictFirstContact) {
+      if (nameNorm && normalized.includes(nameNorm)) return { serviceId: svc.serviceId, serviceName: svc.serviceName };
+      for (const kw of svc.keywords) {
+        if (kw && (normalized === kw || normalized.includes(kw))) return { serviceId: svc.serviceId, serviceName: svc.serviceName };
+      }
     }
   }
   return null;

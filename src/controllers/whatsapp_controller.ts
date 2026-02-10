@@ -157,7 +157,8 @@ export class WhatsAppController {
       return;
     }
 
-    const selection = parseServiceSelection(services, text);
+    // strictFirstContact: true = only "1"/"2" or exact service name counts as selection; else we always show the list first
+    const selection = parseServiceSelection(services, text, true);
     if (selection) {
       // User chose a service: create ticket and switch (first message goes to Jira)
       const user = await User.findByPk(userId);
@@ -198,9 +199,9 @@ export class WhatsAppController {
     const listMessage = buildAssistantListMessage(services);
     if (phoneNumberId) {
       await sendWhatsAppText(phoneNumberId, phone, listMessage);
-      console.log('📱 WhatsApp: Asistente Movonte sent service list to', phone);
+      console.log('📱 WhatsApp: Asistente Movonte → list sent to', phone, '(no ticket created)');
     } else {
-      console.warn('⚠️ WhatsApp: WHATSAPP_PHONE_NUMBER_ID not set; cannot send assistant list.');
+      console.warn('⚠️ WhatsApp: no phone_number_id; cannot send assistant list. Set WHATSAPP_PHONE_NUMBER_ID or ensure webhook sends metadata.phone_number_id.');
     }
   }
 
