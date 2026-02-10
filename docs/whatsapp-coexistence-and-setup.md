@@ -9,13 +9,15 @@
   - Table `whatsapp_ticket_mapping`: one row per phone (normalized), with `issue_key`, `service_id`, `user_id`.
   - New conversation: creates a Jira ticket via the same logic as the widget, then saves the mapping.
   - Later messages: reuse the same ticket and append comments.
+- **Asistente independiente WhatsApp**
+  - There must be a **dedicated service** in `unified_configurations` for the “WhatsApp main assistant” (its own `projectKey`, its own assistant). Set **`WHATSAPP_DEFAULT_SERVICE_ID`** to that service’s `service_id`. This assistant is **never** chosen by keywords; it only receives conversations when no keyword matches (it “does the switch” to other services when keywords match).
 - **Intent router** (new conversations)
-  - For new conversations, the backend loads **available services from `unified_configurations`** (active for `WHATSAPP_DEFAULT_USER_ID`) and routes by matching message text to each service’s **`configuration.whatsappKeywords`**. If no match, `WHATSAPP_DEFAULT_SERVICE_ID` is used.
+  - Loads **available services from `unified_configurations`** (active for `WHATSAPP_DEFAULT_USER_ID`). Keyword matching is applied **only to services other than** `WHATSAPP_DEFAULT_SERVICE_ID`. If no keyword match, the WhatsApp main assistant (default service) is used.
 - **Env**
   - `WHATSAPP_VERIFY_TOKEN` – same value as in Meta App → WhatsApp → Webhook “Verify token”.
-  - `WHATSAPP_DEFAULT_USER_ID` – user id used to create tickets and to get Jira (and optional OpenAI) credentials.
-  - `WHATSAPP_DEFAULT_SERVICE_ID` – default service for new conversations when no intent match (must have `projectKey` and config in `unified_configurations`).
-  - Routing keywords are read from **`unified_configurations.configuration.whatsappKeywords`** (no env for keywords).
+  - `WHATSAPP_DEFAULT_USER_ID` – user id used for tickets and Jira/OpenAI.
+  - `WHATSAPP_DEFAULT_SERVICE_ID` – **must be the dedicated “Asistente principal WhatsApp” service** (its own project and assistant in `unified_configurations`). Used when no keyword match.
+  - Keywords: **`unified_configurations.configuration.whatsappKeywords`** per service (only non-default services need keywords for the switch).
 
 ## What you need to use Coexistence
 
@@ -65,14 +67,19 @@ Create the mapping table (once):
 npx ts-node src/scripts/create_whatsapp_ticket_mapping_table.ts
 ```
 
-### 4. Jira / service config
+### 4. Asistente WhatsApp + Jira / service config
 
-- The user `WHATSAPP_DEFAULT_USER_ID` must:
-  - Exist and have Jira credentials (profile or assistant Jira account for the service).
-- The service `WHATSAPP_DEFAULT_SERVICE_ID` must:
-  - Exist in `unified_configurations` for that user (or globally),
-  - Have `projectKey` in `configuration`,
-  - Be active.
+- **Asistente principal WhatsApp (obligatorio)**  
+  Create one row in `unified_configurations` dedicated to WhatsApp, e.g.:
+  - `service_id`: `"WhatsApp"` (or the value you will use in `WHATSAPP_DEFAULT_SERVICE_ID`).
+  - `service_name`: e.g. `"Asistente principal WhatsApp"`.
+  - `configuration`: `{ "projectKey": "CHAT" }` (or the Jira project for this assistant).
+  - Assign an `assistant_id` / assistant for this service.  
+  Do **not** set `whatsappKeywords` for this service; the router uses it only as the default.
+
+- The user `WHATSAPP_DEFAULT_USER_ID` must exist and have Jira (and optional OpenAI) credentials.
+- The service `WHATSAPP_DEFAULT_SERVICE_ID` must be that WhatsApp assistant service (exists in `unified_configurations`, has `projectKey`, is active).
+- Other services (Ventas, Soporte, etc.) define **`whatsappKeywords`** in their `configuration` so the router can switch to them.
 
 ## Flow summary
 

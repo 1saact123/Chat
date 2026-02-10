@@ -65,8 +65,9 @@ export async function getActiveServiceIdsForUser(userId: number): Promise<string
 
 /**
  * Detect which service_id to use for this message (new conversation).
- * Services and keywords are taken from unified_configurations only.
- * If no keyword matches, returns defaultServiceId (if it exists in DB for this user).
+ * - The "WhatsApp main assistant" is the defaultServiceId: it is used when no intent matches.
+ * - Only "other" services (not the default) are considered for keyword matching, so the
+ *   main assistant is an independent entry point and "does the switch" to other services.
  */
 export async function routeToService(
   userId: number,
@@ -82,8 +83,10 @@ export async function routeToService(
   const words = normalizedText.split(/\s+/).filter(Boolean);
   const fullPhrase = normalizedText.replace(/\s+/g, ' ');
 
-  // Build keyword -> serviceId (first match wins; order by service_name)
+  // Keyword match: only among services that are NOT the WhatsApp main assistant (default).
+  // So the main assistant is never selected by keyword — it only receives when no match.
   for (const svc of services) {
+    if (svc.serviceId === defaultServiceId) continue;
     for (const kw of svc.keywords) {
       if (words.includes(kw) || fullPhrase.includes(kw)) {
         return { serviceId: svc.serviceId, source: 'keyword' };
@@ -91,7 +94,7 @@ export async function routeToService(
     }
   }
 
-  // Validate default is in DB; if not, use first available service
+  // No keyword match → use the WhatsApp main assistant (default service)
   const activeIds = new Set(services.map((s) => s.serviceId));
   const fallback =
     activeIds.has(defaultServiceId) ? defaultServiceId : services[0]?.serviceId ?? defaultServiceId;
