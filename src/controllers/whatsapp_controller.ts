@@ -133,7 +133,6 @@ export class WhatsAppController {
     phoneNumberId: string
   ): Promise<void> {
     const userId = DEFAULT_USER_ID;
-    const defaultServiceId = DEFAULT_SERVICE_ID;
 
     if (!userId) {
       console.warn('⚠️ WhatsApp: WHATSAPP_DEFAULT_USER_ID not set. Skipping message.');
