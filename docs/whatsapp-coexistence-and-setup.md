@@ -9,15 +9,14 @@
   - Table `whatsapp_ticket_mapping`: one row per phone (normalized), with `issue_key`, `service_id`, `user_id`.
   - New conversation: creates a Jira ticket via the same logic as the widget, then saves the mapping.
   - Later messages: reuse the same ticket and append comments.
-- **Asistente independiente WhatsApp**
-  - There must be a **dedicated service** in `unified_configurations` for the “WhatsApp main assistant” (its own `projectKey`, its own assistant). Set **`WHATSAPP_DEFAULT_SERVICE_ID`** to that service’s `service_id`. This assistant is **never** chosen by keywords; it only receives conversations when no keyword matches (it “does the switch” to other services when keywords match).
-- **Intent router** (new conversations)
-  - Loads **available services from `unified_configurations`** (active for `WHATSAPP_DEFAULT_USER_ID`). Keyword matching is applied **only to services other than** `WHATSAPP_DEFAULT_SERVICE_ID`. If no keyword match, the WhatsApp main assistant (default service) is used.
+- **Asistente Movonte** (predefined assistant, not a DB service)
+  - First contact: no Jira ticket. The backend sends a message as “Asistente Movonte” with a **list of services** (from `unified_configurations` for `WHATSAPP_DEFAULT_USER_ID`). User replies with the **number** or **name** of a service.
+  - When user selects a service: a Jira ticket is created for that service, the phone is mapped to it, and from then on all messages go to that ticket. Optionally a reply is sent: “Te hemos conectado con [Servicio]. ¿En qué podemos ayudarte?”
 - **Env**
   - `WHATSAPP_VERIFY_TOKEN` – same value as in Meta App → WhatsApp → Webhook “Verify token”.
-  - `WHATSAPP_DEFAULT_USER_ID` – user id used for tickets and Jira/OpenAI.
-  - `WHATSAPP_DEFAULT_SERVICE_ID` – **must be the dedicated “Asistente principal WhatsApp” service** (its own project and assistant in `unified_configurations`). Used when no keyword match.
-  - Keywords: **`unified_configurations.configuration.whatsappKeywords`** per service (only non-default services need keywords for the switch).
+  - `WHATSAPP_DEFAULT_USER_ID` – user id used to load services and create tickets (must have services in `unified_configurations`).
+  - `WHATSAPP_ACCESS_TOKEN` – **required** for sending replies (assistant list and “connected” message). Permanent or long-lived token.
+  - `WHATSAPP_PHONE_NUMBER_ID` – optional; if not set, the webhook uses `metadata.phone_number_id` from each request.
 
 ## What you need to use Coexistence
 
@@ -48,14 +47,12 @@
 # Required for webhook verification
 WHATSAPP_VERIFY_TOKEN=your_verify_token_you_set_in_meta
 
-# Required for creating tickets and adding comments (user must have Jira + service config)
+# Required: user whose services are shown by Asistente Movonte and used for tickets
 WHATSAPP_DEFAULT_USER_ID=25
-WHATSAPP_DEFAULT_SERVICE_ID=Test 3
 
-# Routing: configure whatsappKeywords in unified_configurations.configuration per service.
-
-# Optional: for sending replies to WhatsApp (future)
-# WHATSAPP_ACCESS_TOKEN=EAAx...
+# Required for Asistente Movonte to send the service list and "connected" message
+WHATSAPP_ACCESS_TOKEN=EAAx...
+# Optional: if not set, phone_number_id from webhook payload is used
 # WHATSAPP_PHONE_NUMBER_ID=123456789
 ```
 
@@ -67,28 +64,18 @@ Create the mapping table (once):
 npx ts-node src/scripts/create_whatsapp_ticket_mapping_table.ts
 ```
 
-### 4. Asistente WhatsApp + Jira / service config
+### 4. Jira / service config
 
-- **Asistente principal WhatsApp (obligatorio)**  
-  Create one row in `unified_configurations` dedicated to WhatsApp, e.g.:
-  - `service_id`: `"WhatsApp"` (or the value you will use in `WHATSAPP_DEFAULT_SERVICE_ID`).
-  - `service_name`: e.g. `"Asistente principal WhatsApp"`.
-  - `configuration`: `{ "projectKey": "CHAT" }` (or the Jira project for this assistant).
-  - Assign an `assistant_id` / assistant for this service.  
-  Do **not** set `whatsappKeywords` for this service; the router uses it only as the default.
-
-- The user `WHATSAPP_DEFAULT_USER_ID` must exist and have Jira (and optional OpenAI) credentials.
-- The service `WHATSAPP_DEFAULT_SERVICE_ID` must be that WhatsApp assistant service (exists in `unified_configurations`, has `projectKey`, is active).
-- Other services (Ventas, Soporte, etc.) define **`whatsappKeywords`** in their `configuration` so the router can switch to them.
+- The user `WHATSAPP_DEFAULT_USER_ID` must exist and have at least one active service in `unified_configurations` (with `projectKey` in `configuration`). Each service can have its own Jira/assistant config.
 
 ## Flow summary
 
 1. User sends a message on WhatsApp (same number used by the app and the API if Coexistence is set).
 2. Meta sends `POST /api/whatsapp/webhook` with the message.
-3. Backend normalizes the phone, looks up `whatsapp_ticket_mapping`.
-4. If no row: creates a Jira ticket (same as widget) for `WHATSAPP_DEFAULT_USER_ID` + `WHATSAPP_DEFAULT_SERVICE_ID`, then saves phone → `issue_key` in `whatsapp_ticket_mapping`.
-5. Backend adds the message as a Jira comment on that ticket (`[WhatsApp] SenderName: text`).
-6. Jira can then fire `comment_created` → your existing `/api/chatbot/webhook/jira` → AI reply in Jira (and optionally later you can send that reply back to WhatsApp with the Cloud API).
+3. Backend looks up `whatsapp_ticket_mapping` for the phone.
+4. **If no row (first contact):** Asistente Movonte sends a list of services (from `unified_configurations`). No Jira ticket yet. User replies with a number or service name.
+5. **When user selects a service:** Backend creates a Jira ticket for that service, saves phone → ticket in `whatsapp_ticket_mapping`, sends “Te hemos conectado con [Servicio]…” and adds the selection as the first comment.
+6. **If row exists:** Backend adds the message as a Jira comment on that ticket. Jira can fire `comment_created` → `/api/chatbot/webhook/jira` → AI reply (and optionally send reply back to WhatsApp).
 
 ## Links (Meta)
 

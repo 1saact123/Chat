@@ -6,7 +6,12 @@
 
 import { Request, Response } from 'express';
 import { WhatsAppTicketService } from '../services/whatsapp_ticket_service';
-import { routeToService } from '../services/whatsapp_intent_router';
+import {
+  getRoutableServicesFromDb,
+  parseServiceSelection,
+  buildAssistantListMessage
+} from '../services/whatsapp_intent_router';
+import { sendWhatsAppText } from '../services/whatsapp_send_service';
 import { ServiceTicketController } from './service_ticket_controller';
 import { UserJiraService } from '../services/user_jira_service';
 import { User } from '../models';
@@ -14,7 +19,6 @@ import { ServiceJiraAccountsController } from './service_jira_accounts_controlle
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'chatbot_webhook_verify';
 const DEFAULT_USER_ID = parseInt(process.env.WHATSAPP_DEFAULT_USER_ID || '0', 10);
-const DEFAULT_SERVICE_ID = process.env.WHATSAPP_DEFAULT_SERVICE_ID || '';
 
 export class WhatsAppController {
   private serviceTicketController: ServiceTicketController;
@@ -96,6 +100,7 @@ export class WhatsAppController {
       for (const change of changes) {
         if (change.field !== 'messages' || !change.value?.messages) continue;
         const value = change.value;
+        const phoneNumberId = value.metadata?.phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID || '';
         const contacts = value.contacts || [];
         const contactMap = new Map(contacts.map((c) => [c.wa_id, c.profile?.name || 'WhatsApp User']));
 
@@ -105,7 +110,7 @@ export class WhatsAppController {
           const text = msg.text.body.trim();
           const senderName = contactMap.get(phone) || `+${phone}`;
 
-          await this.processIncomingMessage(phone, senderName, text);
+          await this.processIncomingMessage(phone, senderName, text, phoneNumberId);
         }
       }
 
@@ -117,31 +122,45 @@ export class WhatsAppController {
   }
 
   /**
-   * Resolve or create Jira ticket for this phone, then add message as comment.
-   * For new conversations: uses intent router (keywords or config) to choose service; else default.
+   * Asistente Movonte (predefined, not in DB): no Jira ticket until user selects a service.
+   * - No mapping: show list of services from DB; if user selects one -> create ticket and switch.
+   * - Mapping exists: conversation goes to that service's Jira ticket.
    */
-  private async processIncomingMessage(phone: string, senderName: string, text: string): Promise<void> {
+  private async processIncomingMessage(
+    phone: string,
+    senderName: string,
+    text: string,
+    phoneNumberId: string
+  ): Promise<void> {
     const userId = DEFAULT_USER_ID;
     const defaultServiceId = DEFAULT_SERVICE_ID;
 
-    if (!userId || !defaultServiceId) {
-      console.warn('⚠️ WhatsApp: WHATSAPP_DEFAULT_USER_ID or WHATSAPP_DEFAULT_SERVICE_ID not set. Skipping message.');
+    if (!userId) {
+      console.warn('⚠️ WhatsApp: WHATSAPP_DEFAULT_USER_ID not set. Skipping message.');
       return;
     }
 
-    let issueKey: string;
-    let serviceId = defaultServiceId;
-    let mapping = await WhatsAppTicketService.getMapping(phone);
+    const mapping = await WhatsAppTicketService.getMapping(phone);
 
     if (mapping) {
-      issueKey = mapping.issue_key;
-      serviceId = mapping.service_id;
-      console.log(`📱 WhatsApp: existing ticket for ${phone} -> ${issueKey} (service ${serviceId})`);
-    } else {
-      const routed = await routeToService(userId, text, defaultServiceId);
-      serviceId = routed.serviceId;
-      console.log(`📱 WhatsApp: new conversation, routed to service ${serviceId} (${routed.source})`);
+      // Already switched to a service: add message to Jira ticket
+      await this.addMessageToTicket(phone, senderName, text, mapping.issue_key, mapping.service_id, mapping.user_id);
+      return;
+    }
 
+    // --- Asistente Movonte: no ticket yet, show list or handle selection ---
+    const services = await getRoutableServicesFromDb(userId);
+    if (services.length === 0) {
+      console.warn('⚠️ WhatsApp: no active services for user. Cannot show assistant list.');
+      if (phoneNumberId) {
+        await sendWhatsAppText(phoneNumberId, phone, 'Hola. No hay servicios disponibles en este momento.');
+      }
+      return;
+    }
+
+    const selection = parseServiceSelection(services, text);
+    if (selection) {
+      // User chose a service: create ticket and switch (first message goes to Jira)
       const user = await User.findByPk(userId);
       if (!user) {
         console.error(`❌ WhatsApp: default user ${userId} not found.`);
@@ -150,34 +169,61 @@ export class WhatsAppController {
       const customerInfo = {
         name: senderName,
         email: `${phone.replace(/\D/g, '')}@whatsapp.placeholder`,
-        phone: phone
+        phone
       };
       try {
-        const result = await this.serviceTicketController.createTicketForWhatsApp(userId, serviceId, customerInfo);
-        issueKey = result.issueKey;
-        await WhatsAppTicketService.setMapping(phone, issueKey, serviceId, userId);
-        console.log(`📱 WhatsApp: new ticket created ${issueKey} for ${phone} (service ${serviceId})`);
+        const result = await this.serviceTicketController.createTicketForWhatsApp(userId, selection.serviceId, customerInfo);
+        await WhatsAppTicketService.setMapping(phone, result.issueKey, selection.serviceId, userId);
+        console.log(`📱 WhatsApp: user chose "${selection.serviceName}" -> ticket ${result.issueKey} for ${phone}`);
+
+        const firstComment = `Usuario eligió servicio: ${selection.serviceName}. Mensaje: ${text}`;
+        await this.addMessageToTicket(phone, senderName, firstComment, result.issueKey, selection.serviceId, userId);
+
+        if (phoneNumberId) {
+          await sendWhatsAppText(
+            phoneNumberId,
+            phone,
+            `Te hemos conectado con *${selection.serviceName}*. ¿En qué podemos ayudarte?`
+          );
+        }
       } catch (err) {
-        console.error('❌ WhatsApp: failed to create ticket:', err);
-        return;
+        console.error('❌ WhatsApp: failed to create ticket after selection:', err);
+        if (phoneNumberId) {
+          await sendWhatsAppText(phoneNumberId, phone, 'No pudimos conectar con ese servicio. Intenta de nuevo o elige otro.');
+        }
       }
+      return;
     }
 
-    const mappingAfter = await WhatsAppTicketService.getMapping(phone);
-    const uid = mappingAfter?.user_id ?? userId;
-    const jiraCredentials = await this.getJiraCredentialsForUserAndService(uid, mappingAfter?.service_id ?? serviceId);
+    // No selection: show Asistente Movonte list (no Jira)
+    const listMessage = buildAssistantListMessage(services);
+    if (phoneNumberId) {
+      await sendWhatsAppText(phoneNumberId, phone, listMessage);
+      console.log('📱 WhatsApp: Asistente Movonte sent service list to', phone);
+    } else {
+      console.warn('⚠️ WhatsApp: WHATSAPP_PHONE_NUMBER_ID not set; cannot send assistant list.');
+    }
+  }
+
+  private async addMessageToTicket(
+    phone: string,
+    senderName: string,
+    text: string,
+    issueKey: string,
+    serviceId: string,
+    userId: number
+  ): Promise<void> {
+    const jiraCredentials = await this.getJiraCredentialsForUserAndService(userId, serviceId);
     if (!jiraCredentials) {
       console.error('❌ WhatsApp: no Jira credentials for user/service.');
       return;
     }
-
     const userJiraService = new UserJiraService(
-      uid,
+      userId,
       jiraCredentials.token,
       jiraCredentials.url,
       jiraCredentials.email
     );
-
     const commentText = `[WhatsApp] ${senderName}: ${text}`;
     try {
       await userJiraService.addCommentToIssue(issueKey, commentText);

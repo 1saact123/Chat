@@ -63,11 +63,58 @@ export async function getActiveServiceIdsForUser(userId: number): Promise<string
   return services.map((s) => s.serviceId);
 }
 
+export interface ServiceSelection {
+  serviceId: string;
+  serviceName: string;
+}
+
+/**
+ * Detect if the user message is a selection from the assistant list:
+ * - Number 1..N (1-based index into services list)
+ * - Or matches a service name / keyword (normalized).
+ * Returns the selected service or null if not a clear selection.
+ */
+export function parseServiceSelection(
+  services: RoutableService[],
+  messageText: string
+): ServiceSelection | null {
+  const normalized = messageText.trim().toLowerCase();
+  if (!normalized || services.length === 0) return null;
+
+  const num = parseInt(normalized, 10);
+  if (!Number.isNaN(num) && num >= 1 && num <= services.length) {
+    const svc = services[num - 1];
+    return { serviceId: svc.serviceId, serviceName: svc.serviceName };
+  }
+
+  for (const svc of services) {
+    const nameNorm = svc.serviceName.trim().toLowerCase();
+    if (nameNorm && normalized === nameNorm) return { serviceId: svc.serviceId, serviceName: svc.serviceName };
+    if (nameNorm && normalized.includes(nameNorm)) return { serviceId: svc.serviceId, serviceName: svc.serviceName };
+    for (const kw of svc.keywords) {
+      if (kw && (normalized === kw || normalized.includes(kw))) return { serviceId: svc.serviceId, serviceName: svc.serviceName };
+    }
+  }
+  return null;
+}
+
+/** Build the Asistente Movonte welcome + list message (no Jira, predefined assistant). */
+export function buildAssistantListMessage(services: RoutableService[]): string {
+  const lines = [
+    'Hola, soy *Asistente Movonte*.',
+    '',
+    'Nuestros servicios:',
+    ...services.map((s, i) => `${i + 1}. ${s.serviceName}`),
+    '',
+    'Responde con el *número* o el *nombre del servicio* para continuar.'
+  ];
+  return lines.join('\n');
+}
+
 /**
  * Detect which service_id to use for this message (new conversation).
- * - The "WhatsApp main assistant" is the defaultServiceId: it is used when no intent matches.
- * - Only "other" services (not the default) are considered for keyword matching, so the
- *   main assistant is an independent entry point and "does the switch" to other services.
+ * Services and keywords are taken from unified_configurations only.
+ * If no keyword matches, returns defaultServiceId (if it exists in DB for this user).
  */
 export async function routeToService(
   userId: number,
@@ -83,10 +130,8 @@ export async function routeToService(
   const words = normalizedText.split(/\s+/).filter(Boolean);
   const fullPhrase = normalizedText.replace(/\s+/g, ' ');
 
-  // Keyword match: only among services that are NOT the WhatsApp main assistant (default).
-  // So the main assistant is never selected by keyword — it only receives when no match.
+  // Build keyword -> serviceId (first match wins; order by service_name)
   for (const svc of services) {
-    if (svc.serviceId === defaultServiceId) continue;
     for (const kw of svc.keywords) {
       if (words.includes(kw) || fullPhrase.includes(kw)) {
         return { serviceId: svc.serviceId, source: 'keyword' };
@@ -94,7 +139,7 @@ export async function routeToService(
     }
   }
 
-  // No keyword match → use the WhatsApp main assistant (default service)
+  // Validate default is in DB; if not, use first available service
   const activeIds = new Set(services.map((s) => s.serviceId));
   const fallback =
     activeIds.has(defaultServiceId) ? defaultServiceId : services[0]?.serviceId ?? defaultServiceId;
