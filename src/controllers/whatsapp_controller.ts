@@ -142,7 +142,8 @@ export class WhatsAppController {
     const mapping = await WhatsAppTicketService.getMapping(phone);
 
     if (mapping) {
-      // Already switched to a service: add message to Jira ticket
+      // Phone already linked to a service/ticket → add message to Jira (no Asistente Movonte list)
+      console.log('📱 WhatsApp: existing mapping', phone, '→', mapping.issue_key, mapping.service_id);
       await this.addMessageToTicket(phone, senderName, text, mapping.issue_key, mapping.service_id, mapping.user_id);
       return;
     }
