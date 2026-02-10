@@ -199,8 +199,12 @@ export class WhatsAppController {
     // No selection: show Asistente Movonte list (no Jira)
     const listMessage = buildAssistantListMessage(services);
     if (phoneNumberId) {
-      await sendWhatsAppText(phoneNumberId, phone, listMessage);
-      console.log('📱 WhatsApp: Asistente Movonte → list sent to', phone, '(no ticket created)');
+      const sendResult = await sendWhatsAppText(phoneNumberId, phone, listMessage);
+      if (sendResult.success) {
+        console.log('📱 WhatsApp: Asistente Movonte → list sent to', phone, '(no ticket created)');
+      } else {
+        console.warn('⚠️ WhatsApp: could not send assistant list to', phone, '–', sendResult.error, '(Add number as test recipient in Meta if in development mode)');
+      }
     } else {
       console.warn('⚠️ WhatsApp: no phone_number_id; cannot send assistant list. Set WHATSAPP_PHONE_NUMBER_ID or ensure webhook sends metadata.phone_number_id.');
     }
