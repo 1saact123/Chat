@@ -720,12 +720,29 @@ export class ChatbotController {
             
             // Agregar la respuesta de la IA al historial
             this.addToConversationHistory(issueKey, 'assistant', response.response);
-            
+
+            // 📱 Enviar respuesta de IA a WhatsApp si el ticket está vinculado a una conversación activa
+            try {
+              const { WhatsAppConversationService } = await import('../services/whatsapp_conversation_service');
+              const { sendWhatsAppText } = await import('../services/whatsapp_send_service');
+              const whatsappConv = await WhatsAppConversationService.findByIssueKey(issueKey);
+              if (whatsappConv?.phone_number_id) {
+                await sendWhatsAppText(
+                  whatsappConv.phone_number_id,
+                  whatsappConv.phone_number,
+                  response.response
+                );
+                console.log(`📱 Respuesta de IA enviada a WhatsApp: ${whatsappConv.phone_number}`);
+              }
+            } catch (waError) {
+              console.error('⚠️ No se pudo enviar respuesta a WhatsApp (no afecta flujo Jira):', waError);
+            }
+
             // Guardar el account ID de la IA para futuras detecciones
             if (jiraResponse && jiraResponse.author && jiraResponse.author.accountId) {
               console.log(`📝 Account ID de la IA detectado: ${jiraResponse.author.accountId}`);
             }
-            
+
             console.log(`🎯 RESPUESTA DE ASISTENTE TRADICIONAL AGREGADA A JIRA:`);
             console.log(`   Issue: ${payload.issue.key}`);
             console.log(`   Respuesta: ${response.response.substring(0, 100)}...`);

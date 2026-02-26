@@ -41,10 +41,17 @@ export async function sendWhatsAppText(
         text: { body: text }
       })
     });
-    const data = (await res.json()) as { error?: { message?: string }; messages?: unknown };
+    const data = (await res.json()) as { error?: { message?: string; code?: number }; messages?: unknown };
     if (!res.ok) {
-      console.error('❌ WhatsApp send error:', data);
-      return { success: false, error: data.error?.message || String(res.status) };
+      const code = data.error?.code;
+      const msg = data.error?.message || String(res.status);
+      // 131030 = recipient not in allowed list (expected in Meta dev mode)
+      if (code === 131030) {
+        console.warn('⚠️ WhatsApp send: número no está en la lista de destinatarios de Meta (modo desarrollo). Agrégalo en la app de WhatsApp.');
+      } else {
+        console.error('❌ WhatsApp send error:', data);
+      }
+      return { success: false, error: msg };
     }
     return { success: true };
   } catch (err) {
